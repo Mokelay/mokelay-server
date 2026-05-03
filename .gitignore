@@ -1,0 +1,8 @@
+node_modules
+.nitro
+.vercel
+.env
+.env.*
+!.env.example
+!.env.production.example
+coverage
