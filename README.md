@@ -42,7 +42,7 @@ NODE_ENV=production
 DATABASE_URL=your-production-postgres-url
 SESSION_SECRET=use-a-strong-random-string-at-least-32-chars
 COOKIE_DOMAIN=.mokelay.com
-CORS_ORIGINS=https://www.mokelay.com,https://mokelay.com
+CORS_ORIGINS=https://www.mokelay.com,https://mokelay.com,http://localhost:5173
 STRIPE_WEBHOOK_SECRET=
 ```
 

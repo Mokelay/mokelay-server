@@ -122,6 +122,20 @@ describe('auth API', () => {
     expect(logoutResponse.headers.get('set-cookie')).toContain('Max-Age=0')
   })
 
+  it('allows the Vite dev origin for CORS preflight requests', async () => {
+    const response = await fetch(`${testServer.baseUrl}/api/me`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://localhost:5173',
+        'access-control-request-method': 'GET',
+      },
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+    expect(response.headers.get('access-control-allow-credentials')).toBe('true')
+  })
+
   it('rejects duplicate registrations and bad credentials', async () => {
     const payload = {
       name: 'Mokelay',

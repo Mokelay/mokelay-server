@@ -13,6 +13,7 @@ describe('CORS origins', () => {
 
     expect(origins.has('https://www.mokelay.com')).toBe(true)
     expect(origins.has('https://mokelay.com')).toBe(true)
+    expect(origins.has('http://localhost:5173')).toBe(true)
     expect(origins.has('http://localhost:3000')).toBe(true)
     expect(origins.has('http://127.0.0.1:3000')).toBe(true)
   })
