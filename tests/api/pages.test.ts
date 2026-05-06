@@ -190,16 +190,17 @@ describe('pages API', () => {
     })).status).toBe(404)
   })
 
-  it('allows CORS preflight requests for PATCH updates', async () => {
+  it('allows CORS preflight requests from the production editor', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/pages/${missingPageUuid}`, {
       method: 'OPTIONS',
       headers: {
-        origin: 'http://localhost:5173',
+        origin: 'https://editor.mokelay.com',
         'access-control-request-method': 'PATCH',
       },
     })
 
     expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://editor.mokelay.com')
     expect(response.headers.get('access-control-allow-methods')).toContain('PATCH')
   })
 })
