@@ -13,14 +13,22 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 
 Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
-`POST /api/ai/analyze-data-source` is a public multipart endpoint for recognizing data sources from an image. Send the file in the `image` field as JPEG, PNG, or WebP up to 10MB:
+`POST /api/ai/analyze-data-source` is a public endpoint for recognizing data sources from an image or text. Send image files as multipart data in the `image` field as JPEG, PNG, or WebP up to 10MB:
 
 ```bash
 curl -X POST http://127.0.0.1:8787/api/ai/analyze-data-source \
   -F "image=@./source.png"
 ```
 
-When the image contains JSON data, the response is `{ "type": "JSON", "rawData": ... }`. When it contains API information, the response is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized images return `422`.
+Send text as JSON with a non-empty `text` field up to 100KB:
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/ai/analyze-data-source \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "GET https://api.mokelay.com/api/me?debug=true" }'
+```
+
+When the input contains JSON data, the response is `{ "type": "JSON", "rawData": ... }`. When it contains API information, the response is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized input returns `422`.
 
 ## Local Development
 

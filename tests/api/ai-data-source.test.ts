@@ -6,7 +6,9 @@ import aiAnalyzeHandler from '../../server/routes/api/ai/analyze-data-source.pos
 import {
   AiDataSourceUnrecognizedError,
   analyzeDataSourceImage,
+  analyzeDataSourceText,
   maxImageBytes,
+  maxTextBytes,
 } from '../../server/utils/ai-data-source'
 
 vi.mock('../../server/utils/ai-data-source', async (importOriginal) => {
@@ -15,6 +17,7 @@ vi.mock('../../server/utils/ai-data-source', async (importOriginal) => {
   return {
     ...actual,
     analyzeDataSourceImage: vi.fn(),
+    analyzeDataSourceText: vi.fn(),
   }
 })
 
@@ -24,6 +27,7 @@ type TestServer = {
 }
 
 const mockedAnalyzeDataSourceImage = vi.mocked(analyzeDataSourceImage)
+const mockedAnalyzeDataSourceText = vi.mocked(analyzeDataSourceText)
 
 async function startServer(): Promise<TestServer> {
   const app = createApp()
@@ -67,6 +71,7 @@ describe('AI data source API', () => {
 
   beforeEach(async () => {
     mockedAnalyzeDataSourceImage.mockReset()
+    mockedAnalyzeDataSourceText.mockReset()
     testServer = await startServer()
   })
 
@@ -130,6 +135,60 @@ describe('AI data source API', () => {
     })
   })
 
+  it('returns JSON data source analysis for text input', async () => {
+    mockedAnalyzeDataSourceText.mockResolvedValueOnce({
+      type: 'JSON',
+      rawData: { ok: true },
+    })
+
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: '{"ok":true}' }),
+    })
+    const body = await readJson(response)
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      type: 'JSON',
+      rawData: { ok: true },
+    })
+    expect(mockedAnalyzeDataSourceText).toHaveBeenCalledWith('{"ok":true}')
+    expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
+  })
+
+  it('returns API data source analysis for text input', async () => {
+    mockedAnalyzeDataSourceText.mockResolvedValueOnce({
+      type: 'API',
+      domain: 'https://api.mokelay.com',
+      path: '/api/me',
+      method: 'GET',
+      headerData: [],
+      bodyData: [],
+      queryData: [{ key: 'debug', mock: '' }],
+    })
+
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'GET https://api.mokelay.com/api/me?debug=true' }),
+    })
+    const body = await readJson(response)
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      type: 'API',
+      domain: 'https://api.mokelay.com',
+      path: '/api/me',
+      method: 'GET',
+      headerData: [],
+      bodyData: [],
+      queryData: [{ key: 'debug', mock: '' }],
+    })
+    expect(mockedAnalyzeDataSourceText).toHaveBeenCalledWith('GET https://api.mokelay.com/api/me?debug=true')
+    expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
+  })
+
   it('rejects multipart requests without an image file', async () => {
     const formData = new FormData()
 
@@ -144,7 +203,7 @@ describe('AI data source API', () => {
     expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
   })
 
-  it('rejects non-multipart requests', async () => {
+  it('rejects JSON requests without text', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -153,6 +212,70 @@ describe('AI data source API', () => {
 
     expect(response.status).toBe(400)
     expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
+  })
+
+  it('rejects empty text requests', async () => {
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: '   ' }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
+  })
+
+  it('rejects text larger than 100KB', async () => {
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'x'.repeat(maxTextBytes + 1) }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
+  })
+
+  it('rejects JSON requests that include both text and image', async () => {
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: 'GET /api/me',
+        image: 'data:image/png;base64,aW1hZ2U=',
+      }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
+  })
+
+  it('rejects multipart requests that include both image and text', async () => {
+    const formData = createImageFormData()
+
+    formData.set('text', 'GET /api/me')
+
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    expect(response.status).toBe(400)
+    expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
+  })
+
+  it('rejects unsupported content types', async () => {
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: 'GET /api/me',
+    })
+
+    expect(response.status).toBe(400)
+    expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
+    expect(mockedAnalyzeDataSourceText).not.toHaveBeenCalled()
   })
 
   it('rejects unsupported image content types', async () => {
@@ -183,6 +306,20 @@ describe('AI data source API', () => {
     const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
       method: 'POST',
       body: createImageFormData(),
+    })
+
+    expect(response.status).toBe(422)
+  })
+
+  it('maps unrecognized text to 422', async () => {
+    mockedAnalyzeDataSourceText.mockRejectedValueOnce(
+      new AiDataSourceUnrecognizedError('无法从图片中识别出 JSON 数据或 API 信息。'),
+    )
+
+    const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'hello world' }),
     })
 
     expect(response.status).toBe(422)

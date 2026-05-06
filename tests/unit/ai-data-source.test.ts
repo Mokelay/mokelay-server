@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   AiDataSourceModelOutputError,
   AiDataSourceUnrecognizedError,
+  analyzeDataSourceText,
   imageBufferToDataUrl,
   normalizeAiDataSourceOutput,
 } from '../../server/utils/ai-data-source'
@@ -18,6 +19,28 @@ describe('AI data source normalization', () => {
         items: [{ id: 1 }],
       },
     })
+  })
+
+  it('parses JSON text locally without requiring OpenAI configuration', async () => {
+    const originalApiKey = process.env.OPENAI_API_KEY
+
+    delete process.env.OPENAI_API_KEY
+
+    try {
+      await expect(analyzeDataSourceText(' { "ok": true, "count": 2 } ')).resolves.toEqual({
+        type: 'JSON',
+        rawData: {
+          ok: true,
+          count: 2,
+        },
+      })
+    } finally {
+      if (originalApiKey === undefined) {
+        delete process.env.OPENAI_API_KEY
+      } else {
+        process.env.OPENAI_API_KEY = originalApiKey
+      }
+    }
   })
 
   it('normalizes API model output', () => {

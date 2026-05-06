@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import { z } from 'zod'
 
 export const maxImageBytes = 10 * 1024 * 1024
+export const maxTextBytes = 100 * 1024
 export const supportedImageMimeTypes = ['image/jpeg', 'image/png', 'image/webp'] as const
 
 type SupportedImageMimeType = typeof supportedImageMimeTypes[number]
@@ -38,6 +39,11 @@ type BodyMockData = KeyMockData & {
 type AnalyzeImageInput = {
   data: Buffer
   mimeType: SupportedImageMimeType
+}
+
+type AnalyzeDataSourceInput = {
+  text: string
+  image?: AnalyzeImageInput
 }
 
 const httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
@@ -117,14 +123,14 @@ const responseFormatSchema = {
 }
 
 const dataSourceAnalysisPrompt = `
-你是 Mokelay 的数据源图片识别器。请只判断图片是否展示了 JSON 数据或 HTTP API 信息。
+你是 Mokelay 的数据源识别器。请只判断用户提供的文本或图片是否展示了 JSON 数据或 HTTP API 信息。
 
 规则：
-1. 如果图片主要展示 JSON 数据，type 返回 JSON，rawDataText 返回图片中可解析的完整 JSON 字符串。
-2. 如果图片主要展示 HTTP API 信息，type 返回 API，并提取 domain、path、method、headerData、bodyData、queryData。
+1. 如果输入主要展示 JSON 数据，type 返回 JSON，rawDataText 返回输入中可解析的完整 JSON 字符串。
+2. 如果输入主要展示 HTTP API 信息，type 返回 API，并提取 domain、path、method、headerData、bodyData、queryData。
 3. headerData/queryData 只需要 key 和 mock；bodyData 需要 key、dataType、mock。
 4. 如果字段没有 mock 值，返回空字符串；如果参数缺失，返回空数组。
-5. 如果图片既不是 JSON 数据也不是 HTTP API 信息，或内容不足以可靠识别，type 返回 UNKNOWN。
+5. 如果输入既不是 JSON 数据也不是 HTTP API 信息，或内容不足以可靠识别，type 返回 UNKNOWN。
 6. 不要输出解释文字，只输出符合 schema 的 JSON。
 `.trim()
 
@@ -144,6 +150,26 @@ export class AiDataSourceModelOutputError extends AiDataSourceError {}
 export class AiDataSourceUnrecognizedError extends AiDataSourceError {}
 
 export async function analyzeDataSourceImage(input: AnalyzeImageInput): Promise<DataSourceAnalysisResult> {
+  return await analyzeDataSourceInput({
+    text: '请分析这张图片中的数据源内容。',
+    image: input,
+  })
+}
+
+export async function analyzeDataSourceText(text: string): Promise<DataSourceAnalysisResult> {
+  const localJson = parseJsonText(text)
+
+  if (localJson.ok) {
+    return {
+      type: 'JSON',
+      rawData: localJson.value,
+    }
+  }
+
+  return await analyzeDataSourceInput({ text })
+}
+
+async function analyzeDataSourceInput(input: AnalyzeDataSourceInput): Promise<DataSourceAnalysisResult> {
   const apiKey = process.env.OPENAI_API_KEY?.trim()
 
   if (!apiKey) {
@@ -154,19 +180,23 @@ export async function analyzeDataSourceImage(input: AnalyzeImageInput): Promise<
   const model = process.env.OPENAI_MODEL?.trim() || 'gpt-4.1-mini'
 
   try {
+    const content = [
+      { type: 'input_text' as const, text: `${dataSourceAnalysisPrompt}\n\n用户输入：\n${input.text}` },
+      ...(input.image
+        ? [{
+            type: 'input_image' as const,
+            image_url: imageBufferToDataUrl(input.image.data, input.image.mimeType),
+            detail: 'high' as const,
+          }]
+        : []),
+    ]
+
     const response = await client.responses.create({
       model,
       input: [
         {
           role: 'user',
-          content: [
-            { type: 'input_text', text: dataSourceAnalysisPrompt },
-            {
-              type: 'input_image',
-              image_url: imageBufferToDataUrl(input.data, input.mimeType),
-              detail: 'high',
-            },
-          ],
+          content,
         },
       ],
       max_output_tokens: 1600,
@@ -192,6 +222,19 @@ export async function analyzeDataSourceImage(input: AnalyzeImageInput): Promise<
   }
 }
 
+export function parseTextDataSourceJson(text: string): DataSourceAnalysisResult | null {
+  const parsed = parseJsonText(text)
+
+  if (!parsed.ok) {
+    return null
+  }
+
+  return {
+    type: 'JSON',
+    rawData: parsed.value,
+  }
+}
+
 export function isSupportedImageMimeType(mimeType: string): mimeType is SupportedImageMimeType {
   return supportedImageMimeTypes.includes(mimeType as SupportedImageMimeType)
 }
@@ -208,7 +251,7 @@ export function normalizeAiDataSourceOutput(output: unknown): DataSourceAnalysis
   }
 
   if (parsed.data.type === 'UNKNOWN') {
-    throw new AiDataSourceUnrecognizedError('无法从图片中识别出 JSON 数据或 API 信息。')
+    throw new AiDataSourceUnrecognizedError('无法从输入中识别出 JSON 数据或 API 信息。')
   }
 
   if (parsed.data.type === 'JSON') {
@@ -244,6 +287,17 @@ function parseRawJson(rawDataText: string): JsonValue {
     return JSON.parse(rawDataText) as JsonValue
   } catch (error) {
     throw new AiDataSourceModelOutputError('AI 识别出的 JSON 数据无法解析。', error)
+  }
+}
+
+function parseJsonText(text: string): { ok: true, value: JsonValue } | { ok: false } {
+  try {
+    return {
+      ok: true,
+      value: JSON.parse(text.trim()) as JsonValue,
+    }
+  } catch {
+    return { ok: false }
   }
 }
 
