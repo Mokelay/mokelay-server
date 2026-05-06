@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createApp, createRouter, toNodeListener } from 'h3'
 import corsMiddleware from '../../server/middleware/cors'
+import listPageHandler from '../../server/routes/api/pages/index.get'
 import createPageHandler from '../../server/routes/api/pages/index.post'
 import readPageHandler from '../../server/routes/api/pages/[uuid].get'
 import updatePageHandler from '../../server/routes/api/pages/[uuid].patch'
@@ -13,13 +14,27 @@ type TestServer = {
   close: () => Promise<void>
 }
 
+type PublicPage = {
+  uuid: string
+  name: string
+  blocks: unknown[]
+  createdAt: string
+  updatedAt: string
+}
+
 type PageResponse = {
-  page: {
-    uuid: string
-    name: string
-    blocks: unknown[]
-    createdAt: string
-    updatedAt: string
+  page: PublicPage
+}
+
+type PageListResponse = {
+  pages: PublicPage[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
   }
 }
 
@@ -31,6 +46,7 @@ async function startServer(): Promise<TestServer> {
   const router = createRouter()
 
   router.post('/api/pages', createPageHandler)
+  router.get('/api/pages', listPageHandler)
   router.get('/api/pages/:uuid', readPageHandler)
   router.patch('/api/pages/:uuid', updatePageHandler)
 
@@ -59,6 +75,10 @@ async function closeServer(server: Server) {
 
 async function readPageResponse(response: Response) {
   return await response.json() as PageResponse
+}
+
+async function readPageListResponse(response: Response) {
+  return await response.json() as PageListResponse
 }
 
 async function createPage(baseUrl: string, body: Record<string, unknown>) {
@@ -114,6 +134,120 @@ describe('pages API', () => {
 
     expect(response.status).toBe(201)
     expect(body.page.blocks).toEqual([])
+  })
+
+  it('lists pages with default pagination and full page payloads', async () => {
+    const firstResponse = await createPage(testServer.baseUrl, {
+      name: 'First Page',
+      blocks: [{ type: 'text', value: 'First' }],
+    })
+    const first = await readPageResponse(firstResponse)
+
+    const secondResponse = await createPage(testServer.baseUrl, {
+      name: 'Second Page',
+      blocks: [{ type: 'hero', title: 'Second' }],
+    })
+    const second = await readPageResponse(secondResponse)
+
+    const response = await fetch(`${testServer.baseUrl}/api/pages`)
+    const body = await readPageListResponse(response)
+
+    expect(response.status).toBe(200)
+    expect(body.pagination).toEqual({
+      page: 1,
+      pageSize: 20,
+      total: 2,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false,
+    })
+    expect(body.pages).toHaveLength(2)
+    expect(body.pages).toEqual(expect.arrayContaining([first.page, second.page]))
+  })
+
+  it('lists pages by updated time descending', async () => {
+    const firstResponse = await createPage(testServer.baseUrl, {
+      name: 'Older Page',
+      blocks: [{ type: 'text', value: 'Older' }],
+    })
+    const first = await readPageResponse(firstResponse)
+
+    const secondResponse = await createPage(testServer.baseUrl, {
+      name: 'Newer Page',
+      blocks: [{ type: 'text', value: 'Newer' }],
+    })
+    const second = await readPageResponse(secondResponse)
+
+    await fetch(`${testServer.baseUrl}/api/pages/${first.page.uuid}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        blocks: [{ type: 'text', value: 'Updated first' }],
+      }),
+    })
+
+    const response = await fetch(`${testServer.baseUrl}/api/pages`)
+    const body = await readPageListResponse(response)
+
+    expect(response.status).toBe(200)
+    expect(body.pages.map((page) => page.uuid)).toEqual([first.page.uuid, second.page.uuid])
+  })
+
+  it('lists the requested page with pagination metadata', async () => {
+    await createPage(testServer.baseUrl, { name: 'Page One', blocks: [] })
+    await createPage(testServer.baseUrl, { name: 'Page Two', blocks: [] })
+    await createPage(testServer.baseUrl, { name: 'Page Three', blocks: [] })
+
+    const response = await fetch(`${testServer.baseUrl}/api/pages?page=2&pageSize=2`)
+    const body = await readPageListResponse(response)
+
+    expect(response.status).toBe(200)
+    expect(body.pages).toHaveLength(1)
+    expect(body.pages[0]?.uuid).toMatch(uuidPattern)
+    expect(body.pagination).toEqual({
+      page: 2,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPreviousPage: true,
+      hasNextPage: false,
+    })
+  })
+
+  it('returns an empty page list when the requested page is beyond the last page', async () => {
+    await createPage(testServer.baseUrl, { name: 'Page One', blocks: [] })
+    await createPage(testServer.baseUrl, { name: 'Page Two', blocks: [] })
+
+    const response = await fetch(`${testServer.baseUrl}/api/pages?page=3&pageSize=1`)
+    const body = await readPageListResponse(response)
+
+    expect(response.status).toBe(200)
+    expect(body.pages).toEqual([])
+    expect(body.pagination).toEqual({
+      page: 3,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPreviousPage: true,
+      hasNextPage: false,
+    })
+  })
+
+  it('rejects invalid page list pagination query parameters', async () => {
+    const invalidQueries = [
+      'page=0',
+      'page=abc',
+      'page=1.5',
+      'pageSize=0',
+      'pageSize=abc',
+      'pageSize=101',
+    ]
+
+    for (const query of invalidQueries) {
+      const response = await fetch(`${testServer.baseUrl}/api/pages?${query}`)
+
+      expect(response.status).toBe(400)
+    }
   })
 
   it('reads a page by UUID', async () => {

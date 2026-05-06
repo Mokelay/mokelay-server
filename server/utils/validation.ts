@@ -1,5 +1,57 @@
 import { z } from 'zod'
 
+function paginationQueryParam(name: string, defaultValue: number, max?: number) {
+  return z.preprocess((value) => {
+    if (Array.isArray(value)) {
+      return value[0]
+    }
+
+    return value
+  }, z.unknown()).transform((value, context) => {
+    if (value === undefined) {
+      return defaultValue
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} 必须是正整数。`,
+      })
+      return z.NEVER
+    }
+
+    const rawValue = String(value).trim()
+
+    if (!/^[0-9]+$/.test(rawValue)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} 必须是正整数。`,
+      })
+      return z.NEVER
+    }
+
+    const parsedValue = Number(rawValue)
+
+    if (!Number.isSafeInteger(parsedValue) || parsedValue < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} 必须是正整数。`,
+      })
+      return z.NEVER
+    }
+
+    if (max !== undefined && parsedValue > max) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} 不能超过 ${max}。`,
+      })
+      return z.NEVER
+    }
+
+    return parsedValue
+  })
+}
+
 export const emailSchema = z
   .string()
   .trim()
@@ -40,10 +92,16 @@ export const updatePageBlocksSchema = z.object({
   blocks: pageBlocksSchema,
 })
 
+export const listPagesQuerySchema = z.object({
+  page: paginationQueryParam('page', 1),
+  pageSize: paginationQueryParam('pageSize', 20, 100),
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type CreatePageInput = z.infer<typeof createPageSchema>
 export type UpdatePageBlocksInput = z.infer<typeof updatePageBlocksSchema>
+export type ListPagesQueryInput = z.infer<typeof listPagesQuerySchema>
 
 export function formatValidationError(error: z.ZodError) {
   return error.issues[0]?.message || '输入内容无效。'

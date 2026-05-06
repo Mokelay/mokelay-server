@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { count, desc, eq } from 'drizzle-orm'
 import { pages, type PageRecord } from '../database/schema'
 import { hasDatabaseUrl, useDb } from './db'
 
@@ -11,6 +11,16 @@ export type PublicPage = {
 }
 
 type MemoryPage = PageRecord
+
+type ListPagesInput = {
+  page: number
+  pageSize: number
+}
+
+type ListPagesResult = {
+  pages: PageRecord[]
+  total: number
+}
 
 const globalForPages = globalThis as typeof globalThis & {
   __mokelayMemoryPages?: Map<string, MemoryPage>
@@ -71,6 +81,39 @@ export async function findPageByUuid(uuid: string): Promise<PageRecord | undefin
   }
 
   return memoryPages().get(uuid)
+}
+
+export async function listPages(input: ListPagesInput): Promise<ListPagesResult> {
+  const offset = (input.page - 1) * input.pageSize
+
+  if (hasDatabaseUrl()) {
+    const db = useDb()
+    const [pageRows, totalRows] = await Promise.all([
+      db
+        .select()
+        .from(pages)
+        .orderBy(desc(pages.updatedAt), desc(pages.createdAt))
+        .limit(input.pageSize)
+        .offset(offset),
+      db.select({ total: count() }).from(pages),
+    ])
+    const total = totalRows[0]?.total ?? 0
+
+    return {
+      pages: pageRows,
+      total,
+    }
+  }
+
+  const sortedPages = Array.from(memoryPages().values()).sort((firstPage, secondPage) => (
+    secondPage.updatedAt.getTime() - firstPage.updatedAt.getTime()
+    || secondPage.createdAt.getTime() - firstPage.createdAt.getTime()
+  ))
+
+  return {
+    pages: sortedPages.slice(offset, offset + input.pageSize),
+    total: sortedPages.length,
+  }
 }
 
 export async function updatePageBlocks(uuid: string, blocks: unknown[]): Promise<PageRecord | undefined> {

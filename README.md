@@ -8,6 +8,7 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/me`
+- `GET /api/pages`
 - `POST /api/pages`
 - `GET /api/pages/:uuid`
 - `PATCH /api/pages/:uuid`
@@ -15,6 +16,8 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 - `POST /api/ai/analyze-data-source`
 
 Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
+
+List pages with `GET /api/pages?page=1&pageSize=20`. The response includes full page records and pagination metadata.
 
 `POST /api/ai/analyze-data-source` is a public endpoint for recognizing data sources from an image or text. Send image files as multipart data in the `image` field as JPEG, PNG, or WebP up to 10MB:
 
