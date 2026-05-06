@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -18,5 +18,15 @@ export const billingEvents = pgTable('billing_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const pages = pgTable('pages', {
+  uuid: uuid('uuid').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 120 }).notNull(),
+  blocks: jsonb('blocks').$type<unknown[]>().notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export type UserRecord = typeof users.$inferSelect
 export type NewUserRecord = typeof users.$inferInsert
+export type PageRecord = typeof pages.$inferSelect
+export type NewPageRecord = typeof pages.$inferInsert

@@ -32,7 +32,7 @@ export function applyCors(event: H3Event) {
     setResponseHeader(event, 'Vary', 'Origin')
   }
 
-  setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+  setResponseHeader(event, 'Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS')
   setResponseHeader(
     event,
     'Access-Control-Allow-Headers',
