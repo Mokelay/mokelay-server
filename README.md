@@ -8,6 +8,9 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/me`
+- `POST /api/pages`
+- `GET /api/pages/:uuid`
+- `PATCH /api/pages/:uuid`
 - `POST /api/billing/webhook`
 - `POST /api/ai/analyze-data-source`
 
