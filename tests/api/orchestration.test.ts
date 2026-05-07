@@ -37,6 +37,36 @@ type UserListResponse = {
   }>
 }
 
+type PublicPage = {
+  uuid: string
+  name: string
+  blocks: unknown[]
+  createdAt: string
+  updatedAt: string
+}
+
+type PageResponse = {
+  page: PublicPage | null
+}
+
+type PageListResponse = {
+  pages: Array<{
+    uuid: string
+    name: string
+    blocks: unknown[]
+    created_at: string
+    updated_at: string
+  }>
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+  }
+}
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const pgDialect = new PgDialect()
 
@@ -50,8 +80,17 @@ type UserRow = {
   updated_at: string
 }
 
+type PageRow = {
+  uuid: string
+  name: string
+  blocks: unknown[]
+  created_at: string
+  updated_at: string
+}
+
 class FakeSqlExecutor {
   readonly users: UserRow[] = []
+  readonly pages: PageRow[] = []
 
   execute = async <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => {
     const builtQuery = pgDialect.sqlToQuery(query)
@@ -62,16 +101,32 @@ class FakeSqlExecutor {
       return this.insertUser<T>(queryText, params)
     }
 
+    if (queryText.startsWith('INSERT INTO "pages"')) {
+      return this.insertPage<T>(queryText, params)
+    }
+
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "users"')) {
       return [{ total: this.filterUsers(queryText, params).length }] as unknown as T[]
     }
 
+    if (queryText.startsWith('SELECT count(*)::int AS total FROM "pages"')) {
+      return [{ total: this.filterPages(queryText, params).length }] as unknown as T[]
+    }
+
     if (queryText.startsWith('SELECT')) {
+      if (queryText.includes('FROM "pages"')) {
+        return this.selectPages<T>(queryText, params)
+      }
+
       return this.selectUsers<T>(queryText, params)
     }
 
     if (queryText.startsWith('UPDATE "users"')) {
       return this.updateUsers<T>(queryText, params)
+    }
+
+    if (queryText.startsWith('UPDATE "pages"')) {
+      return this.updatePages<T>(queryText, params)
     }
 
     if (queryText.startsWith('DELETE FROM "users"')) {
@@ -104,6 +159,26 @@ class FakeSqlExecutor {
     return [this.projectReturning(row, queryText)] as T[]
   }
 
+  private insertPage<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'pages')
+    const now = new Date().toISOString()
+    const row: PageRow = {
+      uuid: crypto.randomUUID(),
+      name: '',
+      blocks: [],
+      created_at: now,
+      updated_at: now,
+    }
+
+    columns.forEach((column, index) => {
+      row[column as keyof PageRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    this.pages.push(row)
+
+    return [this.projectReturning(row, queryText)] as T[]
+  }
+
   private selectUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const fields = this.selectFields(queryText)
     const users = this.filterUsers(queryText, params)
@@ -112,6 +187,24 @@ class FakeSqlExecutor {
       : queryText.includes(' LIMIT 1')
         ? users.slice(0, 1)
         : users
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
+  private selectPages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const pages = this.filterPages(queryText, params)
+    const sortedPages = queryText.includes('ORDER BY "updated_at" DESC')
+      ? pages.sort((firstPage, secondPage) => (
+          secondPage.updated_at.localeCompare(firstPage.updated_at)
+          || secondPage.created_at.localeCompare(firstPage.created_at)
+        ))
+      : pages
+    const rows = queryText.includes(' OFFSET ')
+      ? sortedPages.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      : queryText.includes(' LIMIT 1')
+        ? sortedPages.slice(0, 1)
+        : sortedPages
 
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
@@ -129,6 +222,23 @@ class FakeSqlExecutor {
     }
 
     return users.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
+  private updatePages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
+    const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
+    const setParamCount = setFields.length
+    const pages = this.filterPages(queryText, params.slice(setParamCount))
+
+    for (const page of pages) {
+      setFields.forEach((field, index) => {
+        page[field as keyof PageRow] = this.parseJsonParam(params[index]) as never
+      })
+    }
+
+    return queryText.includes('affected_marker')
+      ? pages.map(() => ({ affected_marker: 1 })) as unknown as T[]
+      : pages.map((page) => this.projectReturning(page, queryText)) as T[]
   }
 
   private deleteUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -149,15 +259,34 @@ class FakeSqlExecutor {
     return fieldMatch?.[1]?.match(/"([^"]+)"/g)?.map((field) => field.replaceAll('"', '')) ?? []
   }
 
-  private projectFields(row: UserRow, fields: string[]) {
-    return Object.fromEntries(fields.map((field) => [field, row[field as keyof UserRow]]))
+  private projectFields(row: Record<string, unknown>, fields: string[]) {
+    return Object.fromEntries(fields.map((field) => [field, row[field]]))
   }
 
-  private projectReturning(row: UserRow, queryText: string) {
+  private projectReturning(row: Record<string, unknown>, queryText: string) {
     const returningMatch = / RETURNING (.*)$/.exec(queryText)
-    const fields = returningMatch?.[1]?.match(/"([^"]+)"/g)?.map((field) => field.replaceAll('"', '')) ?? []
+    const fields = returningMatch?.[1]?.match(/"([^"]+)"/g)?.map((field) => {
+      return field.replaceAll('"', '')
+    }) ?? []
 
     return this.projectFields(row, fields)
+  }
+
+  private insertColumns(queryText: string, table: string) {
+    const columnMatch = new RegExp(`INSERT INTO "${table}" \\((.*?)\\) VALUES`).exec(queryText)
+    return columnMatch?.[1]?.match(/"([^"]+)"/g)?.map((column) => column.replaceAll('"', '')) ?? []
+  }
+
+  private parseJsonParam(value: unknown) {
+    if (typeof value !== 'string') {
+      return value
+    }
+
+    try {
+      return JSON.parse(value) as unknown
+    } catch {
+      return value
+    }
   }
 
   private filterUsers(queryText: string, params: unknown[]) {
@@ -185,6 +314,19 @@ class FakeSqlExecutor {
     }
 
     return [...this.users]
+  }
+
+  private filterPages(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.pages]
+    }
+
+    if (queryText.includes('"uuid" =')) {
+      const uuid = params.at(-1)
+      return this.pages.filter((page) => page.uuid === uuid)
+    }
+
+    return [...this.pages]
   }
 }
 
@@ -237,6 +379,13 @@ async function createUser(baseUrl: string, input: { name: string, email: string 
 
   expect(response.status).toBe(200)
   return await readJson<CreateUserResponse>(response)
+}
+
+async function createPage(baseUrl: string, input: { name: string, blocks: unknown[] }) {
+  const response = await postJson(baseUrl, 'create_page', input)
+
+  expect(response.status).toBe(200)
+  return await readJson<PageResponse>(response)
 }
 
 describe('mokelay orchestration API', () => {
@@ -339,6 +488,82 @@ describe('mokelay orchestration API', () => {
     expect(missingReadBody.user_info).toBeNull()
   })
 
+  it('executes the four stored page API JSON definitions', async () => {
+    const firstCreate = await createPage(testServer.baseUrl, {
+      name: 'First Page',
+      blocks: [{ type: 'hero', title: 'Hello' }],
+    })
+    const secondCreate = await createPage(testServer.baseUrl, {
+      name: 'Second Page',
+      blocks: [{ type: 'text', value: 'World' }],
+    })
+    const firstPage = firstCreate.page
+    const secondPage = secondCreate.page
+
+    expect(firstPage?.uuid).toMatch(uuidPattern)
+    expect(firstPage).toMatchObject({
+      name: 'First Page',
+      blocks: [{ type: 'hero', title: 'Hello' }],
+    })
+    expect(secondPage?.uuid).toMatch(uuidPattern)
+
+    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${firstPage?.uuid}`)
+    const readBody = await readJson<PageResponse>(readResponse)
+
+    expect(readResponse.status).toBe(200)
+    expect(readBody.page).toEqual(firstPage)
+
+    const updateResponse = await postJson(
+      testServer.baseUrl,
+      'update_page_blocks_by_uuid',
+      {
+        blocks: [{ type: 'text', value: 'Updated' }],
+      },
+      `?uuid=${firstPage?.uuid}`,
+    )
+    const updateBody = await readJson<PageResponse>(updateResponse)
+
+    expect(updateResponse.status).toBe(200)
+    expect(updateBody.page).toMatchObject({
+      uuid: firstPage?.uuid,
+      name: 'First Page',
+      blocks: [{ type: 'text', value: 'Updated' }],
+    })
+
+    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=1`)
+    const listBody = await readJson<PageListResponse>(listResponse)
+
+    expect(listResponse.status).toBe(200)
+    expect(listBody.pages).toHaveLength(1)
+    expect(listBody.pages[0]).toEqual(expect.objectContaining({
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+    }))
+    expect(listBody.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true,
+    })
+
+    const secondPageResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=2&pageSize=1`)
+    const secondPageBody = await readJson<PageListResponse>(secondPageResponse)
+
+    expect(secondPageResponse.status).toBe(200)
+    expect(new Set([
+      listBody.pages[0]?.uuid,
+      secondPageBody.pages[0]?.uuid,
+    ])).toEqual(new Set([firstPage?.uuid, secondPage?.uuid]))
+    expect(secondPageBody.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      hasPreviousPage: true,
+      hasNextPage: false,
+    })
+  })
+
   it('returns 400 when API_JSON_UUID is missing', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/mokelay`)
 
@@ -427,6 +652,37 @@ describe('mokelay orchestration API', () => {
 
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_schema`, { method: 'POST' })
+
+      expect(response.status).toBe(400)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('rejects outputs on update blocks', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: fakeSqlExecutor.execute,
+      loadApiJson: async () => ({
+        uuid: 'invalid_update_outputs',
+        method: 'POST',
+        blocks: [{
+          uuid: 'update',
+          functionName: 'update',
+          inputs: {
+            table: 'users',
+            fields: {
+              name: 'Should Not Return',
+            },
+          },
+          outputs: ['id'],
+        }],
+        response: { ok: true },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_update_outputs`, { method: 'POST' })
 
       expect(response.status).toBe(400)
     } finally {

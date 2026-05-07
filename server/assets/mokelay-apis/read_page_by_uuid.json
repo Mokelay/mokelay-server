@@ -1,0 +1,49 @@
+{
+  "uuid": "read_page_by_uuid",
+  "alias": "读取页面接口",
+  "method": "GET",
+  "request": {
+    "query": ["uuid"]
+  },
+  "blocks": [
+    {
+      "uuid": "read_page_block",
+      "alias": "读取页面Block",
+      "functionName": "read",
+      "inputs": {
+        "table": "pages",
+        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "page": {
+      "uuid": {
+        "template": "{{blocks['read_page_block'].outputs.data.uuid}}"
+      },
+      "name": {
+        "template": "{{blocks['read_page_block'].outputs.data.name}}"
+      },
+      "blocks": {
+        "template": "{{blocks['read_page_block'].outputs.data.blocks}}"
+      },
+      "createdAt": {
+        "template": "{{blocks['read_page_block'].outputs.data.created_at}}"
+      },
+      "updatedAt": {
+        "template": "{{blocks['read_page_block'].outputs.data.updated_at}}"
+      }
+    }
+  }
+}

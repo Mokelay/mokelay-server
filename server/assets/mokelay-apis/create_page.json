@@ -1,0 +1,66 @@
+{
+  "uuid": "create_page",
+  "alias": "创建页面接口",
+  "method": "POST",
+  "request": {
+    "body": ["name", "blocks"]
+  },
+  "blocks": [
+    {
+      "uuid": "create_page_block",
+      "alias": "创建页面Block",
+      "functionName": "create",
+      "inputs": {
+        "table": "pages",
+        "fields": {
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "blocks": {
+            "template": "{{request.body.blocks}}"
+          }
+        }
+      },
+      "outputs": ["uuid"]
+    },
+    {
+      "uuid": "read_page_block",
+      "alias": "读取页面Block",
+      "functionName": "read",
+      "inputs": {
+        "table": "pages",
+        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['create_page_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "page": {
+      "uuid": {
+        "template": "{{blocks['read_page_block'].outputs.data.uuid}}"
+      },
+      "name": {
+        "template": "{{blocks['read_page_block'].outputs.data.name}}"
+      },
+      "blocks": {
+        "template": "{{blocks['read_page_block'].outputs.data.blocks}}"
+      },
+      "createdAt": {
+        "template": "{{blocks['read_page_block'].outputs.data.created_at}}"
+      },
+      "updatedAt": {
+        "template": "{{blocks['read_page_block'].outputs.data.updated_at}}"
+      }
+    }
+  }
+}

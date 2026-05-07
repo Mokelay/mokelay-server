@@ -97,6 +97,7 @@ type BlockExecutionContext = {
   header: Record<string, string>
   query: Record<string, unknown>
   body: Record<string, unknown>
+  now: string
   blocks: Record<string, {
     inputs: Record<string, unknown>
     outputs: Record<string, unknown>
@@ -415,7 +416,7 @@ function identifierSql(value: unknown, name: string) {
 }
 
 function getFields(value: unknown) {
-  if (!Array.isArray(value) || value.length === 0 || !value.every((field) => typeof field === 'string')) {
+  if (!Array.isArray(value) || value.length === 0 || !value.every((field) => typeof field === 'string' && field.trim())) {
     throw createError({
       statusCode: 400,
       message: 'fields 必须是非空字符串数组。',
@@ -520,11 +521,53 @@ function returningSql(outputs: Block['outputs']) {
   return sql.join(outputs.map((field) => identifierSql(field, 'outputs')), sql`, `)
 }
 
+function fieldValueSql(value: unknown) {
+  return Array.isArray(value) || isRecord(value)
+    ? sql`${JSON.stringify(value)}::jsonb`
+    : sql`${value}`
+}
+
+function orderBySql(value: unknown) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value)) {
+    throw createError({
+      statusCode: 400,
+      message: 'orderBy 必须是数组。',
+    })
+  }
+
+  const orders = value.map((item) => {
+    if (!isRecord(item) || typeof item.fieldName !== 'string' || !item.fieldName.trim()) {
+      throw createError({
+        statusCode: 400,
+        message: 'orderBy.fieldName 必须是非空字符串。',
+      })
+    }
+
+    const direction = typeof item.direction === 'string' ? item.direction.toUpperCase() : 'ASC'
+
+    if (direction !== 'ASC' && direction !== 'DESC') {
+      throw createError({
+        statusCode: 400,
+        message: 'orderBy.direction 只能是 ASC 或 DESC。',
+      })
+    }
+
+    return sql`${identifierSql(item.fieldName, 'orderBy.fieldName')} ${sql.raw(direction)}`
+  })
+
+  return orders.length > 0 ? sql.join(orders, sql`, `) : undefined
+}
+
 async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecutor, paged = false) {
   const table = identifierSql(inputs.table, 'table')
   const fields = getFields(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
+  const orderBy = orderBySql(inputs.orderBy)
   const selectedFields = sql.join(fields.map((field) => identifierSql(field, 'fields')), sql`, `)
   const baseQuery = sql`FROM ${table}`
   const page = getPositiveInteger(inputs.page, 'page', 1)
@@ -533,9 +576,10 @@ async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecu
   const dataQuery = where
     ? sql`SELECT ${selectedFields} ${baseQuery} WHERE ${where}`
     : sql`SELECT ${selectedFields} ${baseQuery}`
+  const orderedDataQuery = orderBy ? sql`${dataQuery} ORDER BY ${orderBy}` : dataQuery
   const rows = paged
-    ? await executeSql(sql`${dataQuery} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`)
-    : await executeSql(dataQuery)
+    ? await executeSql(sql`${orderedDataQuery} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`)
+    : await executeSql(orderedDataQuery)
 
   if (!paged) {
     return { datas: rows }
@@ -550,6 +594,10 @@ async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecu
     datas: rows,
     total,
     totalPages: Math.ceil(total / pageSize),
+    page,
+    pageSize,
+    hasPreviousPage: page > 1 && total > 0,
+    hasNextPage: page < Math.ceil(total / pageSize),
   }
 }
 
@@ -574,7 +622,7 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
   const fields = getFieldValues(inputs.fields)
   const columns = Object.keys(fields)
   const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields')), sql`, `)
-  const valueSql = sql.join(columns.map((field) => sql`${fields[field]}`), sql`, `)
+  const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field])), sql`, `)
   const returning = returningSql(block.outputs)
 
   try {
@@ -605,12 +653,13 @@ async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExe
   const fields = getFieldValues(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields')} = ${value}`), sql`, `)
-  const rows = await executeSql(where
-    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
-    : sql`UPDATE ${table} SET ${assignments} RETURNING 1 AS affected_marker`)
+  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields')} = ${fieldValueSql(value)}`), sql`, `)
 
-  return { affected: rows.length }
+  await executeSql(where
+    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where}`
+    : sql`UPDATE ${table} SET ${assignments}`)
+
+  return {}
 }
 
 async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
@@ -640,6 +689,13 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
     throw createError({
       statusCode: 400,
       message: `不支持的 Block functionName：${block.functionName}`,
+    })
+  }
+
+  if (block.functionName === 'update' && block.outputs?.length) {
+    throw createError({
+      statusCode: 400,
+      message: 'update Block 不支持 outputs，如需读取更新后的数据请追加 read Block。',
     })
   }
 
@@ -688,6 +744,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
     header: request.header,
     query: request.query,
     body: request.body,
+    now: new Date().toISOString(),
     blocks: {},
   }
 
