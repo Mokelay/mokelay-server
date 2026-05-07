@@ -20,7 +20,7 @@ Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKI
 
 List pages with `GET /api/pages?page=1&pageSize=20`. The response includes full page records and pagination metadata.
 
-Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid" }] }] }`.
+Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 
 `POST /api/ai/analyze-data-source` is a public endpoint for recognizing data sources from an image or text. Send image files as multipart data in the `image` field as JPEG, PNG, or WebP up to 10MB:
 

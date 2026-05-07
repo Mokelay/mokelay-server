@@ -67,15 +67,15 @@ describe('database schema API', () => {
       {
         name: 'users',
         columns: [
-          { name: 'id', type: 'uuid' },
-          { name: 'email', type: 'character varying(255)' },
+          { name: 'id', type: 'uuid', dataType: 'uuid' },
+          { name: 'email', type: 'character varying(255)', dataType: 'character varying(255)' },
         ],
       },
       {
         name: 'pages',
         columns: [
-          { name: 'uuid', type: 'uuid' },
-          { name: 'blocks', type: 'jsonb' },
+          { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+          { name: 'blocks', type: 'jsonb', dataType: 'jsonb' },
         ],
       },
     ])
@@ -89,15 +89,15 @@ describe('database schema API', () => {
         {
           name: 'users',
           columns: [
-            { name: 'id', type: 'uuid' },
-            { name: 'email', type: 'character varying(255)' },
+            { name: 'id', type: 'uuid', dataType: 'uuid' },
+            { name: 'email', type: 'character varying(255)', dataType: 'character varying(255)' },
           ],
         },
         {
           name: 'pages',
           columns: [
-            { name: 'uuid', type: 'uuid' },
-            { name: 'blocks', type: 'jsonb' },
+            { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+            { name: 'blocks', type: 'jsonb', dataType: 'jsonb' },
           ],
         },
       ],

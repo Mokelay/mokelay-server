@@ -14,15 +14,15 @@ describe('database schema utilities', () => {
       {
         name: 'pages',
         columns: [
-          { name: 'uuid', type: 'uuid' },
-          { name: 'name', type: 'character varying(120)' },
+          { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+          { name: 'name', type: 'character varying(120)', dataType: 'character varying(120)' },
         ],
       },
       {
         name: 'users',
         columns: [
-          { name: 'id', type: 'uuid' },
-          { name: 'email', type: 'character varying(255)' },
+          { name: 'id', type: 'uuid', dataType: 'uuid' },
+          { name: 'email', type: 'character varying(255)', dataType: 'character varying(255)' },
         ],
       },
     ])

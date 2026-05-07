@@ -4,6 +4,7 @@ import { useDb } from './db'
 export type DatabaseColumnSchema = {
   name: string
   type: string
+  dataType: string
 }
 
 export type DatabaseTableSchema = {
@@ -35,6 +36,7 @@ export function mapDatabaseSchemaRows(rows: DatabaseSchemaQueryRow[]): DatabaseT
       table.columns.push({
         name: row.columnName,
         type: row.columnType,
+        dataType: row.columnType,
       })
     }
   }
