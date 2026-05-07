@@ -153,9 +153,9 @@ function parseApiJson(apiJsonUuid: string, value: unknown): ApiJson {
 async function loadApiJsonFromNitroAssets(apiJsonUuid: string) {
   try {
     const { useStorage } = await import('nitropack/runtime')
-    const value = await useStorage<string>('assets:server').getItem(`mokelay-apis/${apiJsonUuid}.json`)
+    const value = await useStorage('assets:server').getItem(`mokelay-apis/${apiJsonUuid}.json`)
 
-    return typeof value === 'string' ? value : undefined
+    return value ?? undefined
   } catch {
     return undefined
   }
@@ -191,10 +191,14 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
 export async function loadApiJson(apiJsonUuid: string) {
   assertApiJsonUuid(apiJsonUuid)
 
-  const raw = await loadApiJsonFromNitroAssets(apiJsonUuid) ?? await loadApiJsonFromFileSystem(apiJsonUuid)
+  const value = await loadApiJsonFromNitroAssets(apiJsonUuid) ?? await loadApiJsonFromFileSystem(apiJsonUuid)
+
+  if (typeof value !== 'string') {
+    return value
+  }
 
   try {
-    return JSON.parse(raw) as unknown
+    return JSON.parse(value) as unknown
   } catch {
     throw createError({
       statusCode: 400,
