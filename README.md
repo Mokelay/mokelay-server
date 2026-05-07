@@ -1,6 +1,6 @@
 # Mokelay Server
 
-Mokelay public API service. It owns website auth, user storage, billing webhook placeholders, and the PostgreSQL/Drizzle schema that used to live in `mokelay-website`.
+Mokelay public API service. It owns website auth, user storage, and the PostgreSQL/Drizzle schema that used to live in `mokelay-website`.
 
 ## API
 
@@ -10,7 +10,6 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 - `GET /api/me`
 - `GET|POST /api/mokelay/{API_JSON_UUID}`
 - `GET /api/database/schema`
-- `POST /api/billing/webhook`
 - `POST /api/ai/analyze-data-source`
 
 Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
@@ -67,7 +66,6 @@ DATABASE_URL=your-production-postgres-url
 SESSION_SECRET=use-a-strong-random-string-at-least-32-chars
 COOKIE_DOMAIN=.mokelay.com
 CORS_ORIGINS=https://www.mokelay.com,https://mokelay.com,https://editor.mokelay.com,http://localhost:5173
-STRIPE_WEBHOOK_SECRET=
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4.1-mini
 ```

@@ -7,7 +7,6 @@ import registerHandler from '../../server/routes/api/auth/register.post'
 import loginHandler from '../../server/routes/api/auth/login.post'
 import logoutHandler from '../../server/routes/api/auth/logout.post'
 import meHandler from '../../server/routes/api/me.get'
-import billingWebhookHandler from '../../server/routes/api/billing/webhook.post'
 import { clearMemoryUsers } from '../../server/utils/user-store'
 import { sessionCookieName } from '../../server/utils/session'
 
@@ -24,7 +23,6 @@ async function startServer(): Promise<TestServer> {
   app.use('/api/auth/login', loginHandler)
   app.use('/api/auth/logout', logoutHandler)
   app.use('/api/me', meHandler)
-  app.use('/api/billing/webhook', billingWebhookHandler)
 
   const server = createServer(toNodeListener(app))
 
@@ -197,17 +195,4 @@ describe('auth API', () => {
     })
   })
 
-  it('handles billing webhook placeholder responses', async () => {
-    const response = await fetch(`${testServer.baseUrl}/api/billing/webhook`, {
-      method: 'POST',
-      body: '{}',
-    })
-    const body = await readJson(response)
-
-    expect(response.status).toBe(200)
-    expect(body).toMatchObject({
-      received: true,
-      mode: 'placeholder',
-    })
-  })
 })

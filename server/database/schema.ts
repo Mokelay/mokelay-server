@@ -10,14 +10,6 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const billingEvents = pgTable('billing_events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  stripeEventId: varchar('stripe_event_id', { length: 255 }).notNull().unique(),
-  type: varchar('type', { length: 120 }).notNull(),
-  payload: text('payload').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
-
 export const pages = pgTable('pages', {
   uuid: uuid('uuid').primaryKey().defaultRandom(),
   name: varchar('name', { length: 120 }).notNull(),
