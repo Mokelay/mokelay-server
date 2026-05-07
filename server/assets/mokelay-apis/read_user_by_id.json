@@ -1,0 +1,35 @@
+{
+  "uuid": "read_user_by_id",
+  "alias": "读取用户信息接口",
+  "method": "GET",
+  "request": {
+    "query": ["id"]
+  },
+  "blocks": [
+    {
+      "uuid": "ax2e",
+      "alias": "读取Block",
+      "functionName": "read",
+      "inputs": {
+        "table": "users",
+        "fields": ["id", "name", "email", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.query.id}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "user_info": {
+      "template": "{{blocks['ax2e'].outputs.data}}"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "uuid": "delete_user_info_by_id",
+  "alias": "删除用户信息",
+  "method": "POST",
+  "request": {
+    "body": ["id"]
+  },
+  "blocks": [
+    {
+      "uuid": "ax2e",
+      "alias": "删除Block",
+      "functionName": "delete",
+      "inputs": {
+        "table": "users",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.body.id}}"
+            }
+          }
+        ]
+      },
+      "outputs": null
+    }
+  ],
+  "response": {
+    "message": "删除成功"
+  }
+}
