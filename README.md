@@ -8,17 +8,14 @@ Mokelay public API service. It owns website auth, user storage, billing webhook 
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/me`
-- `GET /api/pages`
-- `POST /api/pages`
-- `GET /api/pages/:uuid`
-- `PATCH /api/pages/:uuid`
+- `GET|POST /api/mokelay/{API_JSON_UUID}`
 - `GET /api/database/schema`
 - `POST /api/billing/webhook`
 - `POST /api/ai/analyze-data-source`
 
 Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
-List pages with `GET /api/pages?page=1&pageSize=20`. The response includes full page records and pagination metadata.
+Pages are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`. See `docs/pages-orchestration-api.md` for the current pages API calls.
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 

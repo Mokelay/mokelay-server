@@ -1,0 +1,40 @@
+{
+  "uuid": "update_user_info_by_id",
+  "alias": "更新用户信息",
+  "method": "POST",
+  "request": {
+    "query": ["id"],
+    "body": ["name", "email"]
+  },
+  "blocks": [
+    {
+      "uuid": "ax2e",
+      "alias": "更新Block",
+      "functionName": "update",
+      "inputs": {
+        "table": "users",
+        "fields": {
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "email": {
+            "template": "{{request.body.email}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.query.id}}"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "response": {
+    "update": true
+  }
+}
