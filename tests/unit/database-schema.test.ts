@@ -1,0 +1,43 @@
+import { describe, expect, it } from 'vitest'
+import { mapDatabaseSchemaRows } from '../../server/utils/database-schema'
+
+describe('database schema utilities', () => {
+  it('groups columns by table while preserving query order', () => {
+    const tables = mapDatabaseSchemaRows([
+      { tableName: 'pages', columnName: 'uuid', columnType: 'uuid' },
+      { tableName: 'pages', columnName: 'name', columnType: 'character varying(120)' },
+      { tableName: 'users', columnName: 'id', columnType: 'uuid' },
+      { tableName: 'users', columnName: 'email', columnType: 'character varying(255)' },
+    ])
+
+    expect(tables).toEqual([
+      {
+        name: 'pages',
+        columns: [
+          { name: 'uuid', type: 'uuid' },
+          { name: 'name', type: 'character varying(120)' },
+        ],
+      },
+      {
+        name: 'users',
+        columns: [
+          { name: 'id', type: 'uuid' },
+          { name: 'email', type: 'character varying(255)' },
+        ],
+      },
+    ])
+  })
+
+  it('returns empty column lists for tables without columns', () => {
+    const tables = mapDatabaseSchemaRows([
+      { tableName: 'empty_table', columnName: null, columnType: null },
+    ])
+
+    expect(tables).toEqual([
+      {
+        name: 'empty_table',
+        columns: [],
+      },
+    ])
+  })
+})
