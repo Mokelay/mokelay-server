@@ -11,6 +11,7 @@
       "alias": "页面分页Block",
       "functionName": "page",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "pages",
         "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
         "page": {

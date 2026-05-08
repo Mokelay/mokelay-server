@@ -12,6 +12,7 @@
       "alias": "更新页面Block",
       "functionName": "update",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "pages",
         "fields": {
           "blocks": {
@@ -31,13 +32,15 @@
             }
           }
         ]
-      }
+      },
+      "outputs": ["affected"]
     },
     {
       "uuid": "read_page_block",
       "alias": "读取页面Block",
       "functionName": "read",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "pages",
         "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
         "conditions": [
@@ -55,6 +58,9 @@
     }
   ],
   "response": {
+    "affected":{
+      "template": "{{blocks['update_page_block'].outputs.affected}}"
+    },
     "page": {
       "uuid": {
         "template": "{{blocks['read_page_block'].outputs.data.uuid}}"

@@ -14,7 +14,7 @@ import {
   type H3Event,
 } from 'h3'
 import { z } from 'zod'
-import { hasDatabaseUrl, useDb } from './db'
+import { normalizeDatasourceName, useDatasourceDb } from './db'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
 const templatePattern = /\{\{\s*([^}]+?)\s*\}\}/g
@@ -113,10 +113,20 @@ type BlockExecutorInput = {
 type BlockExecutor = (input: BlockExecutorInput) => Promise<Record<string, unknown>>
 
 type SqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => Promise<T[]>
+type DatasourceSqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) => Promise<T[]>
 
 type OrchestrationHandlerOptions = {
   loadApiJson?: (apiJsonUuid: string) => Promise<unknown>
-  executeSql?: SqlExecutor
+  executeSql?: DatasourceSqlExecutor
+}
+
+const allowedBlockOutputs: Record<string, readonly string[]> = {
+  list: ['datas'],
+  page: ['datas', 'total', 'totalPages', 'page', 'pageSize', 'hasPreviousPage', 'hasNextPage'],
+  read: ['data'],
+  delete: ['affected'],
+  create: ['uuid'],
+  update: ['affected'],
 }
 
 function assertApiJsonUuid(value: string | undefined) {
@@ -207,17 +217,8 @@ export async function loadApiJson(apiJsonUuid: string) {
   }
 }
 
-function ensureDatabaseUrl() {
-  if (!hasDatabaseUrl()) {
-    throw createError({
-      statusCode: 500,
-      message: 'DATABASE_URL is not configured.',
-    })
-  }
-}
-
-async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) {
-  const rows = await useDb().execute<T>(query)
+async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) {
+  const rows = await useDatasourceDb(datasource).execute<T>(query)
 
   return Array.from(rows) as T[]
 }
@@ -517,12 +518,20 @@ function getPositiveInteger(value: unknown, name: string, defaultValue: number) 
   return parsedValue
 }
 
-function returningSql(outputs: Block['outputs']) {
-  if (!outputs?.length) {
-    return undefined
+function getCreateIdField(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw createError({
+      statusCode: 400,
+      message: 'idField 必须是非空字符串。',
+    })
   }
 
-  return sql.join(outputs.map((field) => identifierSql(field, 'outputs')), sql`, `)
+  const fieldName = value.trim()
+
+  return {
+    fieldName: fieldName.split('.').at(-1)?.trim() || fieldName,
+    fieldSql: identifierSql(fieldName, 'idField'),
+  }
 }
 
 function fieldValueSql(value: unknown) {
@@ -624,20 +633,23 @@ async function executeRead(inputs: Record<string, unknown>, executeSql: SqlExecu
 async function executeCreate(block: Block, inputs: Record<string, unknown>, executeSql: SqlExecutor) {
   const table = identifierSql(inputs.table, 'table')
   const fields = getFieldValues(inputs.fields)
+  const idField = getCreateIdField(inputs.idField)
   const columns = Object.keys(fields)
   const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields')), sql`, `)
   const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field])), sql`, `)
-  const returning = returningSql(block.outputs)
 
   try {
-    if (!returning) {
-      await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql})`)
-      return {}
+    const rows = await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) RETURNING ${idField.fieldSql}`)
+    const uuid = rows[0]?.[idField.fieldName]
+
+    if (uuid === undefined || uuid === null || uuid === '') {
+      throw createError({
+        statusCode: 500,
+        message: 'create Block 未返回插入记录的唯一 ID。',
+      })
     }
 
-    const rows = await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) RETURNING ${returning}`)
-
-    return rows[0] ?? {}
+    return { uuid }
   } catch (error) {
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
@@ -659,11 +671,11 @@ async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExe
   const where = buildWhereSql(conditions)
   const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields')} = ${fieldValueSql(value)}`), sql`, `)
 
-  await executeSql(where
-    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where}`
-    : sql`UPDATE ${table} SET ${assignments}`)
+  const rows = await executeSql(where
+    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
+    : sql`UPDATE ${table} SET ${assignments} RETURNING 1 AS affected_marker`)
 
-  return {}
+  return { affected: rows.length }
 }
 
 async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
@@ -686,7 +698,28 @@ const blockExecutors: Record<string, BlockExecutor> = {
   update: ({ inputs, executeSql }) => executeUpdate(inputs, executeSql),
 }
 
-async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: SqlExecutor) {
+function validateDeclaredOutputs(block: Block) {
+  if (!block.outputs?.length) {
+    return
+  }
+
+  const allowedOutputs = allowedBlockOutputs[block.functionName]
+
+  if (!allowedOutputs) {
+    return
+  }
+
+  for (const outputName of block.outputs) {
+    if (!allowedOutputs.includes(outputName)) {
+      throw createError({
+        statusCode: 400,
+        message: `Block ${block.functionName} 不支持输出：${outputName}`,
+      })
+    }
+  }
+}
+
+async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: DatasourceSqlExecutor) {
   const executor = blockExecutors[block.functionName]
 
   if (!executor) {
@@ -696,20 +729,18 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
     })
   }
 
-  if (block.functionName === 'update' && block.outputs?.length) {
-    throw createError({
-      statusCode: 400,
-      message: 'update Block 不支持 outputs，如需读取更新后的数据请追加 read Block。',
-    })
-  }
+  validateDeclaredOutputs(block)
 
   const inputs = resolveTemplates(block.inputs, context) as Record<string, unknown>
+  const datasource = normalizeDatasourceName(inputs.datasource)
+  const executeBlockSql: SqlExecutor = (query) => executeSql(query, datasource)
+
   context.blocks[block.uuid] = {
     inputs,
     outputs: {},
   }
 
-  const outputs = await executor({ block, inputs, executeSql })
+  const outputs = await executor({ block, inputs, executeSql: executeBlockSql })
 
   if (block.outputs) {
     for (const outputName of block.outputs) {
@@ -738,8 +769,6 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
       message: `请求方法不匹配，应使用 ${apiJson.method}。`,
     })
   }
-
-  ensureDatabaseUrl()
 
   const request = await readRequestContext(event, apiJson)
   const executeSql = options.executeSql ?? defaultExecuteSql

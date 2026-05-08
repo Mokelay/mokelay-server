@@ -11,6 +11,7 @@
       "alias": "列表Block",
       "functionName": "list",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "users",
         "fields": ["id", "name", "email", "created_at", "updated_at"],
         "conditions": [

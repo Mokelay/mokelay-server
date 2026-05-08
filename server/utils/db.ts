@@ -5,9 +5,65 @@ import * as schema from '../database/schema'
 
 type Database = ReturnType<typeof drizzle<typeof schema>>
 
+type DatabaseConnection = {
+  client: postgres.Sql
+  db: Database
+}
+
 const globalForDb = globalThis as typeof globalThis & {
   __mokelayPostgresClient?: postgres.Sql
   __mokelayDb?: Database
+  __mokelayDatasourceDbs?: Map<string, DatabaseConnection>
+}
+
+const datasourceNamePattern = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+function createPostgresClient(databaseUrl: string) {
+  return postgres(databaseUrl, {
+    max: 5,
+    prepare: false,
+  })
+}
+
+function createDatabaseConnection(databaseUrl: string): DatabaseConnection {
+  const client = createPostgresClient(databaseUrl)
+
+  return {
+    client,
+    db: drizzle(client, { schema }),
+  }
+}
+
+function datasourceConnections() {
+  if (!globalForDb.__mokelayDatasourceDbs) {
+    globalForDb.__mokelayDatasourceDbs = new Map()
+  }
+
+  return globalForDb.__mokelayDatasourceDbs
+}
+
+export function normalizeDatasourceName(datasource: unknown) {
+  if (typeof datasource !== 'string' || !datasource.trim()) {
+    throw createError({
+      statusCode: 400,
+      message: 'datasource 必须是非空字符串。',
+    })
+  }
+
+  const name = datasource.trim()
+
+  if (!datasourceNamePattern.test(name)) {
+    throw createError({
+      statusCode: 400,
+      message: 'datasource 只能包含字母、数字、下划线，且不能以数字开头。',
+    })
+  }
+
+  return name
+}
+
+export function datasourceDatabaseUrlEnvName(datasource: unknown) {
+  return `${normalizeDatasourceName(datasource)}_DATABASE_URL`
 }
 
 export function hasDatabaseUrl() {
@@ -25,10 +81,7 @@ export function useDb() {
   }
 
   if (!globalForDb.__mokelayPostgresClient) {
-    globalForDb.__mokelayPostgresClient = postgres(databaseUrl, {
-      max: 5,
-      prepare: false,
-    })
+    globalForDb.__mokelayPostgresClient = createPostgresClient(databaseUrl)
   }
 
   if (!globalForDb.__mokelayDb) {
@@ -36,4 +89,27 @@ export function useDb() {
   }
 
   return globalForDb.__mokelayDb
+}
+
+export function useDatasourceDb(datasource: string) {
+  const envName = datasourceDatabaseUrlEnvName(datasource)
+  const databaseUrl = process.env[envName]
+
+  if (!databaseUrl) {
+    throw createError({
+      statusCode: 500,
+      message: `${envName} is not configured.`,
+    })
+  }
+
+  const cacheKey = `${envName}:${databaseUrl}`
+  const connections = datasourceConnections()
+  let connection = connections.get(cacheKey)
+
+  if (!connection) {
+    connection = createDatabaseConnection(databaseUrl)
+    connections.set(cacheKey, connection)
+  }
+
+  return connection.db
 }

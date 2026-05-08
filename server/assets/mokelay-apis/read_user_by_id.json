@@ -11,6 +11,7 @@
       "alias": "读取Block",
       "functionName": "read",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "users",
         "fields": ["id", "name", "email", "created_at", "updated_at"],
         "conditions": [

@@ -11,7 +11,9 @@
       "alias": "创建页面Block",
       "functionName": "create",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "pages",
+        "idField": "uuid",
         "fields": {
           "name": {
             "template": "{{request.body.name}}"
@@ -28,6 +30,7 @@
       "alias": "读取页面Block",
       "functionName": "read",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "pages",
         "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
         "conditions": [
