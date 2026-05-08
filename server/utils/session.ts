@@ -3,8 +3,10 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { PublicUser } from './user-store'
 
 export const sessionCookieName = 'mokelay_session'
+export const orchestrationSessionCookieName = 'mokelay_orchestration_session'
 
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 7
+const orchestrationSessionContextKey = '__mokelayOrchestrationSession'
 
 export type UserSession = {
   user: PublicUser | null
@@ -14,6 +16,16 @@ export type UserSession = {
 type StoredSession = UserSession & {
   iat: number
   exp: number
+}
+
+type StoredOrchestrationSession = {
+  values: Record<string, unknown>
+  iat: number
+  exp: number
+}
+
+type OrchestrationSessionEventContext = H3Event['context'] & {
+  [orchestrationSessionContextKey]?: StoredOrchestrationSession
 }
 
 function sessionSecret() {
@@ -45,12 +57,12 @@ function sign(value: string) {
   return createHmac('sha256', sessionSecret()).update(value).digest('base64url')
 }
 
-function seal(payload: StoredSession) {
+function seal(payload: unknown) {
   const encodedPayload = encodeBase64Url(JSON.stringify(payload))
   return `${encodedPayload}.${sign(encodedPayload)}`
 }
 
-function unseal(value: string): StoredSession | null {
+function unseal(value: string): unknown | null {
   const [encodedPayload, signature] = value.split('.')
 
   if (!encodedPayload || !signature) {
@@ -69,16 +81,38 @@ function unseal(value: string): StoredSession | null {
   }
 
   try {
-    const payload = JSON.parse(decodeBase64Url(encodedPayload)) as StoredSession
-
-    if (!payload.user || !payload.exp || payload.exp <= Math.floor(Date.now() / 1000)) {
-      return null
-    }
-
-    return payload
+    return JSON.parse(decodeBase64Url(encodedPayload)) as unknown
   } catch {
     return null
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isExpired(value: unknown) {
+  return typeof value !== 'number' || value <= Math.floor(Date.now() / 1000)
+}
+
+function unsealUserSession(value: string): StoredSession | null {
+  const payload = unseal(value)
+
+  if (!isRecord(payload) || !payload.user || isExpired(payload.exp)) {
+    return null
+  }
+
+  return payload as StoredSession
+}
+
+function unsealOrchestrationSession(value: string): StoredOrchestrationSession | null {
+  const payload = unseal(value)
+
+  if (!isRecord(payload) || !isRecord(payload.values) || isExpired(payload.exp)) {
+    return null
+  }
+
+  return payload as StoredOrchestrationSession
 }
 
 function cookieDomain() {
@@ -89,15 +123,8 @@ function isProduction() {
   return process.env.NODE_ENV === 'production'
 }
 
-export function setUserSession(event: H3Event, session: UserSession) {
-  const now = Math.floor(Date.now() / 1000)
-  const payload: StoredSession = {
-    ...session,
-    iat: now,
-    exp: now + sessionMaxAgeSeconds,
-  }
-
-  setCookie(event, sessionCookieName, seal(payload), {
+function setSignedCookie(event: H3Event, name: string, payload: unknown) {
+  setCookie(event, name, seal(payload), {
     httpOnly: true,
     secure: isProduction(),
     sameSite: 'lax',
@@ -107,9 +134,69 @@ export function setUserSession(event: H3Event, session: UserSession) {
   })
 }
 
+function deleteSignedCookie(event: H3Event, name: string) {
+  deleteCookie(event, name, {
+    path: '/',
+    domain: cookieDomain(),
+  })
+}
+
+function createOrchestrationSession(values: Record<string, unknown> = {}): StoredOrchestrationSession {
+  const now = Math.floor(Date.now() / 1000)
+
+  return {
+    values,
+    iat: now,
+    exp: now + sessionMaxAgeSeconds,
+  }
+}
+
+function orchestrationSessionContext(event: H3Event) {
+  return event.context as OrchestrationSessionEventContext
+}
+
+function getOrchestrationSession(event: H3Event) {
+  const context = orchestrationSessionContext(event)
+
+  if (context[orchestrationSessionContextKey]) {
+    return context[orchestrationSessionContextKey]
+  }
+
+  const cookie = getCookie(event, orchestrationSessionCookieName)
+  const session = cookie ? unsealOrchestrationSession(cookie) : null
+
+  context[orchestrationSessionContextKey] = session ?? createOrchestrationSession()
+
+  return context[orchestrationSessionContextKey]
+}
+
+function persistOrchestrationSession(event: H3Event, values: Record<string, unknown>) {
+  const session = createOrchestrationSession(values)
+
+  orchestrationSessionContext(event)[orchestrationSessionContextKey] = session
+
+  if (Object.keys(values).length === 0) {
+    deleteSignedCookie(event, orchestrationSessionCookieName)
+    return
+  }
+
+  setSignedCookie(event, orchestrationSessionCookieName, session)
+}
+
+export function setUserSession(event: H3Event, session: UserSession) {
+  const now = Math.floor(Date.now() / 1000)
+  const payload: StoredSession = {
+    ...session,
+    iat: now,
+    exp: now + sessionMaxAgeSeconds,
+  }
+
+  setSignedCookie(event, sessionCookieName, payload)
+}
+
 export function getUserSession(event: H3Event): UserSession {
   const cookie = getCookie(event, sessionCookieName)
-  const payload = cookie ? unseal(cookie) : null
+  const payload = cookie ? unsealUserSession(cookie) : null
 
   return {
     user: payload?.user || null,
@@ -118,8 +205,35 @@ export function getUserSession(event: H3Event): UserSession {
 }
 
 export function clearUserSession(event: H3Event) {
-  deleteCookie(event, sessionCookieName, {
-    path: '/',
-    domain: cookieDomain(),
+  deleteSignedCookie(event, sessionCookieName)
+}
+
+export function setSessionValue(event: H3Event, key: string, value: unknown) {
+  const session = getOrchestrationSession(event)
+
+  persistOrchestrationSession(event, {
+    ...session.values,
+    [key]: value,
   })
+}
+
+export function removeSessionValue(event: H3Event, key: string) {
+  const session = getOrchestrationSession(event)
+  const nextValues = { ...session.values }
+
+  delete nextValues[key]
+  persistOrchestrationSession(event, nextValues)
+}
+
+export function readSessionValue(event: H3Event, key: string) {
+  const session = getOrchestrationSession(event)
+
+  if (!Object.prototype.hasOwnProperty.call(session.values, key)) {
+    throw createError({
+      statusCode: 404,
+      message: `Session key 不存在：${key}`,
+    })
+  }
+
+  return session.values[key]
 }

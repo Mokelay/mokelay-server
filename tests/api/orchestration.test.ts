@@ -7,6 +7,7 @@ import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
 import { createMokelayOrchestrationHandler } from '../../server/utils/orchestration'
+import { orchestrationSessionCookieName } from '../../server/utils/session'
 
 type TestServer = {
   baseUrl: string
@@ -365,6 +366,10 @@ async function readJson<T>(response: Response) {
   return await response.json() as T
 }
 
+function responseCookie(response: Response, name: string) {
+  return response.headers.get('set-cookie')?.split(';')[0] || `${name}=`
+}
+
 async function postJson(baseUrl: string, apiJsonUuid: string, body: Record<string, unknown>, query = '') {
   return await fetch(`${baseUrl}/api/mokelay/${apiJsonUuid}${query}`, {
     method: 'POST',
@@ -661,6 +666,168 @@ describe('mokelay orchestration API', () => {
         datas: [{ arbitrary_field: 'from-json-config' }],
       })
       expect(receivedDatasource).toBe('Custom')
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('supports session blocks with an independent signed cookie', async () => {
+    let sqlCalls = 0
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>() => {
+        sqlCalls += 1
+        return [] as T[]
+      },
+      loadApiJson: async (apiJsonUuid) => {
+        if (apiJsonUuid === 'add_session') {
+          return {
+            uuid: 'add_session',
+            method: 'POST',
+            request: { body: ['profile'] },
+            blocks: [{
+              uuid: 'add',
+              functionName: 'addSession',
+              inputs: {
+                key: 'profile',
+                value: { template: '{{request.body.profile}}' },
+              },
+            }],
+            response: { ok: true },
+          }
+        }
+
+        if (apiJsonUuid === 'read_session') {
+          return {
+            uuid: 'read_session',
+            method: 'GET',
+            blocks: [{
+              uuid: 'read',
+              functionName: 'readSession',
+              inputs: { key: 'profile' },
+              outputs: ['value'],
+            }],
+            response: {
+              profile: { template: "{{blocks['read'].outputs.value}}" },
+            },
+          }
+        }
+
+        return {
+          uuid: 'remove_then_read_session',
+          method: 'POST',
+          blocks: [
+            {
+              uuid: 'remove',
+              functionName: 'removeSession',
+              inputs: { key: 'profile' },
+            },
+            {
+              uuid: 'read',
+              functionName: 'readSession',
+              inputs: { key: 'profile' },
+            },
+          ],
+          response: { ok: true },
+        }
+      },
+    })
+    const server = await startServer(handler)
+
+    try {
+      const profile = { name: 'Session Builder', flags: ['template-value'] }
+      const addResponse = await postJson(server.baseUrl, 'add_session', { profile })
+
+      expect(addResponse.status).toBe(200)
+      expect(addResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+
+      const cookie = responseCookie(addResponse, orchestrationSessionCookieName)
+      const readResponse = await fetch(`${server.baseUrl}/api/mokelay/read_session`, {
+        headers: { cookie },
+      })
+      const readBody = await readJson<Record<string, unknown>>(readResponse)
+
+      expect(readResponse.status).toBe(200)
+      expect(readBody).toEqual({ profile })
+
+      const removedReadResponse = await fetch(`${server.baseUrl}/api/mokelay/remove_then_read_session`, {
+        method: 'POST',
+        headers: { cookie },
+      })
+
+      expect(removedReadResponse.status).toBe(404)
+      expect(sqlCalls).toBe(0)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('validates session block inputs, outputs, and missing keys', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async (apiJsonUuid) => {
+        if (apiJsonUuid === 'missing_session_key') {
+          return {
+            uuid: 'missing_session_key',
+            method: 'POST',
+            blocks: [{
+              uuid: 'add',
+              functionName: 'addSession',
+              inputs: { value: 'missing key' },
+            }],
+            response: { ok: true },
+          }
+        }
+
+        if (apiJsonUuid === 'invalid_read_session_output') {
+          return {
+            uuid: 'invalid_read_session_output',
+            method: 'POST',
+            blocks: [{
+              uuid: 'read',
+              functionName: 'readSession',
+              inputs: { key: 'missing' },
+              outputs: ['data'],
+            }],
+            response: { ok: true },
+          }
+        }
+
+        if (apiJsonUuid === 'remove_missing_session') {
+          return {
+            uuid: 'remove_missing_session',
+            method: 'POST',
+            blocks: [{
+              uuid: 'remove',
+              functionName: 'removeSession',
+              inputs: { key: 'missing' },
+            }],
+            response: { ok: true },
+          }
+        }
+
+        return {
+          uuid: 'read_missing_session',
+          method: 'POST',
+          blocks: [{
+            uuid: 'read',
+            functionName: 'readSession',
+            inputs: { key: 'missing' },
+          }],
+          response: { ok: true },
+        }
+      },
+    })
+    const server = await startServer(handler)
+
+    try {
+      const missingKeyResponse = await fetch(`${server.baseUrl}/api/mokelay/missing_session_key`, { method: 'POST' })
+      const invalidOutputResponse = await fetch(`${server.baseUrl}/api/mokelay/invalid_read_session_output`, { method: 'POST' })
+      const removeMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/remove_missing_session`, { method: 'POST' })
+      const readMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/read_missing_session`, { method: 'POST' })
+
+      expect(missingKeyResponse.status).toBe(400)
+      expect(invalidOutputResponse.status).toBe(400)
+      expect(removeMissingResponse.status).toBe(200)
+      expect(readMissingResponse.status).toBe(404)
     } finally {
       await server.close()
     }
