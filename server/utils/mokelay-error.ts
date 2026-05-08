@@ -40,6 +40,7 @@ export const mokelayErrorCodes = [
 export type MokelayErrorCode = typeof mokelayErrorCodes[number]
 
 export type MokelayErrorResponse = {
+  ok: false
   error: {
     code: MokelayErrorCode
     message: string
@@ -79,6 +80,7 @@ export function toMokelayErrorResponse(error: unknown): MokelayErrorResponse {
 
   if (code && isError(error)) {
     return {
+      ok: false,
       error: {
         code,
         message: error.message || internalErrorMessage,
@@ -87,6 +89,7 @@ export function toMokelayErrorResponse(error: unknown): MokelayErrorResponse {
   }
 
   return {
+    ok: false,
     error: {
       code: 'INTERNAL_ERROR',
       message: internalErrorMessage,

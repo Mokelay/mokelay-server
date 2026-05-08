@@ -122,6 +122,11 @@ type OrchestrationHandlerOptions = {
   executeSql?: DatasourceSqlExecutor
 }
 
+type MokelaySuccessResponse = {
+  ok: true
+  data: unknown
+}
+
 const allowedBlockOutputs: Record<string, readonly string[]> = {
   list: ['datas'],
   page: ['datas', 'total', 'totalPages', 'page', 'pageSize', 'hasPreviousPage', 'hasNextPage'],
@@ -766,12 +771,12 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
     await executeBlock(block, context, executeSql, event)
   }
 
-  if (!apiJson.response) {
-    setResponseStatus(event, 204)
-    return ''
-  }
+  const data = apiJson.response == null ? null : resolveTemplates(apiJson.response, context)
 
-  return resolveTemplates(apiJson.response, context)
+  return {
+    ok: true,
+    data,
+  } satisfies MokelaySuccessResponse
 }
 
 export function createMokelayOrchestrationHandler(options: OrchestrationHandlerOptions = {}): EventHandler {

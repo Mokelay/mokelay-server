@@ -906,7 +906,7 @@ response 示例：
 
 ## response 中使用 Block 输出
 
-API JSON 的 `response` 会在所有 blocks 执行完成后解析模板。
+API JSON 的 `response` 会在所有 blocks 执行完成后解析模板，并统一放到接口响应的 `data` 字段下。成功响应固定为 `{ "ok": true, "data": ... }`，异常响应固定为 `{ "ok": false, "error": { "code": "...", "message": "..." } }`。
 
 示例：
 
@@ -928,7 +928,7 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板。
 }
 ```
 
-如果 API JSON 不配置 `response`，接口返回 `204`。
+如果 API JSON 不配置 `response` 或配置为 `null`，接口返回 `{ "ok": true, "data": null }`。
 
 ## 常见配置建议
 

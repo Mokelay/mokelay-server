@@ -15,6 +15,19 @@ type TestServer = {
   close: () => Promise<void>
 }
 
+type MokelaySuccessBody<T> = {
+  ok: true
+  data: T
+}
+
+type MokelayErrorBody = {
+  ok: false
+  error: {
+    code: string
+    message: string
+  }
+}
+
 type CreateUserResponse = {
   id: string
 }
@@ -367,11 +380,24 @@ async function readJson<T>(response: Response) {
   return await response.json() as T
 }
 
+async function readMokelaySuccess<T>(response: Response) {
+  const body = await readJson<MokelaySuccessBody<T>>(response)
+
+  expect(body.ok).toBe(true)
+
+  return body
+}
+
+async function readMokelayData<T>(response: Response) {
+  return (await readMokelaySuccess<T>(response)).data
+}
+
 async function expectMokelayError(response: Response, code: MokelayErrorCode, message?: string | RegExp) {
   expect(response.status).toBe(200)
 
-  const body = await readJson<{ error: { code: string, message: string } }>(response)
+  const body = await readJson<MokelayErrorBody>(response)
 
+  expect(body.ok).toBe(false)
   expect(body.error.code).toBe(code)
 
   if (typeof message === 'string') {
@@ -403,14 +429,14 @@ async function createUser(baseUrl: string, input: { name: string, email: string 
   })
 
   expect(response.status).toBe(200)
-  return await readJson<CreateUserResponse>(response)
+  return await readMokelayData<CreateUserResponse>(response)
 }
 
 async function createPage(baseUrl: string, input: { name: string, blocks: unknown[] }) {
   const response = await postJson(baseUrl, 'create_page', input)
 
   expect(response.status).toBe(200)
-  return await readJson<PageResponse>(response)
+  return await readMokelayData<PageResponse>(response)
 }
 
 describe('mokelay orchestration API', () => {
@@ -445,7 +471,7 @@ describe('mokelay orchestration API', () => {
     expect(created.id).toMatch(uuidPattern)
 
     const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_user_by_id?id=${created.id}`)
-    const readBody = await readJson<ReadUserResponse>(readResponse)
+    const readBody = await readMokelayData<ReadUserResponse>(readResponse)
 
     expect(readResponse.status).toBe(200)
     expect(readBody.user_info).toMatchObject({
@@ -465,13 +491,13 @@ describe('mokelay orchestration API', () => {
       },
       `?id=${created.id}`,
     )
-    const updateBody = await readJson<Record<string, unknown>>(updateResponse)
+    const updateBody = await readMokelayData<Record<string, unknown>>(updateResponse)
 
     expect(updateResponse.status).toBe(200)
     expect(updateBody).toEqual({ update: true })
 
     const updatedReadResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_user_by_id?id=${created.id}`)
-    const updatedReadBody = await readJson<ReadUserResponse>(updatedReadResponse)
+    const updatedReadBody = await readMokelayData<ReadUserResponse>(updatedReadResponse)
 
     expect(updatedReadBody.user_info).toMatchObject({
       id: created.id,
@@ -489,7 +515,7 @@ describe('mokelay orchestration API', () => {
       created_at_end: '2999-12-31T23:59:59.999Z',
       name: 'Alice Updated',
     })
-    const listBody = await readJson<UserListResponse>(listResponse)
+    const listBody = await readMokelayData<UserListResponse>(listResponse)
 
     expect(listResponse.status).toBe(200)
     expect(listBody.user_list).toHaveLength(1)
@@ -502,13 +528,13 @@ describe('mokelay orchestration API', () => {
     const deleteResponse = await postJson(testServer.baseUrl, 'delete_user_info_by_id', {
       id: created.id,
     })
-    const deleteBody = await readJson<Record<string, unknown>>(deleteResponse)
+    const deleteBody = await readMokelayData<Record<string, unknown>>(deleteResponse)
 
     expect(deleteResponse.status).toBe(200)
     expect(deleteBody).toEqual({ message: '删除成功' })
 
     const missingReadResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_user_by_id?id=${created.id}`)
-    const missingReadBody = await readJson<ReadUserResponse>(missingReadResponse)
+    const missingReadBody = await readMokelayData<ReadUserResponse>(missingReadResponse)
 
     expect(missingReadResponse.status).toBe(200)
     expect(missingReadBody.user_info).toBeNull()
@@ -535,7 +561,7 @@ describe('mokelay orchestration API', () => {
     expect(secondPage?.uuid).toMatch(uuidPattern)
 
     const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${firstPage?.uuid}`)
-    const readBody = await readJson<PageResponse>(readResponse)
+    const readBody = await readMokelayData<PageResponse>(readResponse)
 
     expect(readResponse.status).toBe(200)
     expect(readBody.page).toEqual(firstPage)
@@ -548,7 +574,7 @@ describe('mokelay orchestration API', () => {
       },
       `?uuid=${firstPage?.uuid}`,
     )
-    const updateBody = await readJson<PageResponse>(updateResponse)
+    const updateBody = await readMokelayData<PageResponse>(updateResponse)
 
     expect(updateResponse.status).toBe(200)
     expect(updateBody.page).toMatchObject({
@@ -558,7 +584,7 @@ describe('mokelay orchestration API', () => {
     })
 
     const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=1`)
-    const listBody = await readJson<PageListResponse>(listResponse)
+    const listBody = await readMokelayData<PageListResponse>(listResponse)
 
     expect(listResponse.status).toBe(200)
     expect(listBody.pages).toHaveLength(1)
@@ -576,7 +602,7 @@ describe('mokelay orchestration API', () => {
     })
 
     const secondPageResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=2&pageSize=1`)
-    const secondPageBody = await readJson<PageListResponse>(secondPageResponse)
+    const secondPageBody = await readMokelayData<PageListResponse>(secondPageResponse)
 
     expect(secondPageResponse.status).toBe(200)
     expect(new Set([
@@ -707,7 +733,7 @@ describe('mokelay orchestration API', () => {
 
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/custom_table_list`, { method: 'POST' })
-      const body = await readJson<Record<string, unknown>>(response)
+      const body = await readMokelayData<Record<string, unknown>>(response)
 
       expect(response.status).toBe(200)
       expect(body).toEqual({
@@ -787,12 +813,16 @@ describe('mokelay orchestration API', () => {
 
       expect(addResponse.status).toBe(200)
       expect(addResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+      expect(await readMokelaySuccess<{ ok: true }>(addResponse)).toEqual({
+        ok: true,
+        data: { ok: true },
+      })
 
       const cookie = responseCookie(addResponse, orchestrationSessionCookieName)
       const readResponse = await fetch(`${server.baseUrl}/api/mokelay/read_session`, {
         headers: { cookie },
       })
-      const readBody = await readJson<Record<string, unknown>>(readResponse)
+      const readBody = await readMokelayData<Record<string, unknown>>(readResponse)
 
       expect(readResponse.status).toBe(200)
       expect(readBody).toEqual({ profile })
@@ -952,7 +982,7 @@ describe('mokelay orchestration API', () => {
 
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/update_affected_outputs`, { method: 'POST' })
-      const body = await readJson<Record<string, unknown>>(response)
+      const body = await readMokelayData<Record<string, unknown>>(response)
 
       expect(response.status).toBe(200)
       expect(body).toEqual({ affected: 1 })
@@ -1152,7 +1182,7 @@ describe('mokelay orchestration API', () => {
 
     try {
       const response = await fetch(`${pageServer.baseUrl}/api/mokelay/page_users`, { method: 'POST' })
-      const body = await readJson<Record<string, unknown>>(response)
+      const body = await readMokelayData<Record<string, unknown>>(response)
 
       expect(response.status).toBe(200)
       expect(body.total).toBe(2)
@@ -1177,8 +1207,11 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${emptyResponseServer.baseUrl}/api/mokelay/empty_response`)
 
-      expect(response.status).toBe(204)
-      expect(await response.text()).toBe('')
+      expect(response.status).toBe(200)
+      expect(await readMokelaySuccess<null>(response)).toEqual({
+        ok: true,
+        data: null,
+      })
     } finally {
       await emptyResponseServer.close()
     }
