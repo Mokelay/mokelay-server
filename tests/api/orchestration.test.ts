@@ -717,6 +717,40 @@ describe('mokelay orchestration API', () => {
     }
   })
 
+  it('rejects physical field names on create block outputs', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'invalid_create_outputs',
+        method: 'POST',
+        blocks: [{
+          uuid: 'create',
+          functionName: 'create',
+          inputs: {
+            datasource: 'Mokelay',
+            table: 'users',
+            idField: 'id',
+            fields: {
+              name: 'Invalid Outputs',
+              email: 'invalid-outputs@mokelay.test',
+              password_hash: 'hashed',
+            },
+          },
+          outputs: ['id'],
+        }],
+        response: { ok: true },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_create_outputs`, { method: 'POST' })
+
+      expect(response.status).toBe(400)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('rejects unknown block functions, invalid conditions, and missing template variables', async () => {
     const invalidFunctionHandler = createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
@@ -752,6 +786,7 @@ describe('mokelay orchestration API', () => {
             inputs: {
               datasource: 'Mokelay',
               table: 'users',
+              idField: 'id',
               fields: {
                 name: 'Condition User',
                 email: 'condition@mokelay.test',
@@ -828,6 +863,7 @@ describe('mokelay orchestration API', () => {
             inputs: {
               datasource: 'Mokelay',
               table: 'users',
+              idField: 'id',
               fields: {
                 name: 'Page First',
                 email: 'page-first@mokelay.test',
@@ -841,6 +877,7 @@ describe('mokelay orchestration API', () => {
             inputs: {
               datasource: 'Mokelay',
               table: 'users',
+              idField: 'id',
               fields: {
                 name: 'Page Second',
                 email: 'page-second@mokelay.test',

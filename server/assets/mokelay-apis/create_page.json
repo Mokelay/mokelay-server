@@ -13,6 +13,7 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "pages",
+        "idField": "uuid",
         "fields": {
           "name": {
             "template": "{{request.body.name}}"

@@ -1,9 +1,9 @@
 {
-  "uuid": "create_user_info",
-  "alias": "添加用户信息接口",
+  "uuid": "create_demo_table",
+  "alias": "创建DEMOJSON",
   "method": "POST",
   "request": {
-    "body": ["name", "email", "password_hash"]
+    "body": ["name"]
   },
   "blocks": [
     {
@@ -11,18 +11,12 @@
       "alias": "添加Block",
       "functionName": "create",
       "inputs": {
-        "datasource": "Mokelay",
-        "table": "users",
+        "datasource": "Demo",
+        "table": "demo_table",
         "idField": "id",
         "fields": {
           "name": {
             "template": "{{request.body.name}}"
-          },
-          "email": {
-            "template": "{{request.body.email}}"
-          },
-          "password_hash": {
-            "template": "{{request.body.password_hash}}"
           }
         }
       },

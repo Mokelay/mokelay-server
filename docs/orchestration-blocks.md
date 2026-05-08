@@ -28,6 +28,17 @@
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
+数据库 block 的输出 key 是固定约定，不是可任意配置的字段名：
+
+| Block | 固定 outputs |
+| --- | --- |
+| `list` | `datas` |
+| `page` | `datas`、`total`、`totalPages`、`page`、`pageSize`、`hasPreviousPage`、`hasNextPage` |
+| `read` | `data` |
+| `delete` | `affected` |
+| `create` | `uuid` |
+| `update` | 不支持业务 outputs |
+
 ## 模板规则
 
 `inputs` 和 API `response` 中都可以使用模板。
@@ -567,6 +578,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 {
   "datasource": "Mokelay",
   "table": "pages",
+  "idField": "uuid",
   "fields": {
     "name": "首页",
     "blocks": []
@@ -580,6 +592,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 | --- | --- | --- | --- |
 | `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
+| `idField` | `string` | 是 | 插入后要返回的物理唯一 ID 字段。该字段值会被映射到 `outputs.uuid`。 |
 | `fields` | `object` | 是 | 插入字段和值。key 是真实数据库字段名，value 是插入值，可使用模板。 |
 
 值处理规则：
@@ -591,23 +604,17 @@ DELETE FROM table RETURNING 1 AS affected_marker
 
 ### SQL 行为
 
-如果声明了 `outputs`：
-
 ```sql
-INSERT INTO table (columns) VALUES (values) RETURNING outputs
-```
-
-如果没有声明 `outputs`：
-
-```sql
-INSERT INTO table (columns) VALUES (values)
+INSERT INTO table (columns) VALUES (values) RETURNING idField
 ```
 
 ### outputs
 
-`create` 的 outputs 来自 JSON 中声明的 `outputs`。声明哪些字段，就 `RETURNING` 哪些字段。
+`create` 的输出 key 固定为 `uuid`，表示插入数据库后返回的这条记录的唯一 ID。`uuid` 是 block 约定输出名，不是物理数据库字段名。
 
-常见用法是只返回主键，再用后续 `read` block 读取完整数据：
+物理字段由 `inputs.idField` 指定。例如 `users` 表的物理字段可以是 `id`，但 block 输出仍然是 `outputs.uuid`。
+
+推荐声明：
 
 ```json
 {
@@ -615,7 +622,7 @@ INSERT INTO table (columns) VALUES (values)
 }
 ```
 
-如果不需要读取新记录，可以不配置 `outputs`，此时 block 输出为 `{}`。
+不要在 `create.outputs` 中配置 `id` 或其他物理字段名。如果配置了非 `uuid` 输出，接口返回 `400`。
 
 ### 示例：创建后读取完整数据
 
@@ -628,6 +635,7 @@ INSERT INTO table (columns) VALUES (values)
     "inputs": {
       "datasource": "Mokelay",
       "table": "pages",
+      "idField": "uuid",
       "fields": {
         "name": {
           "template": "{{request.body.name}}"
@@ -806,7 +814,7 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板。
 
 - `read`、`update`、`delete` 通常都应该配置 `conditions`，避免误读、误改、误删整张表。
 - 每个数据库 block 都必须配置 `datasource`，并确保环境变量 `${datasource}_DATABASE_URL` 已设置。
-- `create` 建议只返回主键，例如 `["id"]` 或 `["uuid"]`；如果需要完整数据，用后续 `read` block。
+- `create` 的 `outputs` 固定为 `["uuid"]`；不要写物理字段名。物理唯一 ID 字段用 `inputs.idField` 配置。
 - `update` 不要配置 `outputs`；如果需要完整数据，用后续 `read` block。
 - `fields` 一律写真实数据库字段名，不写 alias。
 - 数据库字段错误、表名错误、字段类型不匹配时，按数据库报错修正 API JSON 配置。
