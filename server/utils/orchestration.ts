@@ -15,6 +15,7 @@ import {
 } from 'h3'
 import { z } from 'zod'
 import { normalizeDatasourceName, useDatasourceDb } from './db'
+import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
 const templatePattern = /\{\{\s*([^}]+?)\s*\}\}/g
@@ -105,6 +106,7 @@ type BlockExecutionContext = {
 }
 
 type BlockExecutorInput = {
+  event: H3Event
   block: Block
   inputs: Record<string, unknown>
   executeSql: SqlExecutor
@@ -127,7 +129,12 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   delete: ['affected'],
   create: ['uuid'],
   update: ['affected'],
+  addSession: [],
+  removeSession: [],
+  readSession: ['value'],
 }
+
+const databaseBlockFunctions = new Set(['list', 'page', 'read', 'delete', 'create', 'update'])
 
 function assertApiJsonUuid(value: string | undefined) {
   if (!value || !apiJsonUuidPattern.test(value)) {
@@ -518,6 +525,17 @@ function getPositiveInteger(value: unknown, name: string, defaultValue: number) 
   return parsedValue
 }
 
+function getSessionKey(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw createError({
+      statusCode: 400,
+      message: 'key 必须是非空字符串。',
+    })
+  }
+
+  return value.trim()
+}
+
 function getCreateIdField(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
     throw createError({
@@ -689,6 +707,33 @@ async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExe
   return { affected: rows.length }
 }
 
+async function executeAddSession(event: H3Event, inputs: Record<string, unknown>) {
+  const key = getSessionKey(inputs.key)
+
+  if (!Object.prototype.hasOwnProperty.call(inputs, 'value')) {
+    throw createError({
+      statusCode: 400,
+      message: 'value 不能为空。',
+    })
+  }
+
+  setSessionValue(event, key, inputs.value)
+
+  return {}
+}
+
+async function executeRemoveSession(event: H3Event, inputs: Record<string, unknown>) {
+  removeSessionValue(event, getSessionKey(inputs.key))
+
+  return {}
+}
+
+async function executeReadSession(event: H3Event, inputs: Record<string, unknown>) {
+  return {
+    value: readSessionValue(event, getSessionKey(inputs.key)),
+  }
+}
+
 const blockExecutors: Record<string, BlockExecutor> = {
   list: ({ inputs, executeSql }) => executeList(inputs, executeSql),
   page: ({ inputs, executeSql }) => executeList(inputs, executeSql, true),
@@ -696,6 +741,9 @@ const blockExecutors: Record<string, BlockExecutor> = {
   delete: ({ inputs, executeSql }) => executeDelete(inputs, executeSql),
   create: ({ block, inputs, executeSql }) => executeCreate(block, inputs, executeSql),
   update: ({ inputs, executeSql }) => executeUpdate(inputs, executeSql),
+  addSession: ({ event, inputs }) => executeAddSession(event, inputs),
+  removeSession: ({ event, inputs }) => executeRemoveSession(event, inputs),
+  readSession: ({ event, inputs }) => executeReadSession(event, inputs),
 }
 
 function validateDeclaredOutputs(block: Block) {
@@ -719,7 +767,7 @@ function validateDeclaredOutputs(block: Block) {
   }
 }
 
-async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: DatasourceSqlExecutor) {
+async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: DatasourceSqlExecutor, event: H3Event) {
   const executor = blockExecutors[block.functionName]
 
   if (!executor) {
@@ -732,15 +780,26 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   validateDeclaredOutputs(block)
 
   const inputs = resolveTemplates(block.inputs, context) as Record<string, unknown>
-  const datasource = normalizeDatasourceName(inputs.datasource)
-  const executeBlockSql: SqlExecutor = (query) => executeSql(query, datasource)
+  const datasource = databaseBlockFunctions.has(block.functionName)
+    ? normalizeDatasourceName(inputs.datasource)
+    : undefined
+  const executeBlockSql: SqlExecutor = (query) => {
+    if (!datasource) {
+      throw createError({
+        statusCode: 500,
+        message: `Block ${block.functionName} 不支持 SQL 执行。`,
+      })
+    }
+
+    return executeSql(query, datasource)
+  }
 
   context.blocks[block.uuid] = {
     inputs,
     outputs: {},
   }
 
-  const outputs = await executor({ block, inputs, executeSql: executeBlockSql })
+  const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql })
 
   if (block.outputs) {
     for (const outputName of block.outputs) {
@@ -782,7 +841,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
   }
 
   for (const block of apiJson.blocks) {
-    await executeBlock(block, context, executeSql)
+    await executeBlock(block, context, executeSql, event)
   }
 
   if (!apiJson.response) {

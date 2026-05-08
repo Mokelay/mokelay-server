@@ -1,10 +1,12 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`read`、`delete`、`create`、`update`。
+本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。
 
 编排接口统一从 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口直接返回错误。
 
 `list`、`page`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
+
+`addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session`，不需要配置 `datasource`，也不会读写登录态 Cookie `mokelay_session`。
 
 ## 通用 Block 结构
 
@@ -24,7 +26,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`read`、`delete`、`create`、`update`。 |
+| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -38,6 +40,9 @@
 | `delete` | `affected` |
 | `create` | `uuid` |
 | `update` | `affected` |
+| `addSession` | 无 |
+| `removeSession` | 无 |
+| `readSession` | `value` |
 
 ## 模板规则
 
@@ -791,6 +796,97 @@ UPDATE table SET assignments RETURNING 1 AS affected_marker
   }
 ]
 
+```
+
+## Session Blocks
+
+Session blocks 使用独立签名 Cookie `mokelay_orchestration_session` 保存 `values` 对象，适合在多次 API 编排请求之间临时保存值。它们不需要 `inputs.datasource`，不会影响登录态 Cookie。
+
+### addSession
+
+写入一个 session key。`value` 可以是普通 JSON 值，也可以是模板。
+
+```json
+{
+  "uuid": "add_session_block",
+  "functionName": "addSession",
+  "inputs": {
+    "key": "profile",
+    "value": {
+      "template": "{{request.body.profile}}"
+    }
+  }
+}
+```
+
+inputs：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `key` | `string` | 是 | 要写入的 session key。 |
+| `value` | `any \| CalculateTemplate` | 是 | 要写入的 session 值。 |
+
+outputs：无。
+
+### removeSession
+
+删除一个 session key。key 不存在时仍视为成功。
+
+```json
+{
+  "uuid": "remove_session_block",
+  "functionName": "removeSession",
+  "inputs": {
+    "key": "profile"
+  }
+}
+```
+
+inputs：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `key` | `string` | 是 | 要删除的 session key。 |
+
+outputs：无。
+
+### readSession
+
+读取一个 session key。读取失败时抛出异常，接口返回 `404`。
+
+```json
+{
+  "uuid": "read_session_block",
+  "functionName": "readSession",
+  "inputs": {
+    "key": "profile"
+  },
+  "outputs": ["value"]
+}
+```
+
+inputs：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `key` | `string` | 是 | 要读取的 session key。 |
+
+固定 outputs：
+
+| 输出 | 类型 | 说明 |
+| --- | --- | --- |
+| `value` | `any` | session 中保存的值。 |
+
+response 示例：
+
+```json
+{
+  "response": {
+    "profile": {
+      "template": "{{blocks['read_session_block'].outputs.value}}"
+    }
+  }
+}
 ```
 
 ## response 中使用 Block 输出
