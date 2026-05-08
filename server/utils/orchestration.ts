@@ -126,7 +126,7 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   read: ['data'],
   delete: ['affected'],
   create: ['uuid'],
-  update: [],
+  update: ['affected'],
 }
 
 function assertApiJsonUuid(value: string | undefined) {
@@ -671,11 +671,11 @@ async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExe
   const where = buildWhereSql(conditions)
   const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields')} = ${fieldValueSql(value)}`), sql`, `)
 
-  await executeSql(where
-    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where}`
-    : sql`UPDATE ${table} SET ${assignments}`)
+  const rows = await executeSql(where
+    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
+    : sql`UPDATE ${table} SET ${assignments} RETURNING 1 AS affected_marker`)
 
-  return {}
+  return { affected: rows.length }
 }
 
 async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
@@ -726,13 +726,6 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
     throw createError({
       statusCode: 400,
       message: `不支持的 Block functionName：${block.functionName}`,
-    })
-  }
-
-  if (block.functionName === 'update' && block.outputs?.length) {
-    throw createError({
-      statusCode: 400,
-      message: 'update Block 不支持 outputs，如需读取更新后的数据请追加 read Block。',
     })
   }
 

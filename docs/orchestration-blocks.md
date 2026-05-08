@@ -37,7 +37,7 @@
 | `read` | `data` |
 | `delete` | `affected` |
 | `create` | `uuid` |
-| `update` | 不支持业务 outputs |
+| `update` | `affected` |
 
 ## 模板规则
 
@@ -711,22 +711,30 @@ INSERT INTO table (columns) VALUES (values) RETURNING idField
 ### SQL 行为
 
 ```sql
-UPDATE table SET assignments WHERE conditions
+UPDATE table SET assignments WHERE conditions RETURNING 1 AS affected_marker
 ```
 
 没有配置 `conditions` 时：
 
 ```sql
-UPDATE table SET assignments
+UPDATE table SET assignments RETURNING 1 AS affected_marker
 ```
 
 ### outputs
 
-`update` 不支持业务 outputs。
+执行器固定产生：
 
-- 不要在 `update` block 上配置 `outputs`。
-- 如果配置非空 `outputs`，接口返回 `400`。
-- 执行成功后，该 block 在上下文中的 outputs 是 `{}`。
+| 输出 | 类型 | 说明 |
+| --- | --- | --- |
+| `affected` | `number` | 被更新的记录数。 |
+
+推荐声明：
+
+```json
+{
+  "outputs": ["affected"]
+}
+```
 
 ### 示例：更新后读取完整数据
 
@@ -757,7 +765,8 @@ UPDATE table SET assignments
           }
         }
       ]
-    }
+    },
+    "outputs": ["affected"]
   },
   {
     "uuid": "read_page_block",
@@ -815,6 +824,6 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板。
 - `read`、`update`、`delete` 通常都应该配置 `conditions`，避免误读、误改、误删整张表。
 - 每个数据库 block 都必须配置 `datasource`，并确保环境变量 `${datasource}_DATABASE_URL` 已设置。
 - `create` 的 `outputs` 固定为 `["uuid"]`；不要写物理字段名。物理唯一 ID 字段用 `inputs.idField` 配置。
-- `update` 不要配置 `outputs`；如果需要完整数据，用后续 `read` block。
+- `update` 的 `outputs` 固定为 `["affected"]`；如果需要完整数据，用后续 `read` block。
 - `fields` 一律写真实数据库字段名，不写 alias。
 - 数据库字段错误、表名错误、字段类型不匹配时，按数据库报错修正 API JSON 配置。

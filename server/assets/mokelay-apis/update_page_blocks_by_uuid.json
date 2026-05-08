@@ -32,7 +32,8 @@
             }
           }
         ]
-      }
+      },
+      "outputs": ["affected"]
     },
     {
       "uuid": "read_page_block",
@@ -57,6 +58,9 @@
     }
   ],
   "response": {
+    "affected":{
+      "template": "{{blocks['update_page_block'].outputs.affected}}"
+    },
     "page": {
       "uuid": {
         "template": "{{blocks['read_page_block'].outputs.data.uuid}}"

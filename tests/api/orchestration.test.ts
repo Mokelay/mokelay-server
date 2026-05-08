@@ -685,33 +685,62 @@ describe('mokelay orchestration API', () => {
     }
   })
 
-  it('rejects outputs on update blocks', async () => {
+  it('supports affected outputs on update blocks', async () => {
     const handler = createMokelayOrchestrationHandler({
       executeSql: fakeSqlExecutor.execute,
       loadApiJson: async () => ({
-        uuid: 'invalid_update_outputs',
+        uuid: 'update_affected_outputs',
         method: 'POST',
-        blocks: [{
-          uuid: 'update',
-          functionName: 'update',
-          inputs: {
-            datasource: 'Mokelay',
-            table: 'users',
-            fields: {
-              name: 'Should Not Return',
+        blocks: [
+          {
+            uuid: 'create',
+            functionName: 'create',
+            inputs: {
+              datasource: 'Mokelay',
+              table: 'users',
+              idField: 'id',
+              fields: {
+                name: 'Before Update',
+                email: 'update-affected@mokelay.test',
+                password_hash: 'hashed',
+              },
             },
+            outputs: ['uuid'],
           },
-          outputs: ['id'],
-        }],
-        response: { ok: true },
+          {
+            uuid: 'update',
+            functionName: 'update',
+            inputs: {
+              datasource: 'Mokelay',
+              table: 'users',
+              fields: {
+                name: 'After Update',
+              },
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: {
+                  template: "{{blocks['create'].outputs.uuid}}",
+                },
+              }],
+            },
+            outputs: ['affected'],
+          },
+        ],
+        response: {
+          affected: { template: "{{blocks['update'].outputs.affected}}" },
+        },
       }),
     })
     const server = await startServer(handler)
 
     try {
-      const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_update_outputs`, { method: 'POST' })
+      const response = await fetch(`${server.baseUrl}/api/mokelay/update_affected_outputs`, { method: 'POST' })
+      const body = await readJson<Record<string, unknown>>(response)
 
-      expect(response.status).toBe(400)
+      expect(response.status).toBe(200)
+      expect(body).toEqual({ affected: 1 })
     } finally {
       await server.close()
     }
