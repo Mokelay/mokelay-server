@@ -7,6 +7,7 @@ import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
 import { createMokelayOrchestrationHandler } from '../../server/utils/orchestration'
+import type { MokelayErrorCode } from '../../server/utils/mokelay-error'
 import { orchestrationSessionCookieName } from '../../server/utils/session'
 
 type TestServer = {
@@ -366,6 +367,22 @@ async function readJson<T>(response: Response) {
   return await response.json() as T
 }
 
+async function expectMokelayError(response: Response, code: MokelayErrorCode, message?: string | RegExp) {
+  expect(response.status).toBe(200)
+
+  const body = await readJson<{ error: { code: string, message: string } }>(response)
+
+  expect(body.error.code).toBe(code)
+
+  if (typeof message === 'string') {
+    expect(body.error.message).toBe(message)
+  } else if (message) {
+    expect(body.error.message).toMatch(message)
+  }
+
+  return body
+}
+
 function responseCookie(response: Response, name: string) {
   return response.headers.get('set-cookie')?.split(';')[0] || `${name}=`
 }
@@ -575,16 +592,16 @@ describe('mokelay orchestration API', () => {
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
-  it('returns 400 when API_JSON_UUID is missing', async () => {
+  it('returns an error body when API_JSON_UUID is missing', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/mokelay`)
 
-    expect(response.status).toBe(400)
+    await expectMokelayError(response, 'API_JSON_UUID_INVALID', 'API_JSON_UUID 无效或不能为空。')
   })
 
-  it('returns 404 for unknown API JSON definitions', async () => {
+  it('returns an error body for unknown API JSON definitions', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/mokelay/not_found`)
 
-    expect(response.status).toBe(404)
+    await expectMokelayError(response, 'API_JSON_NOT_FOUND', 'API JSON 不存在。')
   })
 
   it('stops orchestration when datasource DATABASE_URL is missing', async () => {
@@ -611,7 +628,38 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/missing_datasource_url`, { method: 'POST' })
 
-      expect(response.status).toBe(500)
+      await expectMokelayError(response, 'BLOCK_DATASOURCE_URL_MISSING', 'Missing_DATABASE_URL is not configured.')
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('hides unknown orchestration errors behind a generic error body', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: async () => {
+        throw new Error('raw database failure')
+      },
+      loadApiJson: async () => ({
+        uuid: 'unknown_sql_error',
+        method: 'POST',
+        blocks: [{
+          uuid: 'list',
+          functionName: 'list',
+          inputs: {
+            datasource: 'Mokelay',
+            table: 'users',
+            fields: ['id'],
+          },
+        }],
+        response: { ok: true },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/unknown_sql_error`, { method: 'POST' })
+
+      await expectMokelayError(response, 'INTERNAL_ERROR', '服务器内部错误。')
     } finally {
       await server.close()
     }
@@ -620,14 +668,14 @@ describe('mokelay orchestration API', () => {
   it('rejects method mismatches and missing declared parameters', async () => {
     const methodMismatchResponse = await fetch(`${testServer.baseUrl}/api/mokelay/create_user_info`)
 
-    expect(methodMismatchResponse.status).toBe(400)
+    await expectMokelayError(methodMismatchResponse, 'REQUEST_METHOD_MISMATCH', '请求方法不匹配，应使用 POST。')
 
     const missingBodyFieldResponse = await postJson(testServer.baseUrl, 'create_user_info', {
       name: 'Missing Password',
       email: 'missing-password@mokelay.test',
     })
 
-    expect(missingBodyFieldResponse.status).toBe(400)
+    await expectMokelayError(missingBodyFieldResponse, 'REQUEST_PARAMETER_MISSING', '缺少 body 参数：password_hash')
   })
 
   it('does not require tables or fields to be predeclared in server code', async () => {
@@ -754,7 +802,7 @@ describe('mokelay orchestration API', () => {
         headers: { cookie },
       })
 
-      expect(removedReadResponse.status).toBe(404)
+      await expectMokelayError(removedReadResponse, 'BLOCK_SESSION_KEY_NOT_FOUND', 'Session key 不存在：profile')
       expect(sqlCalls).toBe(0)
     } finally {
       await server.close()
@@ -824,10 +872,10 @@ describe('mokelay orchestration API', () => {
       const removeMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/remove_missing_session`, { method: 'POST' })
       const readMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/read_missing_session`, { method: 'POST' })
 
-      expect(missingKeyResponse.status).toBe(400)
-      expect(invalidOutputResponse.status).toBe(400)
+      await expectMokelayError(missingKeyResponse, 'BLOCK_SESSION_KEY_INVALID', 'key 必须是非空字符串。')
+      await expectMokelayError(invalidOutputResponse, 'BLOCK_UNSUPPORTED_OUTPUT', 'Block readSession 不支持输出：data')
       expect(removeMissingResponse.status).toBe(200)
-      expect(readMissingResponse.status).toBe(404)
+      await expectMokelayError(readMissingResponse, 'BLOCK_SESSION_KEY_NOT_FOUND', 'Session key 不存在：missing')
     } finally {
       await server.close()
     }
@@ -846,7 +894,7 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_schema`, { method: 'POST' })
 
-      expect(response.status).toBe(400)
+      await expectMokelayError(response, 'API_JSON_INVALID_SCHEMA', /API JSON invalid_schema 不符合规范/)
     } finally {
       await server.close()
     }
@@ -941,7 +989,7 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${server.baseUrl}/api/mokelay/invalid_create_outputs`, { method: 'POST' })
 
-      expect(response.status).toBe(400)
+      await expectMokelayError(response, 'BLOCK_UNSUPPORTED_OUTPUT', 'Block create 不支持输出：id')
     } finally {
       await server.close()
     }
@@ -965,7 +1013,7 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${invalidFunctionServer.baseUrl}/api/mokelay/invalid_function`, { method: 'POST' })
 
-      expect(response.status).toBe(400)
+      await expectMokelayError(response, 'BLOCK_UNSUPPORTED_FUNCTION', '不支持的 Block functionName：unknown')
     } finally {
       await invalidFunctionServer.close()
     }
@@ -1014,7 +1062,7 @@ describe('mokelay orchestration API', () => {
     try {
       const response = await fetch(`${invalidConditionServer.baseUrl}/api/mokelay/invalid_condition`, { method: 'POST' })
 
-      expect(response.status).toBe(400)
+      await expectMokelayError(response, 'BLOCK_INVALID_CONDITION_VALUE', 'IN 条件的 fieldValue 必须是非空数组。')
     } finally {
       await invalidConditionServer.close()
     }
@@ -1040,7 +1088,7 @@ describe('mokelay orchestration API', () => {
         body: JSON.stringify({ name: 'Template User' }),
       })
 
-      expect(response.status).toBe(400)
+      await expectMokelayError(response, 'TEMPLATE_VARIABLE_NOT_FOUND', '模板变量不存在：request.body.email')
     } finally {
       await missingTemplateServer.close()
     }

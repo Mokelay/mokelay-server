@@ -1,5 +1,6 @@
-import { createError, deleteCookie, getCookie, setCookie, type H3Event } from 'h3'
+import { deleteCookie, getCookie, setCookie, type H3Event } from 'h3'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { mokelayError } from './mokelay-error'
 import type { PublicUser } from './user-store'
 
 export const sessionCookieName = 'mokelay_session'
@@ -36,10 +37,7 @@ function sessionSecret() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    throw createError({
-      statusCode: 500,
-      message: 'SESSION_SECRET is not configured.',
-    })
+    throw mokelayError('SESSION_SECRET_NOT_CONFIGURED', 'SESSION_SECRET is not configured.', 500)
   }
 
   return 'mokelay-local-session-secret-at-least-32-characters'
@@ -229,10 +227,7 @@ export function readSessionValue(event: H3Event, key: string) {
   const session = getOrchestrationSession(event)
 
   if (!Object.prototype.hasOwnProperty.call(session.values, key)) {
-    throw createError({
-      statusCode: 404,
-      message: `Session key 不存在：${key}`,
-    })
+    throw mokelayError('BLOCK_SESSION_KEY_NOT_FOUND', `Session key 不存在：${key}`, 404)
   }
 
   return session.values[key]

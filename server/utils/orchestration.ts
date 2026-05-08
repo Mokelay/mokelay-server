@@ -2,7 +2,6 @@ import { readFile } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 import { sql, type SQL } from 'drizzle-orm'
 import {
-  createError,
   defineEventHandler,
   getMethod,
   getQuery,
@@ -15,6 +14,7 @@ import {
 } from 'h3'
 import { z } from 'zod'
 import { normalizeDatasourceName, useDatasourceDb } from './db'
+import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
@@ -138,10 +138,7 @@ const databaseBlockFunctions = new Set(['list', 'page', 'read', 'delete', 'creat
 
 function assertApiJsonUuid(value: string | undefined) {
   if (!value || !apiJsonUuidPattern.test(value)) {
-    throw createError({
-      statusCode: 400,
-      message: 'API_JSON_UUID 无效或不能为空。',
-    })
+    throw mokelayError('API_JSON_UUID_INVALID', 'API_JSON_UUID 无效或不能为空。', 400)
   }
 
   return value
@@ -151,17 +148,15 @@ function parseApiJson(apiJsonUuid: string, value: unknown): ApiJson {
   const parsed = apiJsonSchema.safeParse(value)
 
   if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      message: `API JSON ${apiJsonUuid} 不符合规范：${parsed.error.issues[0]?.message || '输入内容无效。'}`,
-    })
+    throw mokelayError(
+      'API_JSON_INVALID_SCHEMA',
+      `API JSON ${apiJsonUuid} 不符合规范：${parsed.error.issues[0]?.message || '输入内容无效。'}`,
+      400,
+    )
   }
 
   if (parsed.data.uuid !== apiJsonUuid) {
-    throw createError({
-      statusCode: 400,
-      message: 'API JSON UUID 与请求路径不一致。',
-    })
+    throw mokelayError('API_JSON_UUID_MISMATCH', 'API JSON UUID 与请求路径不一致。', 400)
   }
 
   return parsed.data
@@ -183,10 +178,7 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
   const filePath = resolve(apiJsonDir, `${apiJsonUuid}.json`)
 
   if (!filePath.startsWith(`${apiJsonDir}${sep}`)) {
-    throw createError({
-      statusCode: 400,
-      message: 'API_JSON_UUID 无效。',
-    })
+    throw mokelayError('API_JSON_UUID_INVALID', 'API_JSON_UUID 无效。', 400)
   }
 
   try {
@@ -195,10 +187,7 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
     if (code === 'ENOENT') {
-      throw createError({
-        statusCode: 404,
-        message: 'API JSON 不存在。',
-      })
+      throw mokelayError('API_JSON_NOT_FOUND', 'API JSON 不存在。', 404)
     }
 
     throw error
@@ -217,10 +206,7 @@ export async function loadApiJson(apiJsonUuid: string) {
   try {
     return JSON.parse(value) as unknown
   } catch {
-    throw createError({
-      statusCode: 400,
-      message: `API JSON ${apiJsonUuid} 不是合法 JSON。`,
-    })
+    throw mokelayError('API_JSON_INVALID_JSON', `API JSON ${apiJsonUuid} 不是合法 JSON。`, 400)
   }
 }
 
@@ -262,10 +248,7 @@ function parsePathExpression(expression: string) {
 
   while ((match = matcher.exec(expression)) !== null) {
     if (match.index !== cursor) {
-      throw createError({
-        statusCode: 400,
-        message: `模板路径无效：${expression}`,
-      })
+      throw mokelayError('TEMPLATE_PATH_INVALID', `模板路径无效：${expression}`, 400)
     }
 
     tokens.push(match[1] ?? match[2] ?? match[3] ?? '')
@@ -273,10 +256,7 @@ function parsePathExpression(expression: string) {
   }
 
   if (tokens.length === 0 || cursor !== expression.length) {
-    throw createError({
-      statusCode: 400,
-      message: `模板路径无效：${expression}`,
-    })
+    throw mokelayError('TEMPLATE_PATH_INVALID', `模板路径无效：${expression}`, 400)
   }
 
   return tokens
@@ -288,20 +268,14 @@ function getByPath(source: unknown, expression: string) {
 
   for (const token of tokens) {
     if (current === null || current === undefined) {
-      throw createError({
-        statusCode: 400,
-        message: `模板变量不存在：${expression}`,
-      })
+      throw mokelayError('TEMPLATE_VARIABLE_NOT_FOUND', `模板变量不存在：${expression}`, 400)
     }
 
     if (Array.isArray(current)) {
       const index = Number(token)
 
       if (!Number.isSafeInteger(index)) {
-        throw createError({
-          statusCode: 400,
-          message: `模板数组索引无效：${expression}`,
-        })
+        throw mokelayError('TEMPLATE_ARRAY_INDEX_INVALID', `模板数组索引无效：${expression}`, 400)
       }
 
       current = current[index]
@@ -309,10 +283,7 @@ function getByPath(source: unknown, expression: string) {
     }
 
     if (!isRecord(current) || !(token in current)) {
-      throw createError({
-        statusCode: 400,
-        message: `模板变量不存在：${expression}`,
-      })
+      throw mokelayError('TEMPLATE_VARIABLE_NOT_FOUND', `模板变量不存在：${expression}`, 400)
     }
 
     current = current[token]
@@ -361,10 +332,7 @@ function normalizeBody(body: unknown) {
 
 function requireDeclaredValue(source: Record<string, unknown>, name: string, sourceName: string) {
   if (!(name in source) || source[name] === undefined || source[name] === null || source[name] === '') {
-    throw createError({
-      statusCode: 400,
-      message: `缺少 ${sourceName} 参数：${name}`,
-    })
+    throw mokelayError('REQUEST_PARAMETER_MISSING', `缺少 ${sourceName} 参数：${name}`, 400)
   }
 
   return source[name]
@@ -382,9 +350,15 @@ async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<Req
     const value = rawQuery[name]
     return [name, Array.isArray(value) ? value[0] : value]
   }))
-  const bodyContext = !shouldReadBody || apiJson.request.body.length === 0
-    ? {}
-    : normalizeBody(await readBody(event))
+  let bodyContext: Record<string, unknown> = {}
+
+  if (shouldReadBody && apiJson.request.body.length > 0) {
+    try {
+      bodyContext = normalizeBody(await readBody(event))
+    } catch (error) {
+      throw mokelayError('REQUEST_INVALID_BODY', '请求 body 不是合法 JSON。', 400, error)
+    }
+  }
 
   for (const name of apiJson.request.header) {
     requireDeclaredValue(headerContext, name, 'header')
@@ -407,21 +381,15 @@ async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<Req
   }
 }
 
-function identifierSql(value: unknown, name: string) {
+function identifierSql(value: unknown, name: string, errorCode: MokelayErrorCode) {
   if (typeof value !== 'string' || !value.trim()) {
-    throw createError({
-      statusCode: 400,
-      message: `${name} 必须是非空字符串。`,
-    })
+    throw mokelayError(errorCode, `${name} 必须是非空字符串。`, 400)
   }
 
   const parts = value.trim().split('.')
 
   if (parts.some((part) => !part.trim())) {
-    throw createError({
-      statusCode: 400,
-      message: `${name} 不是合法 SQL 标识符。`,
-    })
+    throw mokelayError(errorCode, `${name} 不是合法 SQL 标识符。`, 400)
   }
 
   return sql.join(parts.map((part) => sql.identifier(part.trim())), sql.raw('.'))
@@ -429,10 +397,7 @@ function identifierSql(value: unknown, name: string) {
 
 function getFields(value: unknown) {
   if (!Array.isArray(value) || value.length === 0 || !value.every((field) => typeof field === 'string' && field.trim())) {
-    throw createError({
-      statusCode: 400,
-      message: 'fields 必须是非空字符串数组。',
-    })
+    throw mokelayError('BLOCK_INVALID_FIELDS', 'fields 必须是非空字符串数组。', 400)
   }
 
   return value as string[]
@@ -440,10 +405,7 @@ function getFields(value: unknown) {
 
 function getFieldValues(value: unknown) {
   if (!isRecord(value) || Object.keys(value).length === 0) {
-    throw createError({
-      statusCode: 400,
-      message: 'fields 必须是非空对象。',
-    })
+    throw mokelayError('BLOCK_INVALID_FIELDS', 'fields 必须是非空对象。', 400)
   }
 
   return value
@@ -457,10 +419,11 @@ function getConditions(value: unknown): Condition[] {
   const parsed = z.array(conditionSchema).safeParse(value)
 
   if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      message: `conditions 不符合规范：${parsed.error.issues[0]?.message || '输入内容无效。'}`,
-    })
+    throw mokelayError(
+      'BLOCK_INVALID_CONDITIONS',
+      `conditions 不符合规范：${parsed.error.issues[0]?.message || '输入内容无效。'}`,
+      400,
+    )
   }
 
   return parsed.data
@@ -472,7 +435,7 @@ function buildConditionSql(condition: Condition): SQL {
     return sql.join(parts, condition.groupType === 'AND' ? sql` AND ` : sql` OR `)
   }
 
-  const column = identifierSql(condition.fieldName, 'fieldName')
+  const column = identifierSql(condition.fieldName, 'fieldName', 'BLOCK_INVALID_CONDITIONS')
 
   switch (condition.conditionType) {
     case 'EQ':
@@ -490,10 +453,11 @@ function buildConditionSql(condition: Condition): SQL {
     case 'IN':
     case 'NOTIN': {
       if (!Array.isArray(condition.fieldValue) || condition.fieldValue.length === 0) {
-        throw createError({
-          statusCode: 400,
-          message: `${condition.conditionType} 条件的 fieldValue 必须是非空数组。`,
-        })
+        throw mokelayError(
+          'BLOCK_INVALID_CONDITION_VALUE',
+          `${condition.conditionType} 条件的 fieldValue 必须是非空数组。`,
+          400,
+        )
       }
 
       const values = sql.join(condition.fieldValue.map((item) => sql`${item}`), sql`, `)
@@ -512,14 +476,11 @@ function buildWhereSql(conditions: Condition[]) {
   return sql.join(conditions.map((condition) => sql`(${buildConditionSql(condition)})`), sql` AND `)
 }
 
-function getPositiveInteger(value: unknown, name: string, defaultValue: number) {
+function getPositiveInteger(value: unknown, name: string, defaultValue: number, errorCode: MokelayErrorCode) {
   const parsedValue = Number(value ?? defaultValue)
 
   if (!Number.isSafeInteger(parsedValue) || parsedValue < 1) {
-    throw createError({
-      statusCode: 400,
-      message: `${name} 必须是正整数。`,
-    })
+    throw mokelayError(errorCode, `${name} 必须是正整数。`, 400)
   }
 
   return parsedValue
@@ -527,10 +488,7 @@ function getPositiveInteger(value: unknown, name: string, defaultValue: number) 
 
 function getSessionKey(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
-    throw createError({
-      statusCode: 400,
-      message: 'key 必须是非空字符串。',
-    })
+    throw mokelayError('BLOCK_SESSION_KEY_INVALID', 'key 必须是非空字符串。', 400)
   }
 
   return value.trim()
@@ -538,17 +496,14 @@ function getSessionKey(value: unknown) {
 
 function getCreateIdField(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
-    throw createError({
-      statusCode: 400,
-      message: 'idField 必须是非空字符串。',
-    })
+    throw mokelayError('BLOCK_INVALID_ID_FIELD', 'idField 必须是非空字符串。', 400)
   }
 
   const fieldName = value.trim()
 
   return {
     fieldName: fieldName.split('.').at(-1)?.trim() || fieldName,
-    fieldSql: identifierSql(fieldName, 'idField'),
+    fieldSql: identifierSql(fieldName, 'idField', 'BLOCK_INVALID_ID_FIELD'),
   }
 }
 
@@ -564,45 +519,36 @@ function orderBySql(value: unknown) {
   }
 
   if (!Array.isArray(value)) {
-    throw createError({
-      statusCode: 400,
-      message: 'orderBy 必须是数组。',
-    })
+    throw mokelayError('BLOCK_INVALID_ORDER_BY', 'orderBy 必须是数组。', 400)
   }
 
   const orders = value.map((item) => {
     if (!isRecord(item) || typeof item.fieldName !== 'string' || !item.fieldName.trim()) {
-      throw createError({
-        statusCode: 400,
-        message: 'orderBy.fieldName 必须是非空字符串。',
-      })
+      throw mokelayError('BLOCK_INVALID_ORDER_BY_FIELD', 'orderBy.fieldName 必须是非空字符串。', 400)
     }
 
     const direction = typeof item.direction === 'string' ? item.direction.toUpperCase() : 'ASC'
 
     if (direction !== 'ASC' && direction !== 'DESC') {
-      throw createError({
-        statusCode: 400,
-        message: 'orderBy.direction 只能是 ASC 或 DESC。',
-      })
+      throw mokelayError('BLOCK_INVALID_ORDER_BY_DIRECTION', 'orderBy.direction 只能是 ASC 或 DESC。', 400)
     }
 
-    return sql`${identifierSql(item.fieldName, 'orderBy.fieldName')} ${sql.raw(direction)}`
+    return sql`${identifierSql(item.fieldName, 'orderBy.fieldName', 'BLOCK_INVALID_ORDER_BY_FIELD')} ${sql.raw(direction)}`
   })
 
   return orders.length > 0 ? sql.join(orders, sql`, `) : undefined
 }
 
 async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecutor, paged = false) {
-  const table = identifierSql(inputs.table, 'table')
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFields(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
   const orderBy = orderBySql(inputs.orderBy)
-  const selectedFields = sql.join(fields.map((field) => identifierSql(field, 'fields')), sql`, `)
+  const selectedFields = sql.join(fields.map((field) => identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')), sql`, `)
   const baseQuery = sql`FROM ${table}`
-  const page = getPositiveInteger(inputs.page, 'page', 1)
-  const pageSize = getPositiveInteger(inputs.pageSize, 'pageSize', 20)
+  const page = getPositiveInteger(inputs.page, 'page', 1, 'BLOCK_INVALID_PAGE')
+  const pageSize = getPositiveInteger(inputs.pageSize, 'pageSize', 20, 'BLOCK_INVALID_PAGE_SIZE')
 
   const dataQuery = where
     ? sql`SELECT ${selectedFields} ${baseQuery} WHERE ${where}`
@@ -633,11 +579,11 @@ async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecu
 }
 
 async function executeRead(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
-  const table = identifierSql(inputs.table, 'table')
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFields(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const selectedFields = sql.join(fields.map((field) => identifierSql(field, 'fields')), sql`, `)
+  const selectedFields = sql.join(fields.map((field) => identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')), sql`, `)
   const query = where
     ? sql`SELECT ${selectedFields} FROM ${table} WHERE ${where} LIMIT 1`
     : sql`SELECT ${selectedFields} FROM ${table} LIMIT 1`
@@ -649,11 +595,11 @@ async function executeRead(inputs: Record<string, unknown>, executeSql: SqlExecu
 }
 
 async function executeCreate(block: Block, inputs: Record<string, unknown>, executeSql: SqlExecutor) {
-  const table = identifierSql(inputs.table, 'table')
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
   const idField = getCreateIdField(inputs.idField)
   const columns = Object.keys(fields)
-  const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields')), sql`, `)
+  const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')), sql`, `)
   const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field])), sql`, `)
 
   try {
@@ -661,10 +607,7 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
     const uuid = rows[0]?.[idField.fieldName]
 
     if (uuid === undefined || uuid === null || uuid === '') {
-      throw createError({
-        statusCode: 500,
-        message: 'create Block 未返回插入记录的唯一 ID。',
-      })
+      throw mokelayError('BLOCK_CREATE_MISSING_ID', 'create Block 未返回插入记录的唯一 ID。', 500)
     }
 
     return { uuid }
@@ -672,10 +615,7 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
     if (code === '23505') {
-      throw createError({
-        statusCode: 409,
-        message: '记录已经存在。',
-      })
+      throw mokelayError('BLOCK_DUPLICATE_RECORD', '记录已经存在。', 409, error)
     }
 
     throw error
@@ -683,11 +623,11 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
 }
 
 async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
-  const table = identifierSql(inputs.table, 'table')
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields')} = ${fieldValueSql(value)}`), sql`, `)
+  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')} = ${fieldValueSql(value)}`), sql`, `)
 
   const rows = await executeSql(where
     ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
@@ -697,7 +637,7 @@ async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExe
 }
 
 async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
-  const table = identifierSql(inputs.table, 'table')
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
   const rows = await executeSql(where
@@ -711,10 +651,7 @@ async function executeAddSession(event: H3Event, inputs: Record<string, unknown>
   const key = getSessionKey(inputs.key)
 
   if (!Object.prototype.hasOwnProperty.call(inputs, 'value')) {
-    throw createError({
-      statusCode: 400,
-      message: 'value 不能为空。',
-    })
+    throw mokelayError('BLOCK_SESSION_VALUE_MISSING', 'value 不能为空。', 400)
   }
 
   setSessionValue(event, key, inputs.value)
@@ -759,10 +696,7 @@ function validateDeclaredOutputs(block: Block) {
 
   for (const outputName of block.outputs) {
     if (!allowedOutputs.includes(outputName)) {
-      throw createError({
-        statusCode: 400,
-        message: `Block ${block.functionName} 不支持输出：${outputName}`,
-      })
+      throw mokelayError('BLOCK_UNSUPPORTED_OUTPUT', `Block ${block.functionName} 不支持输出：${outputName}`, 400)
     }
   }
 }
@@ -771,10 +705,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   const executor = blockExecutors[block.functionName]
 
   if (!executor) {
-    throw createError({
-      statusCode: 400,
-      message: `不支持的 Block functionName：${block.functionName}`,
-    })
+    throw mokelayError('BLOCK_UNSUPPORTED_FUNCTION', `不支持的 Block functionName：${block.functionName}`, 400)
   }
 
   validateDeclaredOutputs(block)
@@ -785,10 +716,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
     : undefined
   const executeBlockSql: SqlExecutor = (query) => {
     if (!datasource) {
-      throw createError({
-        statusCode: 500,
-        message: `Block ${block.functionName} 不支持 SQL 执行。`,
-      })
+      throw mokelayError('BLOCK_SQL_UNSUPPORTED', `Block ${block.functionName} 不支持 SQL 执行。`, 500)
     }
 
     return executeSql(query, datasource)
@@ -804,10 +732,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   if (block.outputs) {
     for (const outputName of block.outputs) {
       if (!(outputName in outputs)) {
-        throw createError({
-          statusCode: 400,
-          message: `Block ${block.uuid} 未产生声明的输出：${outputName}`,
-        })
+        throw mokelayError('BLOCK_OUTPUT_MISSING', `Block ${block.uuid} 未产生声明的输出：${outputName}`, 400)
       }
     }
   }
@@ -823,10 +748,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
   const actualMethod = getMethod(event).toUpperCase()
 
   if (apiJson.method !== actualMethod) {
-    throw createError({
-      statusCode: 400,
-      message: `请求方法不匹配，应使用 ${apiJson.method}。`,
-    })
+    throw mokelayError('REQUEST_METHOD_MISMATCH', `请求方法不匹配，应使用 ${apiJson.method}。`, 400)
   }
 
   const request = await readRequestContext(event, apiJson)
@@ -854,9 +776,14 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
 
 export function createMokelayOrchestrationHandler(options: OrchestrationHandlerOptions = {}): EventHandler {
   return defineEventHandler(async (event) => {
-    const apiJsonUuid = assertApiJsonUuid(getRouterParam(event, 'apiJsonUuid'))
-    const rawApiJson = await (options.loadApiJson ?? loadApiJson)(apiJsonUuid)
+    try {
+      const apiJsonUuid = assertApiJsonUuid(getRouterParam(event, 'apiJsonUuid'))
+      const rawApiJson = await (options.loadApiJson ?? loadApiJson)(apiJsonUuid)
 
-    return await executeApiJson(event, rawApiJson, options)
+      return await executeApiJson(event, rawApiJson, options)
+    } catch (error) {
+      setResponseStatus(event, 200)
+      return toMokelayErrorResponse(error)
+    }
   })
 }

@@ -2,11 +2,26 @@
 
 本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。
 
-编排接口统一从 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口直接返回错误。
+编排接口统一从 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
 `list`、`page`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
 
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session`，不需要配置 `datasource`，也不会读写登录态 Cookie `mokelay_session`。
+
+## 错误响应
+
+编排接口的业务错误统一使用 HTTP `200`，并在 response body 中返回 `error.code` 和 `error.message`：
+
+```json
+{
+  "error": {
+    "code": "BLOCK_INVALID_FIELDS",
+    "message": "fields 必须是非空字符串数组。"
+  }
+}
+```
+
+未分类的内部异常会返回 `INTERNAL_ERROR` 和通用错误消息。成功且未配置 `response` 的 API JSON 仍返回 HTTP `204` 空内容。
 
 ## 通用 Block 结构
 
@@ -72,7 +87,7 @@
 
 - 如果整个字符串只有一个模板占位符，会保留原始类型。
 - 如果模板和其他字符串拼接，会转成字符串插值。
-- 模板变量不存在会返回 `400`。
+- 模板变量不存在会返回 `TEMPLATE_VARIABLE_NOT_FOUND` 错误。
 
 示例：
 
@@ -605,7 +620,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 - `fields` 里的 key 直接作为数据库字段名。
 - `fields` 里的 value 如果是对象或数组，会被 `JSON.stringify(value)::jsonb` 写入。
 - 其他 value 会作为普通 SQL 参数写入。
-- 如果数据库返回唯一键冲突错误 `23505`，接口返回 `409`。
+- 如果数据库返回唯一键冲突错误 `23505`，接口返回 `BLOCK_DUPLICATE_RECORD` 错误。
 
 ### SQL 行为
 
@@ -627,7 +642,7 @@ INSERT INTO table (columns) VALUES (values) RETURNING idField
 }
 ```
 
-不要在 `create.outputs` 中配置 `id` 或其他物理字段名。如果配置了非 `uuid` 输出，接口返回 `400`。
+不要在 `create.outputs` 中配置 `id` 或其他物理字段名。如果配置了非 `uuid` 输出，接口返回 `BLOCK_UNSUPPORTED_OUTPUT` 错误。
 
 ### 示例：创建后读取完整数据
 
@@ -852,7 +867,7 @@ outputs：无。
 
 ### readSession
 
-读取一个 session key。读取失败时抛出异常，接口返回 `404`。
+读取一个 session key。读取失败时返回 `BLOCK_SESSION_KEY_NOT_FOUND` 错误。
 
 ```json
 {

@@ -2,6 +2,7 @@ import { createError } from 'h3'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../database/schema'
+import { mokelayError } from './mokelay-error'
 
 type Database = ReturnType<typeof drizzle<typeof schema>>
 
@@ -44,19 +45,13 @@ function datasourceConnections() {
 
 export function normalizeDatasourceName(datasource: unknown) {
   if (typeof datasource !== 'string' || !datasource.trim()) {
-    throw createError({
-      statusCode: 400,
-      message: 'datasource 必须是非空字符串。',
-    })
+    throw mokelayError('BLOCK_INVALID_DATASOURCE', 'datasource 必须是非空字符串。', 400)
   }
 
   const name = datasource.trim()
 
   if (!datasourceNamePattern.test(name)) {
-    throw createError({
-      statusCode: 400,
-      message: 'datasource 只能包含字母、数字、下划线，且不能以数字开头。',
-    })
+    throw mokelayError('BLOCK_INVALID_DATASOURCE', 'datasource 只能包含字母、数字、下划线，且不能以数字开头。', 400)
   }
 
   return name
@@ -96,10 +91,7 @@ export function useDatasourceDb(datasource: string) {
   const databaseUrl = process.env[envName]
 
   if (!databaseUrl) {
-    throw createError({
-      statusCode: 500,
-      message: `${envName} is not configured.`,
-    })
+    throw mokelayError('BLOCK_DATASOURCE_URL_MISSING', `${envName} is not configured.`, 500)
   }
 
   const cacheKey = `${envName}:${databaseUrl}`
