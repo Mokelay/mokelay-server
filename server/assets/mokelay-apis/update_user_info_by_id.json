@@ -12,6 +12,7 @@
       "alias": "更新Block",
       "functionName": "update",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "users",
         "fields": {
           "name": {

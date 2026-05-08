@@ -4,6 +4,8 @@
 
 编排接口统一从 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口直接返回错误。
 
+`list`、`page`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
+
 ## 通用 Block 结构
 
 ```json
@@ -65,6 +67,26 @@
   }
 }
 ```
+
+## Datasource 配置
+
+数据库 block 的 `inputs.datasource` 必须是非空字符串，只能包含字母、数字、下划线，且不能以数字开头。
+
+示例：
+
+```json
+{
+  "datasource": "Mokelay"
+}
+```
+
+上面的配置会读取环境变量：
+
+```env
+Mokelay_DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME
+```
+
+同一个 API JSON 的不同 block 可以配置不同 datasource。`datasource` 也可以使用模板，但通常建议写固定值，避免请求参数决定数据库连接。
 
 ## SQL 标识符规则
 
@@ -198,6 +220,7 @@
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "users",
   "fields": ["id", "name", "email", "created_at", "updated_at"],
   "conditions": [],
@@ -209,6 +232,7 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
 | `fields` | `string[]` | 是 | 查询字段。必须是真实字段名，不支持 alias。 |
 | `conditions` | `Condition[]` | 否 | 查询条件。省略时不加 `WHERE`。 |
@@ -258,6 +282,7 @@ SELECT fields FROM table WHERE conditions ORDER BY orderBy
   "alias": "查询用户列表",
   "functionName": "list",
   "inputs": {
+    "datasource": "Mokelay",
     "table": "users",
     "fields": ["id", "name", "email", "created_at", "updated_at"],
     "conditions": [
@@ -289,6 +314,7 @@ SELECT fields FROM table WHERE conditions ORDER BY orderBy
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "pages",
   "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
   "conditions": [],
@@ -302,6 +328,7 @@ SELECT fields FROM table WHERE conditions ORDER BY orderBy
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | - | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | - | 数据库表名。 |
 | `fields` | `string[]` | 是 | - | 查询字段。必须是真实字段名，不支持 alias。 |
 | `conditions` | `Condition[]` | 否 | 无 | 查询条件。 |
@@ -353,6 +380,7 @@ SELECT count(*)::int AS total FROM table WHERE conditions
   "alias": "页面分页Block",
   "functionName": "page",
   "inputs": {
+    "datasource": "Mokelay",
     "table": "pages",
     "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
     "page": {
@@ -384,6 +412,7 @@ SELECT count(*)::int AS total FROM table WHERE conditions
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "pages",
   "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
   "conditions": []
@@ -394,6 +423,7 @@ SELECT count(*)::int AS total FROM table WHERE conditions
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
 | `fields` | `string[]` | 是 | 查询字段。必须是真实字段名，不支持 alias。 |
 | `conditions` | `Condition[]` | 否 | 查询条件。省略时读取表里的第一条记录。 |
@@ -434,6 +464,7 @@ SELECT fields FROM table LIMIT 1
   "alias": "读取页面Block",
   "functionName": "read",
   "inputs": {
+    "datasource": "Mokelay",
     "table": "pages",
     "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
     "conditions": [
@@ -459,6 +490,7 @@ SELECT fields FROM table LIMIT 1
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "users",
   "conditions": []
 }
@@ -468,6 +500,7 @@ SELECT fields FROM table LIMIT 1
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
 | `conditions` | `Condition[]` | 否 | 删除条件。省略时会删除整张表数据，请谨慎配置。 |
 
@@ -507,6 +540,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
   "alias": "删除用户Block",
   "functionName": "delete",
   "inputs": {
+    "datasource": "Mokelay",
     "table": "users",
     "conditions": [
       {
@@ -531,6 +565,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "pages",
   "fields": {
     "name": "首页",
@@ -543,6 +578,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
 | `fields` | `object` | 是 | 插入字段和值。key 是真实数据库字段名，value 是插入值，可使用模板。 |
 
@@ -590,6 +626,7 @@ INSERT INTO table (columns) VALUES (values)
     "alias": "创建页面Block",
     "functionName": "create",
     "inputs": {
+      "datasource": "Mokelay",
       "table": "pages",
       "fields": {
         "name": {
@@ -607,6 +644,7 @@ INSERT INTO table (columns) VALUES (values)
     "alias": "读取页面Block",
     "functionName": "read",
     "inputs": {
+      "datasource": "Mokelay",
       "table": "pages",
       "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
       "conditions": [
@@ -635,6 +673,7 @@ INSERT INTO table (columns) VALUES (values)
 
 ```json
 {
+  "datasource": "Mokelay",
   "table": "pages",
   "fields": {
     "blocks": [],
@@ -650,6 +689,7 @@ INSERT INTO table (columns) VALUES (values)
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
 | `table` | `string` | 是 | 数据库表名。 |
 | `fields` | `object` | 是 | 更新字段和值。key 是真实数据库字段名，value 是更新值，可使用模板。 |
 | `conditions` | `Condition[]` | 否 | 更新条件。省略时会更新整张表数据，请谨慎配置。 |
@@ -689,6 +729,7 @@ UPDATE table SET assignments
     "alias": "更新页面Block",
     "functionName": "update",
     "inputs": {
+      "datasource": "Mokelay",
       "table": "pages",
       "fields": {
         "blocks": {
@@ -715,6 +756,7 @@ UPDATE table SET assignments
     "alias": "读取页面Block",
     "functionName": "read",
     "inputs": {
+      "datasource": "Mokelay",
       "table": "pages",
       "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
       "conditions": [
@@ -763,8 +805,8 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板。
 ## 常见配置建议
 
 - `read`、`update`、`delete` 通常都应该配置 `conditions`，避免误读、误改、误删整张表。
+- 每个数据库 block 都必须配置 `datasource`，并确保环境变量 `${datasource}_DATABASE_URL` 已设置。
 - `create` 建议只返回主键，例如 `["id"]` 或 `["uuid"]`；如果需要完整数据，用后续 `read` block。
 - `update` 不要配置 `outputs`；如果需要完整数据，用后续 `read` block。
 - `fields` 一律写真实数据库字段名，不写 alias。
 - 数据库字段错误、表名错误、字段类型不匹配时，按数据库报错修正 API JSON 配置。
-

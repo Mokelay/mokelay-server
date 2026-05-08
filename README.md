@@ -14,7 +14,7 @@ Mokelay public API service. It owns website auth, user storage, and the PostgreS
 
 Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
-Pages are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`. See `docs/pages-orchestration-api.md` for the current pages API calls.
+Pages are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`. See `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 
@@ -43,7 +43,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The dev server listens on `http://127.0.0.1:8787`. If `DATABASE_URL` is not set, auth uses an in-memory user store for local preview and tests.
+The dev server listens on `http://127.0.0.1:8787`. If `DATABASE_URL` is not set, auth uses an in-memory user store for local preview and tests. Mokelay orchestration JSON examples use `Mokelay_DATABASE_URL`.
 
 ## Database
 
@@ -63,6 +63,7 @@ Required environment variables:
 ```env
 NODE_ENV=production
 DATABASE_URL=your-production-postgres-url
+Mokelay_DATABASE_URL=your-production-postgres-url
 SESSION_SECRET=use-a-strong-random-string-at-least-32-chars
 COOKIE_DOMAIN=.mokelay.com
 CORS_ORIGINS=https://www.mokelay.com,https://mokelay.com,https://editor.mokelay.com,http://localhost:5173

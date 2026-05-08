@@ -91,8 +91,11 @@ type PageRow = {
 class FakeSqlExecutor {
   readonly users: UserRow[] = []
   readonly pages: PageRow[] = []
+  readonly datasources: string[] = []
 
-  execute = async <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => {
+  execute = async <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) => {
+    this.datasources.push(datasource)
+
     const builtQuery = pgDialect.sqlToQuery(query)
     const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
     const params = builtQuery.params
@@ -397,7 +400,8 @@ describe('mokelay orchestration API', () => {
     fakeSqlExecutor = new FakeSqlExecutor()
     process.env = {
       ...originalEnv,
-      DATABASE_URL: 'postgres://unit-test',
+      DATABASE_URL: '',
+      Mokelay_DATABASE_URL: 'postgres://unit-test',
       NODE_ENV: 'test',
     }
     testServer = await startServer(createMokelayOrchestrationHandler({
@@ -486,6 +490,7 @@ describe('mokelay orchestration API', () => {
 
     expect(missingReadResponse.status).toBe(200)
     expect(missingReadBody.user_info).toBeNull()
+    expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
   it('executes the four stored page API JSON definitions', async () => {
@@ -562,6 +567,7 @@ describe('mokelay orchestration API', () => {
       hasPreviousPage: true,
       hasNextPage: false,
     })
+    expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
   it('returns 400 when API_JSON_UUID is missing', async () => {
@@ -576,18 +582,34 @@ describe('mokelay orchestration API', () => {
     expect(response.status).toBe(404)
   })
 
-  it('stops orchestration when DATABASE_URL is missing', async () => {
-    process.env.DATABASE_URL = ''
-
-    const response = await postJson(testServer.baseUrl, 'create_user_info', {
-      name: 'No Database',
-      email: 'no-database@mokelay.test',
-      password_hash: 'hashed',
+  it('stops orchestration when datasource DATABASE_URL is missing', async () => {
+    process.env.DATABASE_URL = 'postgres://legacy-should-not-be-used'
+    process.env.Missing_DATABASE_URL = ''
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'missing_datasource_url',
+        method: 'POST',
+        blocks: [{
+          uuid: 'list',
+          functionName: 'list',
+          inputs: {
+            datasource: 'Missing',
+            table: 'users',
+            fields: ['id'],
+          },
+        }],
+        response: { ok: true },
+      }),
     })
+    const server = await startServer(handler)
 
-    expect(response.status).toBe(500)
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/missing_datasource_url`, { method: 'POST' })
 
-    process.env.DATABASE_URL = 'postgres://unit-test'
+      expect(response.status).toBe(500)
+    } finally {
+      await server.close()
+    }
   })
 
   it('rejects method mismatches and missing declared parameters', async () => {
@@ -604,10 +626,12 @@ describe('mokelay orchestration API', () => {
   })
 
   it('does not require tables or fields to be predeclared in server code', async () => {
+    let receivedDatasource = ''
     const handler = createMokelayOrchestrationHandler({
-      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>() => (
-        [{ arbitrary_field: 'from-json-config' }] as unknown as T[]
-      ),
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(_query: SQL, datasource: string) => {
+        receivedDatasource = datasource
+        return [{ arbitrary_field: 'from-json-config' }] as unknown as T[]
+      },
       loadApiJson: async () => ({
         uuid: 'custom_table_list',
         method: 'POST',
@@ -615,6 +639,7 @@ describe('mokelay orchestration API', () => {
           uuid: 'list',
           functionName: 'list',
           inputs: {
+            datasource: 'Custom',
             table: 'custom_table',
             fields: ['arbitrary_field'],
           },
@@ -635,6 +660,7 @@ describe('mokelay orchestration API', () => {
       expect(body).toEqual({
         datas: [{ arbitrary_field: 'from-json-config' }],
       })
+      expect(receivedDatasource).toBe('Custom')
     } finally {
       await server.close()
     }
@@ -669,6 +695,7 @@ describe('mokelay orchestration API', () => {
           uuid: 'update',
           functionName: 'update',
           inputs: {
+            datasource: 'Mokelay',
             table: 'users',
             fields: {
               name: 'Should Not Return',
@@ -723,6 +750,7 @@ describe('mokelay orchestration API', () => {
             uuid: 'create',
             functionName: 'create',
             inputs: {
+              datasource: 'Mokelay',
               table: 'users',
               fields: {
                 name: 'Condition User',
@@ -735,6 +763,7 @@ describe('mokelay orchestration API', () => {
             uuid: 'list',
             functionName: 'list',
             inputs: {
+              datasource: 'Mokelay',
               table: 'users',
               fields: ['id'],
               conditions: [{
@@ -797,6 +826,7 @@ describe('mokelay orchestration API', () => {
             uuid: 'first',
             functionName: 'create',
             inputs: {
+              datasource: 'Mokelay',
               table: 'users',
               fields: {
                 name: 'Page First',
@@ -809,6 +839,7 @@ describe('mokelay orchestration API', () => {
             uuid: 'second',
             functionName: 'create',
             inputs: {
+              datasource: 'Mokelay',
               table: 'users',
               fields: {
                 name: 'Page Second',
@@ -821,6 +852,7 @@ describe('mokelay orchestration API', () => {
             uuid: 'page',
             functionName: 'page',
             inputs: {
+              datasource: 'Mokelay',
               table: 'users',
               fields: ['id', 'name'],
               page: 1,

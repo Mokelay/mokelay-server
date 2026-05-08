@@ -11,6 +11,7 @@
       "alias": "删除Block",
       "functionName": "delete",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "users",
         "conditions": [
           {

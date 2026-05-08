@@ -11,6 +11,7 @@
       "alias": "添加Block",
       "functionName": "create",
       "inputs": {
+        "datasource": "Mokelay",
         "table": "users",
         "fields": {
           "name": {

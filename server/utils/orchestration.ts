@@ -14,7 +14,7 @@ import {
   type H3Event,
 } from 'h3'
 import { z } from 'zod'
-import { hasDatabaseUrl, useDb } from './db'
+import { normalizeDatasourceName, useDatasourceDb } from './db'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
 const templatePattern = /\{\{\s*([^}]+?)\s*\}\}/g
@@ -113,10 +113,11 @@ type BlockExecutorInput = {
 type BlockExecutor = (input: BlockExecutorInput) => Promise<Record<string, unknown>>
 
 type SqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => Promise<T[]>
+type DatasourceSqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) => Promise<T[]>
 
 type OrchestrationHandlerOptions = {
   loadApiJson?: (apiJsonUuid: string) => Promise<unknown>
-  executeSql?: SqlExecutor
+  executeSql?: DatasourceSqlExecutor
 }
 
 function assertApiJsonUuid(value: string | undefined) {
@@ -207,17 +208,8 @@ export async function loadApiJson(apiJsonUuid: string) {
   }
 }
 
-function ensureDatabaseUrl() {
-  if (!hasDatabaseUrl()) {
-    throw createError({
-      statusCode: 500,
-      message: 'DATABASE_URL is not configured.',
-    })
-  }
-}
-
-async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) {
-  const rows = await useDb().execute<T>(query)
+async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) {
+  const rows = await useDatasourceDb(datasource).execute<T>(query)
 
   return Array.from(rows) as T[]
 }
@@ -686,7 +678,7 @@ const blockExecutors: Record<string, BlockExecutor> = {
   update: ({ inputs, executeSql }) => executeUpdate(inputs, executeSql),
 }
 
-async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: SqlExecutor) {
+async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: DatasourceSqlExecutor) {
   const executor = blockExecutors[block.functionName]
 
   if (!executor) {
@@ -704,12 +696,15 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   }
 
   const inputs = resolveTemplates(block.inputs, context) as Record<string, unknown>
+  const datasource = normalizeDatasourceName(inputs.datasource)
+  const executeBlockSql: SqlExecutor = (query) => executeSql(query, datasource)
+
   context.blocks[block.uuid] = {
     inputs,
     outputs: {},
   }
 
-  const outputs = await executor({ block, inputs, executeSql })
+  const outputs = await executor({ block, inputs, executeSql: executeBlockSql })
 
   if (block.outputs) {
     for (const outputName of block.outputs) {
@@ -738,8 +733,6 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
       message: `请求方法不匹配，应使用 ${apiJson.method}。`,
     })
   }
-
-  ensureDatabaseUrl()
 
   const request = await readRequestContext(event, apiJson)
   const executeSql = options.executeSql ?? defaultExecuteSql
