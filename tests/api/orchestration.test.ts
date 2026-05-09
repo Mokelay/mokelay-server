@@ -8,6 +8,7 @@ import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
 import { createMokelayOrchestrationHandler } from '../../server/utils/orchestration'
 import type { MokelayErrorCode } from '../../server/utils/mokelay-error'
+import { verifyPassword } from '../../server/utils/password'
 import { orchestrationSessionCookieName } from '../../server/utils/session'
 
 type TestServer = {
@@ -54,6 +55,15 @@ type UserListResponse = {
 
 type CountFreeUsersResponse = {
   total: number
+}
+
+type RegisterResponse = {
+  user: {
+    id: string
+    name: string
+    email: string
+    plan: string
+  } | null
 }
 
 type PublicPage = {
@@ -326,6 +336,11 @@ class FakeSqlExecutor {
       return this.users.filter((user) => user.plan === plan)
     }
 
+    if (queryText.includes('"email" =')) {
+      const email = params.at(-1)
+      return this.users.filter((user) => user.email === email)
+    }
+
     if (queryText.includes('"name" =') && queryText.includes('"created_at" >=')) {
       const [name, createdAtBegin, createdAtEnd] = params
 
@@ -561,6 +576,137 @@ describe('mokelay orchestration API', () => {
     expect(missingReadResponse.status).toBe(200)
     expect(missingReadBody.user_info).toBeNull()
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
+  })
+
+  it('executes the stored register API JSON with request, output, and session processors', async () => {
+    const response = await postJson(testServer.baseUrl, 'register', {
+      name: '  Register User  ',
+      email: '  register@mokelay.test  ',
+      password: 'abc12345',
+    })
+    const body = await readMokelayData<RegisterResponse>(response)
+    const row = fakeSqlExecutor.users.find((user) => user.email === 'register@mokelay.test')
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+    expect(body.user).toMatchObject({
+      id: expect.stringMatching(uuidPattern),
+      name: 'Register User',
+      email: 'register@mokelay.test',
+      plan: 'free',
+    })
+    expect(row).toBeDefined()
+    expect(row?.name).toBe('Register User')
+    expect(row?.password_hash).not.toBe('abc12345')
+    expect(await verifyPassword(row?.password_hash || '', 'abc12345')).toBe(true)
+  })
+
+  it('stops stored register when the output processor detects a duplicate email', async () => {
+    const firstResponse = await postJson(testServer.baseUrl, 'register', {
+      name: 'First Register',
+      email: 'duplicate@mokelay.test',
+      password: 'abc12345',
+    })
+
+    expect(firstResponse.status).toBe(200)
+    expect((await readMokelaySuccess<RegisterResponse>(firstResponse)).ok).toBe(true)
+
+    const duplicateResponse = await postJson(testServer.baseUrl, 'register', {
+      name: 'Duplicate Register',
+      email: 'duplicate@mokelay.test',
+      password: 'abc12345',
+    })
+
+    await expectMokelayError(duplicateResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor eq/)
+    expect(fakeSqlExecutor.users).toHaveLength(1)
+  })
+
+  it('rejects invalid stored register request processor inputs', async () => {
+    const cases: Array<{
+      body: Record<string, unknown>
+      message: RegExp
+    }> = [
+      {
+        body: { name: 'Invalid Email', email: 'not-email', password: 'abc12345' },
+        message: /Processor email_check/,
+      },
+      {
+        body: { name: 'Short Password', email: 'short-password@mokelay.test', password: 'a1' },
+        message: /Processor min/,
+      },
+      {
+        body: { name: 'Missing Digit', email: 'missing-digit@mokelay.test', password: 'abcdefgh' },
+        message: /Processor regex/,
+      },
+      {
+        body: { name: 'Missing Letter', email: 'missing-letter@mokelay.test', password: '12345678' },
+        message: /Processor regex/,
+      },
+    ]
+
+    for (const item of cases) {
+      const response = await postJson(testServer.baseUrl, 'register', item.body)
+
+      await expectMokelayError(response, 'PROCESSOR_VALIDATION_FAILED', item.message)
+    }
+
+    expect(fakeSqlExecutor.users).toHaveLength(0)
+  })
+
+  it('applies processors on input and response templates', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'template_processors',
+        method: 'POST',
+        request: {
+          body: [{
+            key: 'value',
+            processors: ['trim'],
+          }],
+        },
+        blocks: [
+          {
+            uuid: 'add',
+            functionName: 'addSession',
+            inputs: {
+              key: 'processed',
+              value: {
+                template: '{{request.body.value}}',
+                processors: [{
+                  processor: 'eq',
+                  param: ['abc'],
+                }],
+              },
+            },
+          },
+          {
+            uuid: 'read',
+            functionName: 'readSession',
+            inputs: { key: 'processed' },
+            outputs: ['value'],
+          },
+        ],
+        response: {
+          echoed: {
+            template: "  {{blocks['read'].outputs.value}}  ",
+            processors: ['trim'],
+          },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await postJson(server.baseUrl, 'template_processors', {
+        value: '  abc  ',
+      })
+      const body = await readMokelayData<Record<string, unknown>>(response)
+
+      expect(response.status).toBe(200)
+      expect(body).toEqual({ echoed: 'abc' })
+    } finally {
+      await server.close()
+    }
   })
 
   it('executes the four stored page API JSON definitions', async () => {
