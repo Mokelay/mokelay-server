@@ -1,0 +1,30 @@
+{
+  "uuid": "count_free_users",
+  "alias": "统计免费套餐用户数量接口",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "count_free_users_block",
+      "alias": "统计free计划用户数量Block",
+      "functionName": "count",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "users",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "plan",
+            "fieldValue": "free"
+          }
+        ]
+      },
+      "outputs": ["total"]
+    }
+  ],
+  "response": {
+    "total": {
+      "template": "{{blocks['count_free_users_block'].outputs.total}}"
+    }
+  }
+}

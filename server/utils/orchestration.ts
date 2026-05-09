@@ -130,6 +130,7 @@ type MokelaySuccessResponse = {
 const allowedBlockOutputs: Record<string, readonly string[]> = {
   list: ['datas'],
   page: ['datas', 'total', 'totalPages', 'page', 'pageSize', 'hasPreviousPage', 'hasNextPage'],
+  count: ['total'],
   read: ['data'],
   delete: ['affected'],
   create: ['uuid'],
@@ -139,7 +140,7 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   readSession: ['value'],
 }
 
-const databaseBlockFunctions = new Set(['list', 'page', 'read', 'delete', 'create', 'update'])
+const databaseBlockFunctions = new Set(['list', 'page', 'count', 'read', 'delete', 'create', 'update'])
 
 function assertApiJsonUuid(value: string | undefined) {
   if (!value || !apiJsonUuidPattern.test(value)) {
@@ -599,6 +600,19 @@ async function executeRead(inputs: Record<string, unknown>, executeSql: SqlExecu
   }
 }
 
+async function executeCount(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
+  const conditions = getConditions(inputs.conditions)
+  const where = buildWhereSql(conditions)
+  const rows = await executeSql<{ total: number }>(where
+    ? sql`SELECT count(*)::int AS total FROM ${table} WHERE ${where}`
+    : sql`SELECT count(*)::int AS total FROM ${table}`)
+
+  return {
+    total: rows[0]?.total ?? 0,
+  }
+}
+
 async function executeCreate(block: Block, inputs: Record<string, unknown>, executeSql: SqlExecutor) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
@@ -679,6 +693,7 @@ async function executeReadSession(event: H3Event, inputs: Record<string, unknown
 const blockExecutors: Record<string, BlockExecutor> = {
   list: ({ inputs, executeSql }) => executeList(inputs, executeSql),
   page: ({ inputs, executeSql }) => executeList(inputs, executeSql, true),
+  count: ({ inputs, executeSql }) => executeCount(inputs, executeSql),
   read: ({ inputs, executeSql }) => executeRead(inputs, executeSql),
   delete: ({ inputs, executeSql }) => executeDelete(inputs, executeSql),
   create: ({ block, inputs, executeSql }) => executeCreate(block, inputs, executeSql),

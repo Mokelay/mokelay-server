@@ -1,10 +1,10 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。
+本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。
 
 编排接口统一从 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
-`list`、`page`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
+`list`、`page`、`count`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
 
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session`，不需要配置 `datasource`，也不会读写登录态 Cookie `mokelay_session`。
 
@@ -41,7 +41,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。 |
+| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -51,6 +51,7 @@
 | --- | --- |
 | `list` | `datas` |
 | `page` | `datas`、`total`、`totalPages`、`page`、`pageSize`、`hasPreviousPage`、`hasNextPage` |
+| `count` | `total` |
 | `read` | `data` |
 | `delete` | `affected` |
 | `create` | `uuid` |
@@ -143,7 +144,7 @@ Mokelay_DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME
 
 ## Conditions 配置
 
-`list`、`page`、`read`、`delete`、`update` 支持 `conditions`。
+`list`、`page`、`count`、`read`、`delete`、`update` 支持 `conditions`。
 
 ### 普通条件
 
@@ -435,7 +436,82 @@ SELECT count(*)::int AS total FROM table WHERE conditions
 }
 ```
 
-## 3. read
+## 3. count
+
+`count` 用于统计满足条件的数据总数。
+
+### inputs
+
+```json
+{
+  "datasource": "Mokelay",
+  "table": "users",
+  "conditions": []
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
+| `table` | `string` | 是 | 数据库表名。 |
+| `conditions` | `Condition[]` | 否 | 查询条件。省略时统计整张表。 |
+
+### SQL 行为
+
+无条件：
+
+```sql
+SELECT count(*)::int AS total FROM table
+```
+
+有条件：
+
+```sql
+SELECT count(*)::int AS total FROM table WHERE conditions
+```
+
+### outputs
+
+执行器固定产生：
+
+| 输出 | 类型 | 说明 |
+| --- | --- | --- |
+| `total` | `number` | 满足条件的记录总数。 |
+
+推荐声明：
+
+```json
+{
+  "outputs": ["total"]
+}
+```
+
+### 示例
+
+```json
+{
+  "uuid": "count_free_users_block",
+  "alias": "统计免费套餐用户数量",
+  "functionName": "count",
+  "inputs": {
+    "datasource": "Mokelay",
+    "table": "users",
+    "conditions": [
+      {
+        "group": false,
+        "conditionType": "EQ",
+        "fieldName": "plan",
+        "fieldValue": "free"
+      }
+    ]
+  },
+  "outputs": ["total"]
+}
+```
+
+## 4. read
 
 `read` 用于读取单条数据。
 
@@ -513,7 +589,7 @@ SELECT fields FROM table LIMIT 1
 }
 ```
 
-## 4. delete
+## 5. delete
 
 `delete` 用于删除数据。
 
@@ -588,7 +664,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
 }
 ```
 
-## 5. create
+## 6. create
 
 `create` 用于插入一条数据。
 
@@ -691,7 +767,7 @@ INSERT INTO table (columns) VALUES (values) RETURNING idField
 ]
 ```
 
-## 6. update
+## 7. update
 
 `update` 用于更新数据。
 

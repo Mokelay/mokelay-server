@@ -52,6 +52,10 @@ type UserListResponse = {
   }>
 }
 
+type CountFreeUsersResponse = {
+  total: number
+}
+
 type PublicPage = {
   uuid: string
   name: string
@@ -317,6 +321,11 @@ class FakeSqlExecutor {
       return this.users.filter((user) => user.id === id)
     }
 
+    if (queryText.includes('"plan" =')) {
+      const plan = params.at(-1)
+      return this.users.filter((user) => user.plan === plan)
+    }
+
     if (queryText.includes('"name" =') && queryText.includes('"created_at" >=')) {
       const [name, createdAtBegin, createdAtEnd] = params
 
@@ -505,10 +514,23 @@ describe('mokelay orchestration API', () => {
       email: 'alice.updated@mokelay.test',
     })
 
-    await createUser(testServer.baseUrl, {
+    const bob = await createUser(testServer.baseUrl, {
       name: 'Bob',
       email: 'bob@mokelay.test',
     })
+    const bobRow = fakeSqlExecutor.users.find((user) => user.id === bob.id)
+
+    expect(bobRow).toBeDefined()
+
+    if (bobRow) {
+      bobRow.plan = 'pro'
+    }
+
+    const countFreeUsersResponse = await fetch(`${testServer.baseUrl}/api/mokelay/count_free_users`)
+    const countFreeUsersBody = await readMokelayData<CountFreeUsersResponse>(countFreeUsersResponse)
+
+    expect(countFreeUsersResponse.status).toBe(200)
+    expect(countFreeUsersBody).toEqual({ total: 1 })
 
     const listResponse = await postJson(testServer.baseUrl, 'read_user_list', {
       created_at_begin: '1970-01-01T00:00:00.000Z',
