@@ -1,18 +1,14 @@
 # Mokelay Server
 
-Mokelay public API service. It owns website auth, user storage, and the PostgreSQL/Drizzle schema that used to live in `mokelay-website`.
+Mokelay public API service. It owns Mokelay orchestration execution and the PostgreSQL/Drizzle schema that used to live in `mokelay-website`.
 
 ## API
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/me`
 - `GET|POST /api/mokelay/{API_JSON_UUID}`
 - `GET /api/database/schema`
 - `POST /api/ai/analyze-data-source`
 
-Auth uses a signed `mokelay_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
+Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
 Pages are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`. See `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
 
@@ -30,7 +26,7 @@ Send text as JSON with a non-empty `text` field up to 100KB:
 ```bash
 curl -X POST http://127.0.0.1:8787/api/ai/analyze-data-source \
   -H "Content-Type: application/json" \
-  -d '{ "text": "GET https://api.mokelay.com/api/me?debug=true" }'
+  -d '{ "text": "GET https://api.mokelay.com/api/mokelay/me?debug=true" }'
 ```
 
 When the input contains JSON data, the response is `{ "type": "JSON", "rawData": ... }`. When it contains API information, the response is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized input returns `422`.
@@ -43,7 +39,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The dev server listens on `http://127.0.0.1:8787`. If `DATABASE_URL` is not set, auth uses an in-memory user store for local preview and tests. Mokelay orchestration JSON examples use `Mokelay_DATABASE_URL`.
+The dev server listens on `http://127.0.0.1:8787`. Mokelay orchestration JSON examples use `Mokelay_DATABASE_URL`.
 
 ## Database
 

@@ -47,7 +47,7 @@ describe('AI data source normalization', () => {
     expect(normalizeAiDataSourceOutput({
       type: 'API',
       domain: 'https://api.mokelay.com/',
-      path: 'api/me?debug=true',
+      path: 'api/mokelay/me?debug=true',
       method: 'post',
       headerData: [
         { key: ' H1 ', mock: undefined },
@@ -64,7 +64,7 @@ describe('AI data source normalization', () => {
     })).toEqual({
       type: 'API',
       domain: 'https://api.mokelay.com',
-      path: '/api/me',
+      path: '/api/mokelay/me',
       method: 'POST',
       headerData: [
         { key: 'H1', mock: '' },

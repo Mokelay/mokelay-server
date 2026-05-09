@@ -6,7 +6,7 @@
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
 
-`addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session，不读写登录态 Cookie `mokelay_session`。
+`addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session。
 
 ## 错误响应
 
