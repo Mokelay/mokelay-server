@@ -621,6 +621,60 @@ describe('mokelay orchestration API', () => {
     expect(fakeSqlExecutor.users).toHaveLength(1)
   })
 
+  it('executes the stored login API JSON and stores the public user in session', async () => {
+    const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      name: 'Login User',
+      email: 'login@mokelay.test',
+      password: 'abc12345',
+    })
+
+    expect(registerResponse.status).toBe(200)
+    expect((await readMokelaySuccess<RegisterResponse>(registerResponse)).ok).toBe(true)
+
+    const loginResponse = await postJson(testServer.baseUrl, 'login', {
+      email: '  login@mokelay.test  ',
+      password: 'abc12345',
+    })
+    const body = await readMokelayData<RegisterResponse>(loginResponse)
+
+    expect(loginResponse.status).toBe(200)
+    expect(loginResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+    expect(body.user).toEqual(expect.objectContaining({
+      id: expect.stringMatching(uuidPattern),
+      name: 'Login User',
+      email: 'login@mokelay.test',
+      plan: 'free',
+    }))
+    expect(body.user).not.toHaveProperty('password_hash')
+  })
+
+  it('rejects stored login JSON for unknown users, wrong passwords, and invalid email', async () => {
+    const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      name: 'Password User',
+      email: 'password-user@mokelay.test',
+      password: 'abc12345',
+    })
+
+    expect(registerResponse.status).toBe(200)
+
+    const unknownUserResponse = await postJson(testServer.baseUrl, 'login', {
+      email: 'unknown@mokelay.test',
+      password: 'abc12345',
+    })
+    const wrongPasswordResponse = await postJson(testServer.baseUrl, 'login', {
+      email: 'password-user@mokelay.test',
+      password: 'wrong12345',
+    })
+    const invalidEmailResponse = await postJson(testServer.baseUrl, 'login', {
+      email: 'invalid-email',
+      password: 'abc12345',
+    })
+
+    await expectMokelayError(unknownUserResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor is_not_null/)
+    await expectMokelayError(wrongPasswordResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor hash_check/)
+    await expectMokelayError(invalidEmailResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor email_check/)
+  })
+
   it('rejects invalid stored register request processor inputs', async () => {
     const cases: Array<{
       body: Record<string, unknown>

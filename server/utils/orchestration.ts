@@ -16,7 +16,7 @@ import {
 import { z } from 'zod'
 import { normalizeDatasourceName, useDatasourceDb } from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
-import { hashPassword } from './password'
+import { hashPassword, verifyPassword } from './password'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
@@ -258,12 +258,14 @@ function processorName(config: ProcessorConfig) {
   return typeof config === 'string' ? config : config.processor
 }
 
-function processorParams(config: ProcessorConfig) {
+async function processorParams(config: ProcessorConfig, context?: BlockExecutionContext) {
   if (typeof config === 'string' || config.param === undefined) {
     return []
   }
 
-  return Array.isArray(config.param) ? config.param : [config.param]
+  const param = context ? await resolveTemplates(config.param, context) : config.param
+
+  return Array.isArray(param) ? param : [param]
 }
 
 function processorConfigError(processor: string, message: string): never {
@@ -340,9 +342,9 @@ function compileRegex(processor: string, param: unknown): RegExp {
   }
 }
 
-async function applyProcessor(value: unknown, config: ProcessorConfig, label: string) {
+async function applyProcessor(value: unknown, config: ProcessorConfig, label: string, context?: BlockExecutionContext) {
   const name = processorName(config)
-  const params = processorParams(config)
+  const params = await processorParams(config, context)
 
   switch (name) {
     case 'trim':
@@ -417,16 +419,29 @@ async function applyProcessor(value: unknown, config: ProcessorConfig, label: st
       }
 
       return await hashPassword(value)
+    case 'hash_check': {
+      const plainPassword = getSingleParam(name, params)
+
+      if (typeof value !== 'string' || typeof plainPassword !== 'string') {
+        processorValidationError(name, label, '必须使用字符串 hash 和明文密码。')
+      }
+
+      if (!(await verifyPassword(value, plainPassword))) {
+        processorValidationError(name, label, 'hash 校验不通过。')
+      }
+
+      return value
+    }
     default:
       throw mokelayError('PROCESSOR_UNSUPPORTED', `不支持的 Processor：${name}`, 400)
   }
 }
 
-async function applyProcessors(value: unknown, processors: ProcessorConfig[], label: string) {
+async function applyProcessors(value: unknown, processors: ProcessorConfig[], label: string, context?: BlockExecutionContext) {
   let current = value
 
   for (const processor of processors) {
-    current = await applyProcessor(current, processor, label)
+    current = await applyProcessor(current, processor, label, context)
   }
 
   return current
@@ -533,7 +548,7 @@ async function resolveTemplates(value: unknown, context: BlockExecutionContext):
 
   if (template) {
     const rendered = renderTemplate(template.template, context)
-    return await applyProcessors(rendered, template.processors ?? [], 'template')
+    return await applyProcessors(rendered, template.processors ?? [], 'template', context)
   }
 
   if (Array.isArray(value)) {
@@ -999,6 +1014,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
         outputs[outputName],
         declarationProcessors(outputDeclaration),
         `blocks['${block.uuid}'].outputs.${outputName}`,
+        context,
       )
     }
   }

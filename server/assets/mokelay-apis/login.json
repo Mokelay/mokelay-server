@@ -1,0 +1,110 @@
+{
+  "uuid": "login",
+  "alias": "登录接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "email",
+        "processors": [
+          "trim",
+          "is_not_null",
+          "email_check",
+          {
+            "processor": "max",
+            "param": [255]
+          }
+        ]
+      },
+      {
+        "key": "password",
+        "processors": [
+          "is_not_null",
+          {
+            "processor": "min",
+            "param": [1]
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "read_user_info",
+      "alias": "按邮箱读取用户信息",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "users",
+        "fields": ["id", "name", "email", "plan", "password_hash"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "email",
+            "fieldValue": {
+              "template": "{{request.body.email}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": ["is_not_null"]
+        }
+      ]
+    },
+    {
+      "uuid": "set_user_session",
+      "alias": "校验密码并保存用户信息到Session",
+      "functionName": "addSession",
+      "inputs": {
+        "key": "user",
+        "password_check": {
+          "template": "{{blocks['read_user_info'].outputs.data.password_hash}}",
+          "processors": [
+            {
+              "processor": "hash_check",
+              "param": [
+                {
+                  "template": "{{request.body.password}}"
+                }
+              ]
+            }
+          ]
+        },
+        "value": {
+          "id": {
+            "template": "{{blocks['read_user_info'].outputs.data.id}}"
+          },
+          "name": {
+            "template": "{{blocks['read_user_info'].outputs.data.name}}"
+          },
+          "email": {
+            "template": "{{blocks['read_user_info'].outputs.data.email}}"
+          },
+          "plan": {
+            "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+          }
+        }
+      }
+    }
+  ],
+  "response": {
+    "user": {
+      "id": {
+        "template": "{{blocks['read_user_info'].outputs.data.id}}"
+      },
+      "name": {
+        "template": "{{blocks['read_user_info'].outputs.data.name}}"
+      },
+      "email": {
+        "template": "{{blocks['read_user_info'].outputs.data.email}}"
+      },
+      "plan": {
+        "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+      }
+    }
+  }
+}
