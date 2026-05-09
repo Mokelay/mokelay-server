@@ -361,6 +361,8 @@ async function applyProcessor(value: unknown, config: ProcessorConfig, label: st
       }
 
       return value
+    case 'not_null':
+      return value !== undefined && value !== null
     case 'email_check':
       if (typeof value !== 'string' || !z.string().email().safeParse(value).success) {
         processorValidationError(name, label, '不是合法 email。')
@@ -930,14 +932,31 @@ async function executeAddSession(event: H3Event, inputs: Record<string, unknown>
 }
 
 async function executeRemoveSession(event: H3Event, inputs: Record<string, unknown>) {
-  removeSessionValue(event, getSessionKey(inputs.key))
+  const key = getSessionKey(inputs.key)
+
+  removeSessionValue(event, key)
 
   return {}
 }
 
 async function executeReadSession(event: H3Event, inputs: Record<string, unknown>) {
-  return {
-    value: readSessionValue(event, getSessionKey(inputs.key)),
+  const key = getSessionKey(inputs.key)
+
+  try {
+    return {
+      value: readSessionValue(event, key),
+    }
+  } catch (error) {
+    const data = typeof error === 'object' && error && 'data' in error ? error.data : undefined
+    const code = isRecord(data) ? data.code : undefined
+
+    if (code !== 'BLOCK_SESSION_KEY_NOT_FOUND') {
+      throw error
+    }
+
+    return {
+      value: null,
+    }
   }
 }
 

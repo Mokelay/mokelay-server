@@ -621,7 +621,7 @@ describe('mokelay orchestration API', () => {
     expect(fakeSqlExecutor.users).toHaveLength(1)
   })
 
-  it('executes the stored login API JSON and stores the public user in session', async () => {
+  it('executes the stored login API JSON and stores the public user in orchestration session', async () => {
     const registerResponse = await postJson(testServer.baseUrl, 'register', {
       name: 'Login User',
       email: 'login@mokelay.test',
@@ -673,6 +673,51 @@ describe('mokelay orchestration API', () => {
     await expectMokelayError(unknownUserResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor is_not_null/)
     await expectMokelayError(wrongPasswordResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor hash_check/)
     await expectMokelayError(invalidEmailResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor email_check/)
+  })
+
+  it('executes stored me and logout API JSON against the orchestration session', async () => {
+    const anonymousMeResponse = await fetch(`${testServer.baseUrl}/api/mokelay/me`)
+    const anonymousMe = await readMokelayData<Record<string, unknown>>(anonymousMeResponse)
+
+    expect(anonymousMeResponse.status).toBe(200)
+    expect(anonymousMe).toEqual({
+      loggedIn: false,
+      user: null,
+    })
+
+    const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      name: 'Session User',
+      email: 'session@mokelay.test',
+      password: 'abc12345',
+    })
+    const cookie = responseCookie(registerResponse, orchestrationSessionCookieName)
+    const meResponse = await fetch(`${testServer.baseUrl}/api/mokelay/me`, {
+      headers: { cookie },
+    })
+    const meBody = await readMokelayData<Record<string, unknown>>(meResponse)
+
+    expect(registerResponse.status).toBe(200)
+    expect(meResponse.status).toBe(200)
+    expect(meBody).toEqual({
+      loggedIn: true,
+      user: expect.objectContaining({
+        id: expect.stringMatching(uuidPattern),
+        name: 'Session User',
+        email: 'session@mokelay.test',
+        plan: 'free',
+      }),
+    })
+
+    const logoutResponse = await fetch(`${testServer.baseUrl}/api/mokelay/logout`, {
+      method: 'POST',
+      headers: { cookie },
+    })
+    const logoutBody = await readMokelayData<Record<string, unknown>>(logoutResponse)
+
+    expect(logoutResponse.status).toBe(200)
+    expect(logoutResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+    expect(logoutResponse.headers.get('set-cookie')).toContain('Max-Age=0')
+    expect(logoutBody).toEqual({ ok: true })
   })
 
   it('rejects invalid stored register request processor inputs', async () => {
@@ -1023,7 +1068,9 @@ describe('mokelay orchestration API', () => {
               inputs: { key: 'profile' },
             },
           ],
-          response: { ok: true },
+          response: {
+            value: { template: "{{blocks['read'].outputs.value}}" },
+          },
         }
       },
     })
@@ -1053,8 +1100,9 @@ describe('mokelay orchestration API', () => {
         method: 'POST',
         headers: { cookie },
       })
+      const removedReadBody = await readMokelayData<Record<string, unknown>>(removedReadResponse)
 
-      await expectMokelayError(removedReadResponse, 'BLOCK_SESSION_KEY_NOT_FOUND', 'Session key 不存在：profile')
+      expect(removedReadBody).toEqual({ value: null })
       expect(sqlCalls).toBe(0)
     } finally {
       await server.close()
@@ -1091,6 +1139,22 @@ describe('mokelay orchestration API', () => {
           }
         }
 
+        if (apiJsonUuid === 'read_missing_session') {
+          return {
+            uuid: 'read_missing_session',
+            method: 'POST',
+            blocks: [{
+              uuid: 'read',
+              functionName: 'readSession',
+              inputs: { key: 'missing' },
+              outputs: ['value'],
+            }],
+            response: {
+              value: { template: "{{blocks['read'].outputs.value}}" },
+            },
+          }
+        }
+
         if (apiJsonUuid === 'remove_missing_session') {
           return {
             uuid: 'remove_missing_session',
@@ -1104,16 +1168,7 @@ describe('mokelay orchestration API', () => {
           }
         }
 
-        return {
-          uuid: 'read_missing_session',
-          method: 'POST',
-          blocks: [{
-            uuid: 'read',
-            functionName: 'readSession',
-            inputs: { key: 'missing' },
-          }],
-          response: { ok: true },
-        }
+        return { uuid: apiJsonUuid, method: 'POST', blocks: [], response: { ok: true } }
       },
     })
     const server = await startServer(handler)
@@ -1123,11 +1178,12 @@ describe('mokelay orchestration API', () => {
       const invalidOutputResponse = await fetch(`${server.baseUrl}/api/mokelay/invalid_read_session_output`, { method: 'POST' })
       const removeMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/remove_missing_session`, { method: 'POST' })
       const readMissingResponse = await fetch(`${server.baseUrl}/api/mokelay/read_missing_session`, { method: 'POST' })
+      const readMissingBody = await readMokelayData<Record<string, unknown>>(readMissingResponse)
 
       await expectMokelayError(missingKeyResponse, 'BLOCK_SESSION_KEY_INVALID', 'key 必须是非空字符串。')
       await expectMokelayError(invalidOutputResponse, 'BLOCK_UNSUPPORTED_OUTPUT', 'Block readSession 不支持输出：data')
       expect(removeMissingResponse.status).toBe(200)
-      await expectMokelayError(readMissingResponse, 'BLOCK_SESSION_KEY_NOT_FOUND', 'Session key 不存在：missing')
+      expect(readMissingBody).toEqual({ value: null })
     } finally {
       await server.close()
     }

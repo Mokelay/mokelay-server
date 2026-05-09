@@ -6,7 +6,7 @@
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。
 
-`addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session`，不需要配置 `datasource`，也不会读写登录态 Cookie `mokelay_session`。
+`addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session，不读写登录态 Cookie `mokelay_session`。
 
 ## 错误响应
 
@@ -891,7 +891,7 @@ UPDATE table SET assignments RETURNING 1 AS affected_marker
 
 ## Session Blocks
 
-Session blocks 使用独立签名 Cookie `mokelay_orchestration_session` 保存 `values` 对象，适合在多次 API 编排请求之间临时保存值。它们不需要 `inputs.datasource`，不会影响登录态 Cookie。
+Session blocks 不需要 `inputs.datasource`，使用独立签名 Cookie `mokelay_orchestration_session` 保存 `values` 对象。
 
 ### addSession
 
@@ -943,7 +943,7 @@ outputs：无。
 
 ### readSession
 
-读取一个 session key。读取失败时返回 `BLOCK_SESSION_KEY_NOT_FOUND` 错误。
+读取一个 session key。读取不到时不会报错，会返回 `value: null`。
 
 ```json
 {
@@ -975,6 +975,10 @@ response 示例：
   "response": {
     "profile": {
       "template": "{{blocks['read_session_block'].outputs.value}}"
+    },
+    "loggedIn": {
+      "template": "{{blocks['read_session_block'].outputs.value}}",
+      "processors": ["not_null"]
     }
   }
 }

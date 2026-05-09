@@ -1,0 +1,25 @@
+{
+  "uuid": "me",
+  "alias": "读取当前登录用户接口",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "read_user_session",
+      "alias": "读取登录态Session",
+      "functionName": "readSession",
+      "inputs": {
+        "key": "user"
+      },
+      "outputs": ["value"]
+    }
+  ],
+  "response": {
+    "loggedIn": {
+      "template": "{{blocks['read_user_session'].outputs.value}}",
+      "processors": ["not_null"]
+    },
+    "user": {
+      "template": "{{blocks['read_user_session'].outputs.value}}"
+    }
+  }
+}
