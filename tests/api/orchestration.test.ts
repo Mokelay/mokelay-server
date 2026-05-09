@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { type SQL } from 'drizzle-orm'
+import { MySqlDialect } from 'drizzle-orm/mysql-core'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
@@ -10,6 +11,7 @@ import { createMokelayOrchestrationHandler } from '../../server/utils/orchestrat
 import type { MokelayErrorCode } from '../../server/utils/mokelay-error'
 import { verifyPassword } from '../../server/utils/password'
 import { orchestrationSessionCookieName } from '../../server/utils/session'
+import type { DatabaseType, SqlExecutionResult } from '../../server/utils/db'
 
 type TestServer = {
   baseUrl: string
@@ -98,6 +100,7 @@ type PageListResponse = {
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const pgDialect = new PgDialect()
+const mysqlDialect = new MySqlDialect()
 
 type UserRow = {
   id: string
@@ -122,7 +125,11 @@ class FakeSqlExecutor {
   readonly pages: PageRow[] = []
   readonly datasources: string[] = []
 
-  execute = async <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) => {
+  execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
+    query: SQL,
+    datasource: string,
+    databaseType: DatabaseType,
+  ): Promise<SqlExecutionResult<T>> => {
     this.datasources.push(datasource)
 
     const builtQuery = pgDialect.sqlToQuery(query)
@@ -130,42 +137,54 @@ class FakeSqlExecutor {
     const params = builtQuery.params
 
     if (queryText.startsWith('INSERT INTO "users"')) {
-      return this.insertUser<T>(queryText, params)
+      return this.result(databaseType, this.insertUser<T>(queryText, params))
     }
 
     if (queryText.startsWith('INSERT INTO "pages"')) {
-      return this.insertPage<T>(queryText, params)
+      return this.result(databaseType, this.insertPage<T>(queryText, params))
     }
 
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "users"')) {
-      return [{ total: this.filterUsers(queryText, params).length }] as unknown as T[]
+      return this.result(databaseType, [{ total: this.filterUsers(queryText, params).length }] as unknown as T[])
     }
 
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "pages"')) {
-      return [{ total: this.filterPages(queryText, params).length }] as unknown as T[]
+      return this.result(databaseType, [{ total: this.filterPages(queryText, params).length }] as unknown as T[])
     }
 
     if (queryText.startsWith('SELECT')) {
       if (queryText.includes('FROM "pages"')) {
-        return this.selectPages<T>(queryText, params)
+        return this.result(databaseType, this.selectPages<T>(queryText, params))
       }
 
-      return this.selectUsers<T>(queryText, params)
+      return this.result(databaseType, this.selectUsers<T>(queryText, params))
     }
 
     if (queryText.startsWith('UPDATE "users"')) {
-      return this.updateUsers<T>(queryText, params)
+      return this.result(databaseType, this.updateUsers<T>(queryText, params))
     }
 
     if (queryText.startsWith('UPDATE "pages"')) {
-      return this.updatePages<T>(queryText, params)
+      return this.result(databaseType, this.updatePages<T>(queryText, params))
     }
 
     if (queryText.startsWith('DELETE FROM "users"')) {
-      return this.deleteUsers<T>(queryText, params)
+      return this.result(databaseType, this.deleteUsers<T>(queryText, params))
     }
 
     throw new Error(`Unsupported SQL in test fake: ${queryText}`)
+  }
+
+  private result<T extends Record<string, unknown>>(
+    databaseType: DatabaseType,
+    rows: T[],
+    metadata: Omit<SqlExecutionResult<T>, 'databaseType' | 'rows'> = {},
+  ): SqlExecutionResult<T> {
+    return {
+      databaseType,
+      rows,
+      ...metadata,
+    }
   }
 
   private insertUser<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -369,6 +388,72 @@ class FakeSqlExecutor {
     }
 
     return [...this.pages]
+  }
+}
+
+type RecordedQuery = {
+  datasource: string
+  databaseType: DatabaseType
+  sql: string
+  params: unknown[]
+}
+
+class MysqlRecordingExecutor {
+  readonly queries: RecordedQuery[] = []
+
+  execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
+    query: SQL,
+    datasource: string,
+    databaseType: DatabaseType,
+  ): Promise<SqlExecutionResult<T>> => {
+    const builtQuery = mysqlDialect.sqlToQuery(query)
+    const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
+    const params = builtQuery.params
+
+    this.queries.push({
+      datasource,
+      databaseType,
+      sql: queryText,
+      params,
+    })
+
+    if (queryText.startsWith('INSERT INTO `smart_contracts`')) {
+      return this.result<T>(databaseType, [], { affectedRows: 1, insertId: 42 })
+    }
+
+    if (queryText.startsWith('SELECT count(*) AS total FROM `smart_contracts`')) {
+      return this.result(databaseType, [{ total: '1' }] as unknown as T[])
+    }
+
+    if (queryText.startsWith('SELECT')) {
+      return this.result(databaseType, [{
+        id: 42,
+        address: '0xabc',
+        abi_json: '{"ok":true}',
+      }] as unknown as T[])
+    }
+
+    if (queryText.startsWith('UPDATE `smart_contracts`')) {
+      return this.result<T>(databaseType, [], { affectedRows: 1 })
+    }
+
+    if (queryText.startsWith('DELETE FROM `smart_contracts`')) {
+      return this.result<T>(databaseType, [], { affectedRows: 1 })
+    }
+
+    throw new Error(`Unsupported MySQL SQL in test fake: ${queryText}`)
+  }
+
+  private result<T extends Record<string, unknown>>(
+    databaseType: DatabaseType,
+    rows: T[],
+    metadata: Omit<SqlExecutionResult<T>, 'databaseType' | 'rows'> = {},
+  ): SqlExecutionResult<T> {
+    return {
+      databaseType,
+      rows,
+      ...metadata,
+    }
   }
 }
 
@@ -973,10 +1058,18 @@ describe('mokelay orchestration API', () => {
 
   it('does not require tables or fields to be predeclared in server code', async () => {
     let receivedDatasource = ''
+    process.env.Custom_DATABASE_URL = 'postgres://custom-unit-test'
     const handler = createMokelayOrchestrationHandler({
-      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(_query: SQL, datasource: string) => {
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(
+        _query: SQL,
+        datasource: string,
+        databaseType: DatabaseType,
+      ) => {
         receivedDatasource = datasource
-        return [{ arbitrary_field: 'from-json-config' }] as unknown as T[]
+        return {
+          databaseType,
+          rows: [{ arbitrary_field: 'from-json-config' }] as unknown as T[],
+        }
       },
       loadApiJson: async () => ({
         uuid: 'custom_table_list',
@@ -1012,12 +1105,221 @@ describe('mokelay orchestration API', () => {
     }
   })
 
+  it('generates MySQL-compatible SQL for all database blocks', async () => {
+    process.env.BingX_DATABASE_URL = 'mysql://unit-test'
+    const mysqlExecutor = new MysqlRecordingExecutor()
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: mysqlExecutor.execute,
+      loadApiJson: async () => ({
+        uuid: 'mysql_blocks',
+        method: 'POST',
+        blocks: [
+          {
+            uuid: 'create_contract',
+            functionName: 'create',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              idField: 'id',
+              fields: {
+                chain_id: 1,
+                address: '0xabc',
+                contract_standard: 'other',
+                abi_json: { ok: true },
+              },
+            },
+            outputs: ['uuid'],
+          },
+          {
+            uuid: 'read_contract',
+            functionName: 'read',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              fields: ['id', 'address', 'abi_json'],
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['data'],
+          },
+          {
+            uuid: 'list_contracts',
+            functionName: 'list',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              fields: ['id', 'address'],
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['datas'],
+          },
+          {
+            uuid: 'count_contracts',
+            functionName: 'count',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['total'],
+          },
+          {
+            uuid: 'page_contracts',
+            functionName: 'page',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              fields: ['id', 'address'],
+              page: 1,
+              pageSize: 1,
+              orderBy: [{ fieldName: 'id', direction: 'DESC' }],
+            },
+            outputs: ['datas', 'total', 'page', 'pageSize', 'hasNextPage'],
+          },
+          {
+            uuid: 'update_contract',
+            functionName: 'update',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              fields: {
+                contract_name: 'Updated Contract',
+                abi_json: { updated: true },
+              },
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['affected'],
+          },
+          {
+            uuid: 'delete_contract',
+            functionName: 'delete',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'id',
+                fieldValue: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['affected'],
+          },
+        ],
+        response: {
+          uuid: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+          read: { template: "{{blocks['read_contract'].outputs.data}}" },
+          listed: { template: "{{blocks['list_contracts'].outputs.datas}}" },
+          total: { template: "{{blocks['count_contracts'].outputs.total}}" },
+          pageTotal: { template: "{{blocks['page_contracts'].outputs.total}}" },
+          updateAffected: { template: "{{blocks['update_contract'].outputs.affected}}" },
+          deleteAffected: { template: "{{blocks['delete_contract'].outputs.affected}}" },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/mysql_blocks`, { method: 'POST' })
+      const body = await readMokelayData<Record<string, unknown>>(response)
+      const sqlTexts = mysqlExecutor.queries.map((query) => query.sql)
+      const insertQuery = mysqlExecutor.queries.find((query) => query.sql.startsWith('INSERT INTO `smart_contracts`'))
+      const updateQuery = mysqlExecutor.queries.find((query) => query.sql.startsWith('UPDATE `smart_contracts`'))
+
+      expect(response.status).toBe(200)
+      expect(body).toMatchObject({
+        uuid: 42,
+        total: 1,
+        pageTotal: 1,
+        updateAffected: 1,
+        deleteAffected: 1,
+      })
+      expect(mysqlExecutor.queries.every((query) => query.datasource === 'BingX')).toBe(true)
+      expect(mysqlExecutor.queries.every((query) => query.databaseType === 'mysql')).toBe(true)
+      expect(sqlTexts.every((queryText) => !queryText.includes('RETURNING'))).toBe(true)
+      expect(sqlTexts.every((queryText) => !queryText.includes('::jsonb'))).toBe(true)
+      expect(sqlTexts.some((queryText) => queryText.startsWith('SELECT count(*) AS total FROM `smart_contracts`'))).toBe(true)
+      expect(insertQuery?.params).toContain(JSON.stringify({ ok: true }))
+      expect(updateQuery?.params).toContain(JSON.stringify({ updated: true }))
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('maps MySQL duplicate key errors to the duplicate record block error', async () => {
+    process.env.BingX_DATABASE_URL = 'mysql://unit-test'
+    const duplicateError = Object.assign(new Error('Duplicate entry'), {
+      code: 'ER_DUP_ENTRY',
+      errno: 1062,
+    })
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: async () => {
+        throw duplicateError
+      },
+      loadApiJson: async () => ({
+        uuid: 'mysql_duplicate',
+        method: 'POST',
+        blocks: [{
+          uuid: 'create',
+          functionName: 'create',
+          inputs: {
+            datasource: 'BingX',
+            table: 'chains',
+            idField: 'id',
+            fields: {
+              chain_id: 1,
+              name: 'Duplicate',
+              slug: 'duplicate',
+              native_symbol: 'ETH',
+            },
+          },
+        }],
+        response: { ok: true },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await fetch(`${server.baseUrl}/api/mokelay/mysql_duplicate`, { method: 'POST' })
+
+      await expectMokelayError(response, 'BLOCK_DUPLICATE_RECORD', '记录已经存在。')
+    } finally {
+      await server.close()
+    }
+  })
+
   it('supports session blocks with an independent signed cookie', async () => {
     let sqlCalls = 0
     const handler = createMokelayOrchestrationHandler({
-      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>() => {
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(
+        _query: SQL,
+        _datasource: string,
+        databaseType: DatabaseType,
+      ) => {
         sqlCalls += 1
-        return [] as T[]
+        return {
+          databaseType,
+          rows: [] as T[],
+        }
       },
       loadApiJson: async (apiJsonUuid) => {
         if (apiJsonUuid === 'add_session') {

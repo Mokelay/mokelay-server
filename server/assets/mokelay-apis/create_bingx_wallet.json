@@ -1,0 +1,110 @@
+{
+  "uuid": "create_bingx_wallet",
+  "alias": "创建 BingX 钱包接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "chain_id",
+        "processors": ["number_check"]
+      },
+      {
+        "key": "address",
+        "processors": ["trim", "is_not_null"]
+      },
+      {
+        "key": "label",
+        "processors": ["trim"]
+      },
+      {
+        "key": "wallet_type",
+        "processors": [
+          "trim",
+          {
+            "processor": "regex",
+            "param": "^(user|exchange|contract|treasury|unknown)$"
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "read_chain_block",
+      "alias": "检查链是否存在Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "chains",
+        "fields": ["chain_id", "name"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "chain_id",
+            "fieldValue": {
+              "template": "{{request.body.chain_id}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": ["is_not_null"]
+        }
+      ]
+    },
+    {
+      "uuid": "create_wallet_block",
+      "alias": "创建钱包Block",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "idField": "id",
+        "fields": {
+          "chain_id": {
+            "template": "{{request.body.chain_id}}"
+          },
+          "address": {
+            "template": "{{request.body.address}}"
+          },
+          "label": {
+            "template": "{{request.body.label}}"
+          },
+          "wallet_type": {
+            "template": "{{request.body.wallet_type}}"
+          }
+        }
+      },
+      "outputs": ["uuid"]
+    },
+    {
+      "uuid": "read_wallet_block",
+      "alias": "读取钱包Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "fields": ["id", "chain_id", "address", "label", "wallet_type", "first_seen_at", "last_seen_at", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{blocks['create_wallet_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "wallet": {
+      "template": "{{blocks['read_wallet_block'].outputs.data}}"
+    }
+  }
+}

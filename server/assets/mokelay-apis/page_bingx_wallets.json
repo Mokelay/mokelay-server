@@ -1,0 +1,62 @@
+{
+  "uuid": "page_bingx_wallets",
+  "alias": "BingX 钱包分页接口",
+  "method": "GET",
+  "request": {
+    "query": ["page", "pageSize"]
+  },
+  "blocks": [
+    {
+      "uuid": "page_wallets_block",
+      "alias": "钱包分页Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "fields": ["id", "chain_id", "address", "label", "wallet_type", "first_seen_at", "last_seen_at", "created_at", "updated_at"],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "orderBy": [
+          {
+            "fieldName": "updated_at",
+            "direction": "DESC"
+          },
+          {
+            "fieldName": "created_at",
+            "direction": "DESC"
+          }
+        ]
+      },
+      "outputs": ["datas", "total", "totalPages", "page", "pageSize", "hasPreviousPage", "hasNextPage"]
+    }
+  ],
+  "response": {
+    "wallets": {
+      "template": "{{blocks['page_wallets_block'].outputs.datas}}"
+    },
+    "pagination": {
+      "page": {
+        "template": "{{blocks['page_wallets_block'].outputs.page}}"
+      },
+      "pageSize": {
+        "template": "{{blocks['page_wallets_block'].outputs.pageSize}}"
+      },
+      "total": {
+        "template": "{{blocks['page_wallets_block'].outputs.total}}"
+      },
+      "totalPages": {
+        "template": "{{blocks['page_wallets_block'].outputs.totalPages}}"
+      },
+      "hasPreviousPage": {
+        "template": "{{blocks['page_wallets_block'].outputs.hasPreviousPage}}"
+      },
+      "hasNextPage": {
+        "template": "{{blocks['page_wallets_block'].outputs.hasNextPage}}"
+      }
+    }
+  }
+}

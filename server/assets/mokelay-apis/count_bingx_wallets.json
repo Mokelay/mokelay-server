@@ -1,0 +1,22 @@
+{
+  "uuid": "count_bingx_wallets",
+  "alias": "统计 BingX 钱包接口",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "count_wallets_block",
+      "alias": "统计钱包Block",
+      "functionName": "count",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets"
+      },
+      "outputs": ["total"]
+    }
+  ],
+  "response": {
+    "total": {
+      "template": "{{blocks['count_wallets_block'].outputs.total}}"
+    }
+  }
+}
