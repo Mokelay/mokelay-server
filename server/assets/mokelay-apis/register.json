@@ -8,11 +8,12 @@
             "key":"name",
             "processors":[
               "trim",
-              "is_not_null",
-              "email_check",
               {
+                "processor":"min",
+                "param":[1]
+              },{
                 "processor":"max",
-                "param":[255]
+                "param":[120]
               }
             ]
           },{
@@ -29,13 +30,21 @@
           },{
             "key":"password",
             "processors":[
-              "trim",
               "is_not_null",
-              "email_check",
+              {
+                "processor":"min",
+                "param":[8]
+              },
               {
                 "processor":"max",
-                "param":[255]
-              }
+                "param":[128]
+              },{
+                "processor":"regex",
+                "param":"/[A-Za-z]/"
+              },{
+                "processor":"regex",
+                "param":"/[0-9]/"
+              },"hash_make"
             ]
           }
       ]
@@ -90,14 +99,41 @@
               }
             }
           },
-          "outputs":[]
+          "outputs": ["uuid"]
       },{
-
+        "uuid": "read_user_info",
+          "alias": "读取创建的用户信息",
+          "functionName": "read",
+          "inputs": {
+            "datasource": "Mokelay",
+            "table": "users",
+            "idField": "id",
+            "fields": ["id", "name", "email", "plan"],
+            "conditions": [{
+              "group": false,
+              "conditionType": "EQ",
+              "fieldName": "id",
+              "fieldValue": {
+                "template": "{{blocks['create_user_info'].outputs.uuid}}"
+              }
+            }]
+          },
+          "outputs": ["data"]
+      },{
+          "uuid": "set_user_session",
+          "alias": "保存用户信息到Session",
+          "functionName": "addSession",
+          "inputs": {
+            "key": "user",
+            "value": {
+              "template": "{{blocks['read_user_info'].outputs.data}}"
+            }
+          }
       }
   ],
   "response": {
       "user": {
-          "template": ""
+          "template": "{{blocks['read_user_info'].outputs.data}}"
       }
   }
 }
