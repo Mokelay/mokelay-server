@@ -14,7 +14,13 @@ import {
   type H3Event,
 } from 'h3'
 import { z } from 'zod'
-import { normalizeDatasourceName, useDatasourceDb } from './db'
+import {
+  datasourceDatabaseType,
+  executeDatasourceSql,
+  normalizeDatasourceName,
+  type DatabaseType,
+  type SqlExecutionResult,
+} from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
 import { hashPassword, verifyPassword } from './password'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
@@ -130,12 +136,17 @@ type BlockExecutorInput = {
   block: Block
   inputs: Record<string, unknown>
   executeSql: SqlExecutor
+  databaseType?: DatabaseType
 }
 
 type BlockExecutor = (input: BlockExecutorInput) => Promise<Record<string, unknown>>
 
-type SqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => Promise<T[]>
-type DatasourceSqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) => Promise<T[]>
+type SqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => Promise<SqlExecutionResult<T>>
+type DatasourceSqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(
+  query: SQL,
+  datasource: string,
+  databaseType: DatabaseType,
+) => Promise<SqlExecutionResult<T>>
 
 type OrchestrationHandlerOptions = {
   loadApiJson?: (apiJsonUuid: string) => Promise<unknown>
@@ -237,9 +248,7 @@ export async function loadApiJson(apiJsonUuid: string) {
 }
 
 async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) {
-  const rows = await useDatasourceDb(datasource).execute<T>(query)
-
-  return Array.from(rows) as T[]
+  return await executeDatasourceSql<T>(query, datasource)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -766,10 +775,47 @@ function getCreateIdField(value: unknown) {
   }
 }
 
-function fieldValueSql(value: unknown) {
-  return Array.isArray(value) || isRecord(value)
-    ? sql`${JSON.stringify(value)}::jsonb`
-    : sql`${value}`
+function fieldValueSql(value: unknown, databaseType: DatabaseType) {
+  if (!Array.isArray(value) && !isRecord(value)) {
+    return sql`${value}`
+  }
+
+  const jsonValue = JSON.stringify(value)
+
+  return databaseType === 'postgres'
+    ? sql`${jsonValue}::jsonb`
+    : sql`${jsonValue}`
+}
+
+function countExpressionSql(databaseType: DatabaseType) {
+  return databaseType === 'postgres'
+    ? sql`count(*)::int`
+    : sql`count(*)`
+}
+
+function normalizeCountTotal(value: unknown) {
+  const total = Number(value ?? 0)
+
+  return Number.isFinite(total) ? total : 0
+}
+
+function isPresentId(value: unknown) {
+  return value !== undefined
+    && value !== null
+    && value !== ''
+    && value !== 0
+    && (typeof value !== 'bigint' || value !== BigInt(0))
+}
+
+function isDuplicateRecordError(error: unknown) {
+  if (!isRecord(error)) {
+    return false
+  }
+
+  return error.code === '23505'
+    || error.code === 'ER_DUP_ENTRY'
+    || error.code === 1062
+    || error.errno === 1062
 }
 
 function orderBySql(value: unknown) {
@@ -798,7 +844,7 @@ function orderBySql(value: unknown) {
   return orders.length > 0 ? sql.join(orders, sql`, `) : undefined
 }
 
-async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecutor, paged = false) {
+async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType, paged = false) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFields(inputs.fields)
   const conditions = getConditions(inputs.conditions)
@@ -813,18 +859,19 @@ async function executeList(inputs: Record<string, unknown>, executeSql: SqlExecu
     ? sql`SELECT ${selectedFields} ${baseQuery} WHERE ${where}`
     : sql`SELECT ${selectedFields} ${baseQuery}`
   const orderedDataQuery = orderBy ? sql`${dataQuery} ORDER BY ${orderBy}` : dataQuery
-  const rows = paged
+  const dataResult = paged
     ? await executeSql(sql`${orderedDataQuery} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`)
     : await executeSql(orderedDataQuery)
+  const rows = dataResult.rows
 
   if (!paged) {
     return { datas: rows }
   }
 
-  const totalRows = await executeSql<{ total: number }>(where
-    ? sql`SELECT count(*)::int AS total ${baseQuery} WHERE ${where}`
-    : sql`SELECT count(*)::int AS total ${baseQuery}`)
-  const total = totalRows[0]?.total ?? 0
+  const totalResult = await executeSql<{ total: number | string | bigint }>(where
+    ? sql`SELECT ${countExpressionSql(databaseType)} AS total ${baseQuery} WHERE ${where}`
+    : sql`SELECT ${countExpressionSql(databaseType)} AS total ${baseQuery}`)
+  const total = normalizeCountTotal(totalResult.rows[0]?.total)
 
   return {
     datas: rows,
@@ -846,37 +893,43 @@ async function executeRead(inputs: Record<string, unknown>, executeSql: SqlExecu
   const query = where
     ? sql`SELECT ${selectedFields} FROM ${table} WHERE ${where} LIMIT 1`
     : sql`SELECT ${selectedFields} FROM ${table} LIMIT 1`
-  const rows = await executeSql(query)
+  const result = await executeSql(query)
 
   return {
-    data: rows[0] ?? null,
+    data: result.rows[0] ?? null,
   }
 }
 
-async function executeCount(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
+async function executeCount(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const rows = await executeSql<{ total: number }>(where
-    ? sql`SELECT count(*)::int AS total FROM ${table} WHERE ${where}`
-    : sql`SELECT count(*)::int AS total FROM ${table}`)
+  const result = await executeSql<{ total: number | string | bigint }>(where
+    ? sql`SELECT ${countExpressionSql(databaseType)} AS total FROM ${table} WHERE ${where}`
+    : sql`SELECT ${countExpressionSql(databaseType)} AS total FROM ${table}`)
 
   return {
-    total: rows[0]?.total ?? 0,
+    total: normalizeCountTotal(result.rows[0]?.total),
   }
 }
 
-async function executeCreate(block: Block, inputs: Record<string, unknown>, executeSql: SqlExecutor) {
+async function executeCreate(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
   const idField = getCreateIdField(inputs.idField)
   const columns = Object.keys(fields)
   const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')), sql`, `)
-  const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field])), sql`, `)
+  const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field], databaseType)), sql`, `)
 
   try {
-    const rows = await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) RETURNING ${idField.fieldSql}`)
-    const uuid = rows[0]?.[idField.fieldName]
+    const result = databaseType === 'postgres'
+      ? await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) RETURNING ${idField.fieldSql}`)
+      : await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql})`)
+    const uuid = databaseType === 'postgres'
+      ? result.rows[0]?.[idField.fieldName]
+      : isPresentId(result.insertId)
+        ? result.insertId
+        : fields[idField.fieldName]
 
     if (uuid === undefined || uuid === null || uuid === '') {
       throw mokelayError('BLOCK_CREATE_MISSING_ID', 'create Block 未返回插入记录的唯一 ID。', 500)
@@ -884,9 +937,7 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
 
     return { uuid }
   } catch (error) {
-    const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
-
-    if (code === '23505') {
+    if (isDuplicateRecordError(error)) {
       throw mokelayError('BLOCK_DUPLICATE_RECORD', '记录已经存在。', 409, error)
     }
 
@@ -894,29 +945,37 @@ async function executeCreate(block: Block, inputs: Record<string, unknown>, exec
   }
 }
 
-async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
+async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')} = ${fieldValueSql(value)}`), sql`, `)
+  const assignments = sql.join(Object.entries(fields).map(([field, value]) => sql`${identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')} = ${fieldValueSql(value, databaseType)}`), sql`, `)
 
-  const rows = await executeSql(where
-    ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
-    : sql`UPDATE ${table} SET ${assignments} RETURNING 1 AS affected_marker`)
+  const result = databaseType === 'postgres'
+    ? await executeSql(where
+      ? sql`UPDATE ${table} SET ${assignments} WHERE ${where} RETURNING 1 AS affected_marker`
+      : sql`UPDATE ${table} SET ${assignments} RETURNING 1 AS affected_marker`)
+    : await executeSql(where
+      ? sql`UPDATE ${table} SET ${assignments} WHERE ${where}`
+      : sql`UPDATE ${table} SET ${assignments}`)
 
-  return { affected: rows.length }
+  return { affected: databaseType === 'postgres' ? result.rows.length : result.affectedRows ?? 0 }
 }
 
-async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor) {
+async function executeDelete(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const conditions = getConditions(inputs.conditions)
   const where = buildWhereSql(conditions)
-  const rows = await executeSql(where
-    ? sql`DELETE FROM ${table} WHERE ${where} RETURNING 1 AS affected_marker`
-    : sql`DELETE FROM ${table} RETURNING 1 AS affected_marker`)
+  const result = databaseType === 'postgres'
+    ? await executeSql(where
+      ? sql`DELETE FROM ${table} WHERE ${where} RETURNING 1 AS affected_marker`
+      : sql`DELETE FROM ${table} RETURNING 1 AS affected_marker`)
+    : await executeSql(where
+      ? sql`DELETE FROM ${table} WHERE ${where}`
+      : sql`DELETE FROM ${table}`)
 
-  return { affected: rows.length }
+  return { affected: databaseType === 'postgres' ? result.rows.length : result.affectedRows ?? 0 }
 }
 
 async function executeAddSession(event: H3Event, inputs: Record<string, unknown>) {
@@ -960,14 +1019,22 @@ async function executeReadSession(event: H3Event, inputs: Record<string, unknown
   }
 }
 
+function requireDatabaseType(databaseType: DatabaseType | undefined) {
+  if (!databaseType) {
+    throw mokelayError('BLOCK_SQL_UNSUPPORTED', '数据库 Block 缺少数据库类型。', 500)
+  }
+
+  return databaseType
+}
+
 const blockExecutors: Record<string, BlockExecutor> = {
-  list: ({ inputs, executeSql }) => executeList(inputs, executeSql),
-  page: ({ inputs, executeSql }) => executeList(inputs, executeSql, true),
-  count: ({ inputs, executeSql }) => executeCount(inputs, executeSql),
+  list: ({ inputs, executeSql, databaseType }) => executeList(inputs, executeSql, requireDatabaseType(databaseType)),
+  page: ({ inputs, executeSql, databaseType }) => executeList(inputs, executeSql, requireDatabaseType(databaseType), true),
+  count: ({ inputs, executeSql, databaseType }) => executeCount(inputs, executeSql, requireDatabaseType(databaseType)),
   read: ({ inputs, executeSql }) => executeRead(inputs, executeSql),
-  delete: ({ inputs, executeSql }) => executeDelete(inputs, executeSql),
-  create: ({ block, inputs, executeSql }) => executeCreate(block, inputs, executeSql),
-  update: ({ inputs, executeSql }) => executeUpdate(inputs, executeSql),
+  delete: ({ inputs, executeSql, databaseType }) => executeDelete(inputs, executeSql, requireDatabaseType(databaseType)),
+  create: ({ inputs, executeSql, databaseType }) => executeCreate(inputs, executeSql, requireDatabaseType(databaseType)),
+  update: ({ inputs, executeSql, databaseType }) => executeUpdate(inputs, executeSql, requireDatabaseType(databaseType)),
   addSession: ({ event, inputs }) => executeAddSession(event, inputs),
   removeSession: ({ event, inputs }) => executeRemoveSession(event, inputs),
   readSession: ({ event, inputs }) => executeReadSession(event, inputs),
@@ -1006,12 +1073,13 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   const datasource = databaseBlockFunctions.has(block.functionName)
     ? normalizeDatasourceName(inputs.datasource)
     : undefined
+  const databaseType = datasource ? datasourceDatabaseType(datasource) : undefined
   const executeBlockSql: SqlExecutor = (query) => {
     if (!datasource) {
       throw mokelayError('BLOCK_SQL_UNSUPPORTED', `Block ${block.functionName} 不支持 SQL 执行。`, 500)
     }
 
-    return executeSql(query, datasource)
+    return executeSql(query, datasource, requireDatabaseType(databaseType))
   }
 
   context.blocks[block.uuid] = {
@@ -1019,7 +1087,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
     outputs: {},
   }
 
-  const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql })
+  const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql, databaseType })
 
   if (block.outputs) {
     for (const outputDeclaration of block.outputs) {

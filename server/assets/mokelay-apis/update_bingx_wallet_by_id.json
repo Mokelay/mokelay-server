@@ -1,0 +1,83 @@
+{
+  "uuid": "update_bingx_wallet_by_id",
+  "alias": "更新 BingX 钱包接口",
+  "method": "POST",
+  "request": {
+    "query": ["id"],
+    "body": [
+      {
+        "key": "label",
+        "processors": ["trim"]
+      },
+      {
+        "key": "wallet_type",
+        "processors": [
+          "trim",
+          {
+            "processor": "regex",
+            "param": "^(user|exchange|contract|treasury|unknown)$"
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "update_wallet_block",
+      "alias": "更新钱包Block",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "fields": {
+          "label": {
+            "template": "{{request.body.label}}"
+          },
+          "wallet_type": {
+            "template": "{{request.body.wallet_type}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.query.id}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["affected"]
+    },
+    {
+      "uuid": "read_wallet_block",
+      "alias": "读取钱包Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "fields": ["id", "chain_id", "address", "label", "wallet_type", "first_seen_at", "last_seen_at", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.query.id}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "affected": {
+      "template": "{{blocks['update_wallet_block'].outputs.affected}}"
+    },
+    "wallet": {
+      "template": "{{blocks['read_wallet_block'].outputs.data}}"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "uuid": "delete_bingx_wallet_by_id",
+  "alias": "删除 BingX 钱包接口",
+  "method": "POST",
+  "request": {
+    "body": ["id"]
+  },
+  "blocks": [
+    {
+      "uuid": "delete_wallet_block",
+      "alias": "删除钱包Block",
+      "functionName": "delete",
+      "inputs": {
+        "datasource": "BingX",
+        "table": "wallets",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{request.body.id}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["affected"]
+    }
+  ],
+  "response": {
+    "affected": {
+      "template": "{{blocks['delete_wallet_block'].outputs.affected}}"
+    },
+    "message": "删除成功"
+  }
+}
