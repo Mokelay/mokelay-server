@@ -106,7 +106,7 @@ describe('AI data source API', () => {
     mockedAnalyzeDataSourceImage.mockResolvedValueOnce({
       type: 'API',
       domain: 'https://api.mokelay.com',
-      path: '/api/me',
+      path: '/api/mokelay/me',
       method: 'GET',
       headerData: [{ key: 'H1', mock: '' }],
       bodyData: [{ key: 'b1', dataType: 'string', mock: '' }],
@@ -123,7 +123,7 @@ describe('AI data source API', () => {
     expect(body).toEqual({
       type: 'API',
       domain: 'https://api.mokelay.com',
-      path: '/api/me',
+      path: '/api/mokelay/me',
       method: 'GET',
       headerData: [{ key: 'H1', mock: '' }],
       bodyData: [{ key: 'b1', dataType: 'string', mock: '' }],
@@ -161,7 +161,7 @@ describe('AI data source API', () => {
     mockedAnalyzeDataSourceText.mockResolvedValueOnce({
       type: 'API',
       domain: 'https://api.mokelay.com',
-      path: '/api/me',
+      path: '/api/mokelay/me',
       method: 'GET',
       headerData: [],
       bodyData: [],
@@ -171,7 +171,7 @@ describe('AI data source API', () => {
     const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: 'GET https://api.mokelay.com/api/me?debug=true' }),
+      body: JSON.stringify({ text: 'GET https://api.mokelay.com/api/mokelay/me?debug=true' }),
     })
     const body = await readJson(response)
 
@@ -179,13 +179,13 @@ describe('AI data source API', () => {
     expect(body).toEqual({
       type: 'API',
       domain: 'https://api.mokelay.com',
-      path: '/api/me',
+      path: '/api/mokelay/me',
       method: 'GET',
       headerData: [],
       bodyData: [],
       queryData: [{ key: 'debug', mock: '' }],
     })
-    expect(mockedAnalyzeDataSourceText).toHaveBeenCalledWith('GET https://api.mokelay.com/api/me?debug=true')
+    expect(mockedAnalyzeDataSourceText).toHaveBeenCalledWith('GET https://api.mokelay.com/api/mokelay/me?debug=true')
     expect(mockedAnalyzeDataSourceImage).not.toHaveBeenCalled()
   })
 
@@ -242,7 +242,7 @@ describe('AI data source API', () => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        text: 'GET /api/me',
+        text: 'GET /api/mokelay/me',
         image: 'data:image/png;base64,aW1hZ2U=',
       }),
     })
@@ -254,7 +254,7 @@ describe('AI data source API', () => {
   it('rejects multipart requests that include both image and text', async () => {
     const formData = createImageFormData()
 
-    formData.set('text', 'GET /api/me')
+    formData.set('text', 'GET /api/mokelay/me')
 
     const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
       method: 'POST',
@@ -270,7 +270,7 @@ describe('AI data source API', () => {
     const response = await fetch(`${testServer.baseUrl}/api/ai/analyze-data-source`, {
       method: 'POST',
       headers: { 'content-type': 'text/plain' },
-      body: 'GET /api/me',
+      body: 'GET /api/mokelay/me',
     })
 
     expect(response.status).toBe(400)

@@ -1,23 +1,11 @@
 import { deleteCookie, getCookie, setCookie, type H3Event } from 'h3'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { mokelayError } from './mokelay-error'
-import type { PublicUser } from './user-store'
 
-export const sessionCookieName = 'mokelay_session'
 export const orchestrationSessionCookieName = 'mokelay_orchestration_session'
 
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 7
 const orchestrationSessionContextKey = '__mokelayOrchestrationSession'
-
-export type UserSession = {
-  user: PublicUser | null
-  loggedInAt?: string
-}
-
-type StoredSession = UserSession & {
-  iat: number
-  exp: number
-}
 
 type StoredOrchestrationSession = {
   values: Record<string, unknown>
@@ -91,16 +79,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isExpired(value: unknown) {
   return typeof value !== 'number' || value <= Math.floor(Date.now() / 1000)
-}
-
-function unsealUserSession(value: string): StoredSession | null {
-  const payload = unseal(value)
-
-  if (!isRecord(payload) || !payload.user || isExpired(payload.exp)) {
-    return null
-  }
-
-  return payload as StoredSession
 }
 
 function unsealOrchestrationSession(value: string): StoredOrchestrationSession | null {
@@ -179,31 +157,6 @@ function persistOrchestrationSession(event: H3Event, values: Record<string, unkn
   }
 
   setSignedCookie(event, orchestrationSessionCookieName, session)
-}
-
-export function setUserSession(event: H3Event, session: UserSession) {
-  const now = Math.floor(Date.now() / 1000)
-  const payload: StoredSession = {
-    ...session,
-    iat: now,
-    exp: now + sessionMaxAgeSeconds,
-  }
-
-  setSignedCookie(event, sessionCookieName, payload)
-}
-
-export function getUserSession(event: H3Event): UserSession {
-  const cookie = getCookie(event, sessionCookieName)
-  const payload = cookie ? unsealUserSession(cookie) : null
-
-  return {
-    user: payload?.user || null,
-    loggedInAt: payload?.loggedInAt,
-  }
-}
-
-export function clearUserSession(event: H3Event) {
-  deleteSignedCookie(event, sessionCookieName)
 }
 
 export function setSessionValue(event: H3Event, key: string, value: unknown) {

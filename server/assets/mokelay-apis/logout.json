@@ -1,0 +1,18 @@
+{
+  "uuid": "logout",
+  "alias": "退出登录接口",
+  "method": "POST",
+  "blocks": [
+    {
+      "uuid": "clear_user_session",
+      "alias": "清除登录态Session",
+      "functionName": "removeSession",
+      "inputs": {
+        "key": "user"
+      }
+    }
+  ],
+  "response": {
+    "ok": true
+  }
+}

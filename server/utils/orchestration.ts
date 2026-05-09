@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 import { sql, type SQL } from 'drizzle-orm'
 import {
   defineEventHandler,
@@ -15,20 +16,39 @@ import {
 import { z } from 'zod'
 import { normalizeDatasourceName, useDatasourceDb } from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
+import { hashPassword, verifyPassword } from './password'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
 const templatePattern = /\{\{\s*([^}]+?)\s*\}\}/g
 const wholeTemplatePattern = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/
 
+const processorConfigSchema = z.union([
+  z.string().min(1, 'processor 不能为空。'),
+  z.object({
+    processor: z.string().min(1, 'processor 不能为空。'),
+    param: z.unknown().optional(),
+  }).strict(),
+])
+const processorsSchema = z.array(processorConfigSchema)
+const processableKeySchema = z.union([
+  z.string().min(1),
+  z.object({
+    key: z.string().min(1, 'key 不能为空。'),
+    processors: processorsSchema.optional().default([]),
+  }).strict(),
+])
 const calculateTemplateSchema = z.object({
   template: z.string().min(1, '模板不能为空。'),
+  processors: processorsSchema.optional().default([]),
 }).strict()
 
 const conditionTypeSchema = z.enum(['GE', 'GT', 'LE', 'LT', 'NEQ', 'EQ', 'NOTIN', 'IN'])
 const groupTypeSchema = z.enum(['AND', 'OR'])
 
 type CalculateTemplate = z.infer<typeof calculateTemplateSchema>
+type ProcessorConfig = z.infer<typeof processorConfigSchema>
+type ProcessableKey = z.infer<typeof processableKeySchema>
 
 type LeafCondition = {
   group: false
@@ -62,9 +82,9 @@ const conditionSchema: z.ZodType<Condition> = z.lazy(() => z.union([
 ]))
 
 const requestSchema = z.object({
-  header: z.array(z.string().min(1)).optional().default([]),
-  query: z.array(z.string().min(1)).optional().default([]),
-  body: z.array(z.string().min(1)).optional().default([]),
+  header: z.array(processableKeySchema).optional().default([]),
+  query: z.array(processableKeySchema).optional().default([]),
+  body: z.array(processableKeySchema).optional().default([]),
 }).strict()
 
 const blockSchema = z.object({
@@ -72,7 +92,7 @@ const blockSchema = z.object({
   alias: z.string().optional(),
   functionName: z.string().min(1, 'Block functionName 不能为空。'),
   inputs: z.record(z.unknown()).optional().default({}),
-  outputs: z.array(z.string().min(1)).nullable().optional(),
+  outputs: z.array(processableKeySchema).nullable().optional(),
 }).strict()
 
 const apiJsonSchema = z.object({
@@ -226,8 +246,225 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function isCalculateTemplate(value: unknown): value is CalculateTemplate {
-  return calculateTemplateSchema.safeParse(value).success
+function declarationKey(declaration: ProcessableKey) {
+  return typeof declaration === 'string' ? declaration : declaration.key
+}
+
+function declarationProcessors(declaration: ProcessableKey) {
+  return typeof declaration === 'string' ? [] : declaration.processors ?? []
+}
+
+function processorName(config: ProcessorConfig) {
+  return typeof config === 'string' ? config : config.processor
+}
+
+async function processorParams(config: ProcessorConfig, context?: BlockExecutionContext) {
+  if (typeof config === 'string' || config.param === undefined) {
+    return []
+  }
+
+  const param = context ? await resolveTemplates(config.param, context) : config.param
+
+  return Array.isArray(param) ? param : [param]
+}
+
+function processorConfigError(processor: string, message: string): never {
+  throw mokelayError('PROCESSOR_INVALID_CONFIG', `Processor ${processor} 配置无效：${message}`, 400)
+}
+
+function processorValidationError(processor: string, label: string, message: string): never {
+  throw mokelayError('PROCESSOR_VALIDATION_FAILED', `Processor ${processor} 校验失败：${label} ${message}`, 400)
+}
+
+function stringifyProcessorValue(value: unknown) {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (value === undefined) {
+    return 'undefined'
+  }
+
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function isNullishProcessorValue(value: unknown) {
+  return value === undefined || value === null || value === ''
+}
+
+function getLength(value: unknown, processor: string, label: string): number {
+  if (typeof value === 'string' || Array.isArray(value)) {
+    return value.length
+  }
+
+  processorValidationError(processor, label, '必须是字符串或数组。')
+}
+
+function getLengthLimit(processor: string, params: unknown[]): number {
+  const limit = params[0]
+
+  if (params.length !== 1 || typeof limit !== 'number' || !Number.isSafeInteger(limit) || limit < 0) {
+    processorConfigError(processor, 'param 必须包含一个非负整数。')
+  }
+
+  return limit
+}
+
+function getSingleParam(processor: string, params: unknown[]) {
+  if (params.length !== 1) {
+    processorConfigError(processor, 'param 必须包含一个参数。')
+  }
+
+  return params[0]
+}
+
+function compileRegex(processor: string, param: unknown): RegExp {
+  if (typeof param !== 'string' || !param) {
+    processorConfigError(processor, 'param 必须是非空正则字符串。')
+  }
+
+  try {
+    if (param.startsWith('/')) {
+      const lastSlashIndex = param.lastIndexOf('/')
+
+      if (lastSlashIndex > 0) {
+        return new RegExp(param.slice(1, lastSlashIndex), param.slice(lastSlashIndex + 1))
+      }
+    }
+
+    return new RegExp(param)
+  } catch (error) {
+    throw mokelayError('PROCESSOR_INVALID_CONFIG', `Processor ${processor} 配置无效：正则表达式无效。`, 400, error)
+  }
+}
+
+async function applyProcessor(value: unknown, config: ProcessorConfig, label: string, context?: BlockExecutionContext) {
+  const name = processorName(config)
+  const params = await processorParams(config, context)
+
+  switch (name) {
+    case 'trim':
+      return typeof value === 'string' ? value.trim() : value
+    case 'is_not_null':
+      if (isNullishProcessorValue(value)) {
+        processorValidationError(name, label, '不能为空。')
+      }
+
+      return value
+    case 'is_null':
+      if (!isNullishProcessorValue(value)) {
+        processorValidationError(name, label, '必须为空。')
+      }
+
+      return value
+    case 'not_null':
+      return value !== undefined && value !== null
+    case 'email_check':
+      if (typeof value !== 'string' || !z.string().email().safeParse(value).success) {
+        processorValidationError(name, label, '不是合法 email。')
+      }
+
+      return value
+    case 'number_check':
+      if (
+        typeof value !== 'number' && typeof value !== 'string'
+        || typeof value === 'number' && !Number.isFinite(value)
+        || typeof value === 'string' && (!value.trim() || !Number.isFinite(Number(value)))
+      ) {
+        processorValidationError(name, label, '不是合法数字。')
+      }
+
+      return value
+    case 'eq': {
+      const expected = getSingleParam(name, params)
+
+      if (!isDeepStrictEqual(value, expected)) {
+        processorValidationError(name, label, `必须等于 ${stringifyProcessorValue(expected)}。`)
+      }
+
+      return value
+    }
+    case 'min': {
+      const limit = getLengthLimit(name, params)
+
+      if (getLength(value, name, label) < limit) {
+        processorValidationError(name, label, `长度不能小于 ${limit}。`)
+      }
+
+      return value
+    }
+    case 'max': {
+      const limit = getLengthLimit(name, params)
+
+      if (getLength(value, name, label) > limit) {
+        processorValidationError(name, label, `长度不能大于 ${limit}。`)
+      }
+
+      return value
+    }
+    case 'regex': {
+      const regex = compileRegex(name, getSingleParam(name, params))
+
+      if (typeof value !== 'string' || !regex.test(value)) {
+        processorValidationError(name, label, `不符合正则 ${regex.toString()}。`)
+      }
+
+      return value
+    }
+    case 'hash_make':
+      if (typeof value !== 'string') {
+        processorValidationError(name, label, '必须是字符串。')
+      }
+
+      return await hashPassword(value)
+    case 'hash_check': {
+      const plainPassword = getSingleParam(name, params)
+
+      if (typeof value !== 'string' || typeof plainPassword !== 'string') {
+        processorValidationError(name, label, '必须使用字符串 hash 和明文密码。')
+      }
+
+      if (!(await verifyPassword(value, plainPassword))) {
+        processorValidationError(name, label, 'hash 校验不通过。')
+      }
+
+      return value
+    }
+    default:
+      throw mokelayError('PROCESSOR_UNSUPPORTED', `不支持的 Processor：${name}`, 400)
+  }
+}
+
+async function applyProcessors(value: unknown, processors: ProcessorConfig[], label: string, context?: BlockExecutionContext) {
+  let current = value
+
+  for (const processor of processors) {
+    current = await applyProcessor(current, processor, label, context)
+  }
+
+  return current
+}
+
+function parseCalculateTemplate(value: unknown): CalculateTemplate | undefined {
+  const parsed = calculateTemplateSchema.safeParse(value)
+
+  if (parsed.success) {
+    return parsed.data
+  }
+
+  if (isRecord(value) && typeof value.template === 'string' && Object.prototype.hasOwnProperty.call(value, 'processors')) {
+    throw mokelayError(
+      'PROCESSOR_INVALID_CONFIG',
+      `template processors 配置无效：${parsed.error.issues[0]?.message || '输入内容无效。'}`,
+      400,
+    )
+  }
+
+  return undefined
 }
 
 function stringifyTemplateValue(value: unknown) {
@@ -308,17 +545,24 @@ function renderTemplate(template: string, context: BlockExecutionContext) {
   return template.replace(templatePattern, (_, expression: string) => stringifyTemplateValue(getByPath(context, expression)))
 }
 
-function resolveTemplates(value: unknown, context: BlockExecutionContext): unknown {
-  if (isCalculateTemplate(value)) {
-    return renderTemplate(value.template, context)
+async function resolveTemplates(value: unknown, context: BlockExecutionContext): Promise<unknown> {
+  const template = parseCalculateTemplate(value)
+
+  if (template) {
+    const rendered = renderTemplate(template.template, context)
+    return await applyProcessors(rendered, template.processors ?? [], 'template', context)
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolveTemplates(item, context))
+    return await Promise.all(value.map((item) => resolveTemplates(item, context)))
   }
 
   if (isRecord(value)) {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveTemplates(item, context)]))
+    const entries = await Promise.all(Object.entries(value).map(async ([key, item]) => {
+      return [key, await resolveTemplates(item, context)] as const
+    }))
+
+    return Object.fromEntries(entries)
   }
 
   return value
@@ -347,15 +591,9 @@ function requireDeclaredValue(source: Record<string, unknown>, name: string, sou
 async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<RequestContext> {
   const shouldReadBody = getMethod(event) !== 'GET'
   const headers = getRequestHeaders(event)
-  const headerContext = Object.fromEntries(apiJson.request.header.map((name) => {
-    const lowerName = name.toLowerCase()
-    return [name, normalizeHeaderValue(headers[lowerName])]
-  }))
+  const headerContext: Record<string, unknown> = {}
   const rawQuery = getQuery(event)
-  const queryContext = Object.fromEntries(apiJson.request.query.map((name) => {
-    const value = rawQuery[name]
-    return [name, Array.isArray(value) ? value[0] : value]
-  }))
+  const queryContext: Record<string, unknown> = {}
   let bodyContext: Record<string, unknown> = {}
 
   if (shouldReadBody && apiJson.request.body.length > 0) {
@@ -366,17 +604,32 @@ async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<Req
     }
   }
 
-  for (const name of apiJson.request.header) {
-    requireDeclaredValue(headerContext, name, 'header')
+  for (const declaration of apiJson.request.header) {
+    const name = declarationKey(declaration)
+    const value = normalizeHeaderValue(headers[name.toLowerCase()])
+
+    headerContext[name] = typeof declaration === 'string'
+      ? requireDeclaredValue({ [name]: value }, name, 'header')
+      : await applyProcessors(value, declarationProcessors(declaration), `request.header.${name}`)
   }
 
-  for (const name of apiJson.request.query) {
-    requireDeclaredValue(queryContext, name, 'query')
+  for (const declaration of apiJson.request.query) {
+    const name = declarationKey(declaration)
+    const value = rawQuery[name]
+    const normalizedValue = Array.isArray(value) ? value[0] : value
+
+    queryContext[name] = typeof declaration === 'string'
+      ? requireDeclaredValue({ [name]: normalizedValue }, name, 'query')
+      : await applyProcessors(normalizedValue, declarationProcessors(declaration), `request.query.${name}`)
   }
 
   if (shouldReadBody) {
-    for (const name of apiJson.request.body) {
-      requireDeclaredValue(bodyContext, name, 'body')
+    for (const declaration of apiJson.request.body) {
+      const name = declarationKey(declaration)
+
+      bodyContext[name] = typeof declaration === 'string'
+        ? requireDeclaredValue(bodyContext, name, 'body')
+        : await applyProcessors(bodyContext[name], declarationProcessors(declaration), `request.body.${name}`)
     }
   }
 
@@ -679,14 +932,31 @@ async function executeAddSession(event: H3Event, inputs: Record<string, unknown>
 }
 
 async function executeRemoveSession(event: H3Event, inputs: Record<string, unknown>) {
-  removeSessionValue(event, getSessionKey(inputs.key))
+  const key = getSessionKey(inputs.key)
+
+  removeSessionValue(event, key)
 
   return {}
 }
 
 async function executeReadSession(event: H3Event, inputs: Record<string, unknown>) {
-  return {
-    value: readSessionValue(event, getSessionKey(inputs.key)),
+  const key = getSessionKey(inputs.key)
+
+  try {
+    return {
+      value: readSessionValue(event, key),
+    }
+  } catch (error) {
+    const data = typeof error === 'object' && error && 'data' in error ? error.data : undefined
+    const code = isRecord(data) ? data.code : undefined
+
+    if (code !== 'BLOCK_SESSION_KEY_NOT_FOUND') {
+      throw error
+    }
+
+    return {
+      value: null,
+    }
   }
 }
 
@@ -715,8 +985,10 @@ function validateDeclaredOutputs(block: Block) {
   }
 
   for (const outputName of block.outputs) {
-    if (!allowedOutputs.includes(outputName)) {
-      throw mokelayError('BLOCK_UNSUPPORTED_OUTPUT', `Block ${block.functionName} 不支持输出：${outputName}`, 400)
+    const key = declarationKey(outputName)
+
+    if (!allowedOutputs.includes(key)) {
+      throw mokelayError('BLOCK_UNSUPPORTED_OUTPUT', `Block ${block.functionName} 不支持输出：${key}`, 400)
     }
   }
 }
@@ -730,7 +1002,7 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
 
   validateDeclaredOutputs(block)
 
-  const inputs = resolveTemplates(block.inputs, context) as Record<string, unknown>
+  const inputs = await resolveTemplates(block.inputs, context) as Record<string, unknown>
   const datasource = databaseBlockFunctions.has(block.functionName)
     ? normalizeDatasourceName(inputs.datasource)
     : undefined
@@ -750,10 +1022,19 @@ async function executeBlock(block: Block, context: BlockExecutionContext, execut
   const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql })
 
   if (block.outputs) {
-    for (const outputName of block.outputs) {
+    for (const outputDeclaration of block.outputs) {
+      const outputName = declarationKey(outputDeclaration)
+
       if (!(outputName in outputs)) {
         throw mokelayError('BLOCK_OUTPUT_MISSING', `Block ${block.uuid} 未产生声明的输出：${outputName}`, 400)
       }
+
+      outputs[outputName] = await applyProcessors(
+        outputs[outputName],
+        declarationProcessors(outputDeclaration),
+        `blocks['${block.uuid}'].outputs.${outputName}`,
+        context,
+      )
     }
   }
 
@@ -786,7 +1067,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
     await executeBlock(block, context, executeSql, event)
   }
 
-  const data = apiJson.response == null ? null : resolveTemplates(apiJson.response, context)
+  const data = apiJson.response == null ? null : await resolveTemplates(apiJson.response, context)
 
   return {
     ok: true,
