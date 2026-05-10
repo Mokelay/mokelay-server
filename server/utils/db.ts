@@ -159,6 +159,14 @@ export function hasDatabaseUrl() {
   return Boolean(process.env.DATABASE_URL)
 }
 
+export function listConfiguredDatasources() {
+  return Object.keys(process.env)
+    .filter((key) => key.endsWith('_DATABASE_URL'))
+    .map((key) => key.slice(0, -'_DATABASE_URL'.length))
+    .filter((name) => datasourceNamePattern.test(name))
+    .sort((a, b) => a.localeCompare(b))
+}
+
 export function useDb() {
   const databaseUrl = process.env.DATABASE_URL
 

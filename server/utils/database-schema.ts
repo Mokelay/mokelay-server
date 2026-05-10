@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { useDb } from './db'
+import { datasourceDatabaseType, executeDatasourceSql, useDb } from './db'
 
 export type DatabaseColumnSchema = {
   name: string
@@ -44,7 +44,7 @@ export function mapDatabaseSchemaRows(rows: DatabaseSchemaQueryRow[]): DatabaseT
   return Array.from(tables.values())
 }
 
-export async function listDatabaseSchema(): Promise<DatabaseTableSchema[]> {
+async function listDefaultDatabaseSchema(): Promise<DatabaseTableSchema[]> {
   const rows = await useDb().execute<DatabaseSchemaQueryRow>(sql`
     SELECT
       cls.relname AS "tableName",
@@ -66,4 +66,45 @@ export async function listDatabaseSchema(): Promise<DatabaseTableSchema[]> {
   `)
 
   return mapDatabaseSchemaRows(rows)
+}
+
+async function listDatasourceDatabaseSchema(datasource: string): Promise<DatabaseTableSchema[]> {
+  const databaseType = datasourceDatabaseType(datasource)
+  const result = databaseType === 'postgres'
+    ? await executeDatasourceSql<DatabaseSchemaQueryRow>(sql`
+      SELECT
+        cls.relname AS "tableName",
+        att.attname AS "columnName",
+        CASE
+          WHEN att.attname IS NULL THEN NULL
+          ELSE pg_catalog.format_type(att.atttypid, att.atttypmod)
+        END AS "columnType"
+      FROM pg_catalog.pg_class cls
+      JOIN pg_catalog.pg_namespace ns
+        ON ns.oid = cls.relnamespace
+      LEFT JOIN pg_catalog.pg_attribute att
+        ON att.attrelid = cls.oid
+        AND att.attnum > 0
+        AND NOT att.attisdropped
+      WHERE ns.nspname = 'public'
+        AND cls.relkind = 'r'
+      ORDER BY cls.relname ASC, att.attnum ASC
+    `, datasource)
+    : await executeDatasourceSql<DatabaseSchemaQueryRow>(sql`
+      SELECT
+        TABLE_NAME AS tableName,
+        COLUMN_NAME AS columnName,
+        COLUMN_TYPE AS columnType
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY TABLE_NAME ASC, ORDINAL_POSITION ASC
+    `, datasource)
+
+  return mapDatabaseSchemaRows(result.rows)
+}
+
+export async function listDatabaseSchema(datasource?: string): Promise<DatabaseTableSchema[]> {
+  return datasource
+    ? await listDatasourceDatabaseSchema(datasource)
+    : await listDefaultDatabaseSchema()
 }

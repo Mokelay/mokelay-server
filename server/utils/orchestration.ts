@@ -22,6 +22,7 @@ import {
   type SqlExecutionResult,
 } from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
+import { tryLoadPublishedApiJson } from './orchestration-api-store'
 import { hashPassword, verifyPassword } from './password'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
@@ -151,11 +152,32 @@ type DatasourceSqlExecutor = <T extends Record<string, unknown> = Record<string,
 type OrchestrationHandlerOptions = {
   loadApiJson?: (apiJsonUuid: string) => Promise<unknown>
   executeSql?: DatasourceSqlExecutor
+  apiJsonUuid?: string
+  method?: string
+  request?: Partial<RequestContext>
+  trace?: OrchestrationTrace
 }
 
 type MokelaySuccessResponse = {
   ok: true
   data: unknown
+}
+
+export type OrchestrationTraceBlock = {
+  uuid: string
+  alias?: string
+  functionName: string
+  inputs?: Record<string, unknown>
+  outputs?: Record<string, unknown>
+  ok: boolean
+  error?: {
+    code: string
+    message: string
+  }
+}
+
+export type OrchestrationTrace = {
+  blocks: OrchestrationTraceBlock[]
 }
 
 const allowedBlockOutputs: Record<string, readonly string[]> = {
@@ -181,7 +203,7 @@ function assertApiJsonUuid(value: string | undefined) {
   return value
 }
 
-function parseApiJson(apiJsonUuid: string, value: unknown): ApiJson {
+export function parseApiJson(apiJsonUuid: string, value: unknown): ApiJson {
   const parsed = apiJsonSchema.safeParse(value)
 
   if (!parsed.success) {
@@ -234,7 +256,9 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
 export async function loadApiJson(apiJsonUuid: string) {
   assertApiJsonUuid(apiJsonUuid)
 
-  const value = await loadApiJsonFromNitroAssets(apiJsonUuid) ?? await loadApiJsonFromFileSystem(apiJsonUuid)
+  const value = await tryLoadPublishedApiJson(apiJsonUuid)
+    ?? await loadApiJsonFromNitroAssets(apiJsonUuid)
+    ?? await loadApiJsonFromFileSystem(apiJsonUuid)
 
   if (typeof value !== 'string') {
     return value
@@ -597,25 +621,28 @@ function requireDeclaredValue(source: Record<string, unknown>, name: string, sou
   return source[name]
 }
 
-async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<RequestContext> {
-  const shouldReadBody = getMethod(event) !== 'GET'
-  const headers = getRequestHeaders(event)
-  const headerContext: Record<string, unknown> = {}
-  const rawQuery = getQuery(event)
-  const queryContext: Record<string, unknown> = {}
-  let bodyContext: Record<string, unknown> = {}
+function normalizeRequestRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {}
+}
 
-  if (shouldReadBody && apiJson.request.body.length > 0) {
-    try {
-      bodyContext = normalizeBody(await readBody(event))
-    } catch (error) {
-      throw mokelayError('REQUEST_INVALID_BODY', '请求 body 不是合法 JSON。', 400, error)
-    }
-  }
+function readHeaderSourceValue(source: Record<string, unknown>, name: string) {
+  return source[name] ?? source[name.toLowerCase()]
+}
+
+async function buildRequestContext(
+  apiJson: ApiJson,
+  source: Partial<RequestContext>,
+  shouldReadBody: boolean,
+): Promise<RequestContext> {
+  const headers = normalizeRequestRecord(source.header)
+  const headerContext: Record<string, unknown> = {}
+  const rawQuery = normalizeRequestRecord(source.query)
+  const queryContext: Record<string, unknown> = {}
+  const bodyContext = shouldReadBody ? normalizeRequestRecord(source.body) : {}
 
   for (const declaration of apiJson.request.header) {
     const name = declarationKey(declaration)
-    const value = normalizeHeaderValue(headers[name.toLowerCase()])
+    const value = normalizeHeaderValue(readHeaderSourceValue(headers, name) as string | string[] | undefined)
 
     headerContext[name] = typeof declaration === 'string'
       ? requireDeclaredValue({ [name]: value }, name, 'header')
@@ -647,6 +674,25 @@ async function readRequestContext(event: H3Event, apiJson: ApiJson): Promise<Req
     query: queryContext,
     body: bodyContext,
   }
+}
+
+async function readRequestContext(event: H3Event, apiJson: ApiJson, method: string): Promise<RequestContext> {
+  const shouldReadBody = method !== 'GET'
+  let bodyContext: Record<string, unknown> = {}
+
+  if (shouldReadBody && apiJson.request.body.length > 0) {
+    try {
+      bodyContext = normalizeBody(await readBody(event))
+    } catch (error) {
+      throw mokelayError('REQUEST_INVALID_BODY', '请求 body 不是合法 JSON。', 400, error)
+    }
+  }
+
+  return await buildRequestContext(apiJson, {
+    header: getRequestHeaders(event) as unknown as Record<string, string>,
+    query: getQuery(event) as Record<string, unknown>,
+    body: bodyContext,
+  }, shouldReadBody)
 }
 
 function identifierSql(value: unknown, name: string, errorCode: MokelayErrorCode) {
@@ -1060,67 +1106,93 @@ function validateDeclaredOutputs(block: Block) {
   }
 }
 
-async function executeBlock(block: Block, context: BlockExecutionContext, executeSql: DatasourceSqlExecutor, event: H3Event) {
-  const executor = blockExecutors[block.functionName]
-
-  if (!executor) {
-    throw mokelayError('BLOCK_UNSUPPORTED_FUNCTION', `不支持的 Block functionName：${block.functionName}`, 400)
+async function executeBlock(
+  block: Block,
+  context: BlockExecutionContext,
+  executeSql: DatasourceSqlExecutor,
+  event: H3Event,
+  trace?: OrchestrationTrace,
+) {
+  const traceBlock: OrchestrationTraceBlock = {
+    uuid: block.uuid,
+    alias: block.alias,
+    functionName: block.functionName,
+    ok: false,
   }
 
-  validateDeclaredOutputs(block)
+  try {
+    const executor = blockExecutors[block.functionName]
 
-  const inputs = await resolveTemplates(block.inputs, context) as Record<string, unknown>
-  const datasource = databaseBlockFunctions.has(block.functionName)
-    ? normalizeDatasourceName(inputs.datasource)
-    : undefined
-  const databaseType = datasource ? datasourceDatabaseType(datasource) : undefined
-  const executeBlockSql: SqlExecutor = (query) => {
-    if (!datasource) {
-      throw mokelayError('BLOCK_SQL_UNSUPPORTED', `Block ${block.functionName} 不支持 SQL 执行。`, 500)
+    if (!executor) {
+      throw mokelayError('BLOCK_UNSUPPORTED_FUNCTION', `不支持的 Block functionName：${block.functionName}`, 400)
     }
 
-    return executeSql(query, datasource, requireDatabaseType(databaseType))
-  }
+    validateDeclaredOutputs(block)
 
-  context.blocks[block.uuid] = {
-    inputs,
-    outputs: {},
-  }
+    const inputs = await resolveTemplates(block.inputs, context) as Record<string, unknown>
+    traceBlock.inputs = inputs
 
-  const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql, databaseType })
-
-  if (block.outputs) {
-    for (const outputDeclaration of block.outputs) {
-      const outputName = declarationKey(outputDeclaration)
-
-      if (!(outputName in outputs)) {
-        throw mokelayError('BLOCK_OUTPUT_MISSING', `Block ${block.uuid} 未产生声明的输出：${outputName}`, 400)
+    const datasource = databaseBlockFunctions.has(block.functionName)
+      ? normalizeDatasourceName(inputs.datasource)
+      : undefined
+    const databaseType = datasource ? datasourceDatabaseType(datasource) : undefined
+    const executeBlockSql: SqlExecutor = (query) => {
+      if (!datasource) {
+        throw mokelayError('BLOCK_SQL_UNSUPPORTED', `Block ${block.functionName} 不支持 SQL 执行。`, 500)
       }
 
-      outputs[outputName] = await applyProcessors(
-        outputs[outputName],
-        declarationProcessors(outputDeclaration),
-        `blocks['${block.uuid}'].outputs.${outputName}`,
-        context,
-      )
+      return executeSql(query, datasource, requireDatabaseType(databaseType))
     }
+
+    context.blocks[block.uuid] = {
+      inputs,
+      outputs: {},
+    }
+
+    const outputs = await executor({ event, block, inputs, executeSql: executeBlockSql, databaseType })
+
+    if (block.outputs) {
+      for (const outputDeclaration of block.outputs) {
+        const outputName = declarationKey(outputDeclaration)
+
+        if (!(outputName in outputs)) {
+          throw mokelayError('BLOCK_OUTPUT_MISSING', `Block ${block.uuid} 未产生声明的输出：${outputName}`, 400)
+        }
+
+        outputs[outputName] = await applyProcessors(
+          outputs[outputName],
+          declarationProcessors(outputDeclaration),
+          `blocks['${block.uuid}'].outputs.${outputName}`,
+          context,
+        )
+      }
+    }
+
+    context.blocks[block.uuid].outputs = outputs
+    traceBlock.outputs = outputs
+    traceBlock.ok = true
+
+    return outputs
+  } catch (error) {
+    traceBlock.error = toMokelayErrorResponse(error).error
+    throw error
+  } finally {
+    trace?.blocks.push(traceBlock)
   }
-
-  context.blocks[block.uuid].outputs = outputs
-
-  return outputs
 }
 
 export async function executeApiJson(event: H3Event, rawApiJson: unknown, options: OrchestrationHandlerOptions = {}) {
-  const apiJsonUuid = assertApiJsonUuid(getRouterParam(event, 'apiJsonUuid'))
+  const apiJsonUuid = assertApiJsonUuid(options.apiJsonUuid ?? getRouterParam(event, 'apiJsonUuid'))
   const apiJson = parseApiJson(apiJsonUuid, rawApiJson)
-  const actualMethod = getMethod(event).toUpperCase()
+  const actualMethod = (options.method ?? getMethod(event)).toUpperCase()
 
   if (apiJson.method !== actualMethod) {
     throw mokelayError('REQUEST_METHOD_MISMATCH', `请求方法不匹配，应使用 ${apiJson.method}。`, 400)
   }
 
-  const request = await readRequestContext(event, apiJson)
+  const request = options.request
+    ? await buildRequestContext(apiJson, options.request, actualMethod !== 'GET')
+    : await readRequestContext(event, apiJson, actualMethod)
   const executeSql = options.executeSql ?? defaultExecuteSql
   const context: BlockExecutionContext = {
     request,
@@ -1132,7 +1204,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
   }
 
   for (const block of apiJson.blocks) {
-    await executeBlock(block, context, executeSql, event)
+    await executeBlock(block, context, executeSql, event, options.trace)
   }
 
   const data = apiJson.response == null ? null : await resolveTemplates(apiJson.response, context)
