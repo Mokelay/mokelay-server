@@ -922,6 +922,7 @@ describe('mokelay orchestration API', () => {
       testServer.baseUrl,
       'update_page_blocks_by_uuid',
       {
+        name: 'First Page Updated',
         blocks: [{ type: 'text', value: 'Updated' }],
       },
       `?uuid=${firstPage?.uuid}`,
@@ -931,7 +932,7 @@ describe('mokelay orchestration API', () => {
     expect(updateResponse.status).toBe(200)
     expect(updateBody.page).toMatchObject({
       uuid: firstPage?.uuid,
-      name: 'First Page',
+      name: 'First Page Updated',
       blocks: [{ type: 'text', value: 'Updated' }],
     })
 

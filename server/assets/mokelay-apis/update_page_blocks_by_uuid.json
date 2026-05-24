@@ -4,7 +4,7 @@
   "method": "POST",
   "request": {
     "query": ["uuid"],
-    "body": ["blocks"]
+    "body": ["name", "blocks"]
   },
   "blocks": [
     {
@@ -15,6 +15,9 @@
         "datasource": "Mokelay",
         "table": "pages",
         "fields": {
+          "name": {
+            "template": "{{request.body.name}}"
+          },
           "blocks": {
             "template": "{{request.body.blocks}}"
           },
