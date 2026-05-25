@@ -557,7 +557,6 @@ describe('mokelay orchestration API', () => {
     fakeSqlExecutor = new FakeSqlExecutor()
     process.env = {
       ...originalEnv,
-      DATABASE_URL: '',
       Mokelay_DATABASE_URL: 'postgres://unit-test',
       NODE_ENV: 'test',
     }
@@ -983,8 +982,7 @@ describe('mokelay orchestration API', () => {
     await expectMokelayError(response, 'API_JSON_NOT_FOUND', 'API JSON 不存在。')
   })
 
-  it('stops orchestration when datasource DATABASE_URL is missing', async () => {
-    process.env.DATABASE_URL = 'postgres://legacy-should-not-be-used'
+  it('stops orchestration when datasource database URL is missing', async () => {
     process.env.Missing_DATABASE_URL = ''
     const handler = createMokelayOrchestrationHandler({
       loadApiJson: async () => ({

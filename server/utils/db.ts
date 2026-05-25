@@ -41,6 +41,7 @@ const globalForDb = globalThis as typeof globalThis & {
   __mokelayDatasourceDbs?: Map<string, DatabaseConnection>
 }
 
+const mokelayDatabaseUrlEnvName = 'Mokelay_DATABASE_URL'
 const datasourceNamePattern = /^[A-Za-z_][A-Za-z0-9_]*$/
 
 function createPostgresClient(databaseUrl: string) {
@@ -93,7 +94,7 @@ export function detectDatabaseType(databaseUrl: string): DatabaseType {
   try {
     protocol = new URL(databaseUrl).protocol.replace(/:$/, '').toLowerCase()
   } catch (error) {
-    throw mokelayError('BLOCK_DATASOURCE_UNSUPPORTED_DATABASE', 'DATABASE_URL 不是合法 URL。', 500, error)
+    throw mokelayError('BLOCK_DATASOURCE_UNSUPPORTED_DATABASE', '数据库连接 URL 不是合法 URL。', 500, error)
   }
 
   if (protocol === 'postgres' || protocol === 'postgresql') {
@@ -155,19 +156,21 @@ export function datasourceDatabaseType(datasource: unknown) {
   return detectDatabaseType(datasourceDatabaseUrl(datasource).databaseUrl)
 }
 
-export function hasDatabaseUrl() {
-  return Boolean(process.env.DATABASE_URL)
-}
-
-export function useDb() {
-  const databaseUrl = process.env.DATABASE_URL
+export function mokelayDatabaseUrl() {
+  const databaseUrl = process.env[mokelayDatabaseUrlEnvName]
 
   if (!databaseUrl) {
     throw createError({
       statusCode: 500,
-      message: 'DATABASE_URL is not configured.',
+      message: `${mokelayDatabaseUrlEnvName} is not configured.`,
     })
   }
+
+  return databaseUrl
+}
+
+export function useDb() {
+  const databaseUrl = mokelayDatabaseUrl()
 
   if (!globalForDb.__mokelayPostgresClient) {
     globalForDb.__mokelayPostgresClient = createPostgresClient(databaseUrl)

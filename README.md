@@ -84,7 +84,6 @@ Required environment variables:
 
 ```env
 NODE_ENV=production
-DATABASE_URL=your-production-postgres-url
 Mokelay_DATABASE_URL=your-production-postgres-url
 SESSION_SECRET=use-a-strong-random-string-at-least-32-chars
 COOKIE_DOMAIN=.mokelay.com
@@ -101,7 +100,7 @@ MOKELAY_APIS_R2_PREFIX=mokelay-apis
 Before production signups, run migrations against the production database:
 
 ```bash
-DATABASE_URL="your-production-postgres-url" npm run db:migrate
+Mokelay_DATABASE_URL="your-production-postgres-url" npm run db:migrate
 ```
 
 ## Verification
