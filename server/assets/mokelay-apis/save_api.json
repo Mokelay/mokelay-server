@@ -34,6 +34,50 @@
       }
     },
     {
+      "uuid": "publish_api_json_to_r2_block",
+      "alias": "发布 API DSL 到 R2 Block",
+      "functionName": "saveJsonToR2",
+      "inputs": {
+        "enabled": {
+          "template": "{{request.body.status}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": "published"
+            }
+          ]
+        },
+        "directory": {
+          "template": "{{request.body.status}}",
+          "processors": [
+            {
+              "processor": "env_value",
+              "param": "MOKELAY_APIS_R2_PREFIX"
+            }
+          ]
+        },
+        "fileName": {
+          "template": "{{request.body.uuid}}.json"
+        },
+        "data": {
+          "template": "{{request.body.apiJson}}",
+          "processors": [
+            {
+              "processor": "api_json_when_published",
+              "param": {
+                "uuid": {
+                  "template": "{{request.body.uuid}}"
+                },
+                "status": {
+                  "template": "{{request.body.status}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
       "uuid": "save_api_block",
       "alias": "保存 API Block",
       "functionName": "upsert",

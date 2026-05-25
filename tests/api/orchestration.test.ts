@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type SQL } from 'drizzle-orm'
 import { MySqlDialect } from 'drizzle-orm/mysql-core'
 import { PgDialect } from 'drizzle-orm/pg-core'
@@ -12,6 +12,35 @@ import type { MokelayErrorCode } from '../../server/utils/mokelay-error'
 import { verifyPassword } from '../../server/utils/password'
 import { orchestrationSessionCookieName } from '../../server/utils/session'
 import type { DatabaseType, SqlExecutionResult } from '../../server/utils/db'
+
+const apiR2MockState = vi.hoisted(() => ({
+  sentInputs: [] as Array<Record<string, unknown>>,
+  failPut: false,
+}))
+
+vi.mock('@aws-sdk/client-s3', () => ({
+  GetObjectCommand: class {
+    constructor(readonly input: unknown) {}
+  },
+  PutObjectCommand: class {
+    constructor(readonly input: unknown) {}
+  },
+  S3Client: class {
+    send = async (command: { input: Record<string, unknown> }) => {
+      apiR2MockState.sentInputs.push(command.input)
+
+      if ('Body' in command.input) {
+        if (apiR2MockState.failPut) {
+          throw new Error('R2 unavailable')
+        }
+
+        return { ETag: '"api-etag"' }
+      }
+
+      throw new Error('NoSuchKey')
+    }
+  },
+}))
 
 type TestServer = {
   baseUrl: string
@@ -129,6 +158,14 @@ type ApiListResponse = {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const pgDialect = new PgDialect()
 const mysqlDialect = new MySqlDialect()
+const apiR2EnvKeys = [
+  'CLOUDFLARE_R2_ACCOUNT_ID',
+  'CLOUDFLARE_R2_ACCESS_KEY_ID',
+  'CLOUDFLARE_R2_SECRET_ACCESS_KEY',
+  'CLOUDFLARE_R2_ENDPOINT',
+  'MOKELAY_APIS_R2_BUCKET',
+  'MOKELAY_APIS_R2_PREFIX',
+]
 
 type UserRow = {
   id: string
@@ -559,6 +596,11 @@ class FakeSqlExecutor {
       return this.apis.filter((api) => api.uuid === uuid && api.uuid !== ignoredUuid)
     }
 
+    if (queryText.includes('"uuid" =') && queryText.includes('"status" =')) {
+      const [uuid, status] = params
+      return this.apis.filter((api) => api.uuid === uuid && api.status === status)
+    }
+
     if (queryText.includes('"uuid" =')) {
       const uuid = params.at(-1)
       return this.apis.filter((api) => api.uuid === uuid)
@@ -699,6 +741,20 @@ function responseCookie(response: Response, name: string) {
   return response.headers.get('set-cookie')?.split(';')[0] || `${name}=`
 }
 
+function clearApiR2Env() {
+  for (const key of apiR2EnvKeys) {
+    delete process.env[key]
+  }
+}
+
+function configureApiR2Env() {
+  process.env.CLOUDFLARE_R2_ACCOUNT_ID = 'account-id'
+  process.env.CLOUDFLARE_R2_ACCESS_KEY_ID = 'access-key-id'
+  process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY = 'secret-access-key'
+  process.env.MOKELAY_APIS_R2_BUCKET = 'mokelay-api-json'
+  process.env.MOKELAY_APIS_R2_PREFIX = 'mokelay-apis'
+}
+
 async function postJson(baseUrl: string, apiJsonUuid: string, body: Record<string, unknown>, query = '') {
   return await fetch(`${baseUrl}/api/mokelay/${apiJsonUuid}${query}`, {
     method: 'POST',
@@ -737,6 +793,9 @@ describe('mokelay orchestration API', () => {
       Mokelay_DATABASE_URL: 'postgres://unit-test',
       NODE_ENV: 'test',
     }
+    clearApiR2Env()
+    apiR2MockState.sentInputs.length = 0
+    apiR2MockState.failPut = false
     testServer = await startServer(createMokelayOrchestrationHandler({
       executeSql: fakeSqlExecutor.execute,
     }))
@@ -1148,6 +1207,8 @@ describe('mokelay orchestration API', () => {
   })
 
   it('executes the stored API builder CRUD JSON definitions', async () => {
+    configureApiR2Env()
+
     const registerApiJson = {
       uuid: 'register_users',
       alias: 'users 注册接口',
@@ -1190,6 +1251,7 @@ describe('mokelay orchestration API', () => {
       api_json: registerApiJson,
       created_at: expect.any(String),
     })
+    expect(apiR2MockState.sentInputs).toHaveLength(0)
 
     const secondSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
       uuid: loginApiJson.uuid,
@@ -1207,6 +1269,13 @@ describe('mokelay orchestration API', () => {
       status: 'published',
       api_json: loginApiJson,
     })
+    expect(apiR2MockState.sentInputs).toHaveLength(1)
+    expect(apiR2MockState.sentInputs[0]).toMatchObject({
+      Bucket: 'mokelay-api-json',
+      Key: 'mokelay-apis/login_users.json',
+      ContentType: 'application/json; charset=utf-8',
+    })
+    expect(JSON.parse(String(apiR2MockState.sentInputs[0]?.Body))).toMatchObject(loginApiJson)
 
     const overwriteResponse = await postJson(testServer.baseUrl, 'save_api', {
       uuid: registerApiJson.uuid,
@@ -1241,6 +1310,16 @@ describe('mokelay orchestration API', () => {
         uuid: 'register_users',
         alias: 'users 注册接口 v2',
       },
+    })
+    expect(apiR2MockState.sentInputs).toHaveLength(2)
+    expect(apiR2MockState.sentInputs[1]).toMatchObject({
+      Bucket: 'mokelay-api-json',
+      Key: 'mokelay-apis/register_users.json',
+      ContentType: 'application/json; charset=utf-8',
+    })
+    expect(JSON.parse(String(apiR2MockState.sentInputs[1]?.Body))).toMatchObject({
+      uuid: 'register_users',
+      alias: 'users 注册接口 v2',
     })
 
     const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_api_by_uuid?uuid=register_users`)
@@ -1311,6 +1390,7 @@ describe('mokelay orchestration API', () => {
       name: 'users 登录接口 v2',
       status: 'draft',
     })
+    expect(apiR2MockState.sentInputs).toHaveLength(2)
 
     const renameToExistingUuidResponse = await postJson(testServer.baseUrl, 'save_api', {
       uuid: loginApiJson.uuid,
@@ -1349,6 +1429,63 @@ describe('mokelay orchestration API', () => {
       affected: 0,
       message: '删除成功',
     })
+  })
+
+  it('does not execute API builder drafts from the database fallback', async () => {
+    const draftApiJson = {
+      uuid: 'draft_builder_api',
+      alias: '草稿 API',
+      method: 'POST',
+      blocks: [],
+      response: null,
+    }
+    const saveResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: draftApiJson.uuid,
+      name: '草稿 API',
+      method: 'POST',
+      status: 'draft',
+      apiJson: draftApiJson,
+    })
+
+    expect(saveResponse.status).toBe(200)
+    expect(fakeSqlExecutor.apis).toHaveLength(1)
+    expect(fakeSqlExecutor.apis[0]).toMatchObject({
+      uuid: 'draft_builder_api',
+      status: 'draft',
+    })
+
+    const executeResponse = await postJson(testServer.baseUrl, 'draft_builder_api', {})
+
+    await expectMokelayError(executeResponse, 'API_JSON_NOT_FOUND', 'API JSON 不存在。')
+  })
+
+  it('fails API publishing before database writes when R2 upload fails', async () => {
+    configureApiR2Env()
+    apiR2MockState.failPut = true
+
+    const apiJson = {
+      uuid: 'failed_publish_api',
+      alias: '失败发布 API',
+      method: 'POST',
+      blocks: [],
+      response: null,
+    }
+    const response = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: apiJson.uuid,
+      name: '失败发布 API',
+      method: 'POST',
+      status: 'published',
+      apiJson,
+    })
+
+    await expectMokelayError(response, 'BLOCK_R2_SAVE_FAILED', '保存 JSON 到 Cloudflare R2 失败。')
+    expect(apiR2MockState.sentInputs).toHaveLength(1)
+    expect(apiR2MockState.sentInputs[0]).toMatchObject({
+      Bucket: 'mokelay-api-json',
+      Key: 'mokelay-apis/failed_publish_api.json',
+    })
+    expect(fakeSqlExecutor.apis).toHaveLength(0)
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(0)
   })
 
   it('returns an error body when API_JSON_UUID is missing', async () => {

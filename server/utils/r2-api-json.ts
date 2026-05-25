@@ -30,7 +30,7 @@ function normalizeEnvValue(value: string | undefined) {
   return normalizedValue || undefined
 }
 
-function normalizePrefix(value: string | undefined) {
+function normalizeR2ApiJsonPrefix(value: string | undefined) {
   const prefix = (normalizeEnvValue(value) ?? defaultR2Prefix).replace(/^\/+|\/+$/g, '')
 
   return prefix || defaultR2Prefix
@@ -52,7 +52,7 @@ export function getR2ApiJsonConfig(env: NodeJS.ProcessEnv = process.env): R2ApiJ
     endpoint: endpoint ?? `https://${accountId}.r2.cloudflarestorage.com`,
     accessKeyId,
     secretAccessKey,
-    prefix: normalizePrefix(env.MOKELAY_APIS_R2_PREFIX),
+    prefix: normalizeR2ApiJsonPrefix(env.MOKELAY_APIS_R2_PREFIX),
   }
 }
 
@@ -100,13 +100,7 @@ export async function loadApiJsonFromR2(apiJsonUuid: string) {
   }
 }
 
-export async function saveJsonObjectToR2(input: SaveJsonObjectToR2Input): Promise<SaveJsonObjectToR2Result | undefined> {
-  const config = getR2ApiJsonConfig()
-
-  if (!config) {
-    return undefined
-  }
-
+async function putJsonObjectToR2(config: R2ApiJsonConfig, input: SaveJsonObjectToR2Input): Promise<SaveJsonObjectToR2Result> {
   const response = await getR2Client(config).send(new PutObjectCommand({
     Bucket: config.bucket,
     Key: input.key,
@@ -120,4 +114,14 @@ export async function saveJsonObjectToR2(input: SaveJsonObjectToR2Input): Promis
     size: Buffer.byteLength(input.body, 'utf8'),
     etag: response.ETag,
   }
+}
+
+export async function saveJsonObjectToR2(input: SaveJsonObjectToR2Input): Promise<SaveJsonObjectToR2Result | undefined> {
+  const config = getR2ApiJsonConfig()
+
+  if (!config) {
+    return undefined
+  }
+
+  return await putJsonObjectToR2(config, input)
 }

@@ -8,9 +8,9 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 - `GET /api/database/schema`
 - `POST /api/ai/analyze-data-source`
 
-Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. In production, these JSON definitions can be read from Cloudflare R2 first, with Nitro assets and the local directory kept as fallbacks. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
+Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
-Pages are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` or Cloudflare R2 object keys under `mokelay-apis/*.json`. See `docs/api-json-schema.md` for the full API JSON schema and `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
+Pages and API Builder outputs are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`, Cloudflare R2 object keys under `mokelay-apis/*.json`, or published `apis` table records. See `docs/api-json-schema.md` for the full API JSON schema and `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 
@@ -43,7 +43,7 @@ The dev server listens on `http://127.0.0.1:8787`. Mokelay orchestration JSON ex
 
 ## Mokelay API JSON on R2
 
-Runtime loading checks Cloudflare R2 first when all R2 environment variables are configured, then falls back to Nitro server assets and finally `server/assets/mokelay-apis`. R2 object keys use `mokelay-apis/{API_JSON_UUID}.json` by default.
+Runtime loading checks `server/assets/mokelay-apis` and Nitro server assets first, then Cloudflare R2 when all R2 environment variables are configured, then published rows in the `apis` table. R2 object keys use `mokelay-apis/{API_JSON_UUID}.json` by default.
 
 Required R2 environment variables:
 
@@ -65,7 +65,7 @@ npm run sync:mokelay-apis:r2
 
 The sync command automatically loads `.env` from the `mokelay-server` directory.
 
-The runtime token only needs Cloudflare R2 Object Read permission for the selected bucket. The sync command needs Object Read & Write permission.
+The runtime token needs Cloudflare R2 Object Read permission for fallback loading and Object Write permission when API builder users publish APIs. The sync command also needs Object Read & Write permission.
 
 ## Database
 

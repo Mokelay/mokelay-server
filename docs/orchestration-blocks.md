@@ -2,13 +2,13 @@
 
 本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。
 
-编排接口统一按 R2 `mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
+编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session。
 
-`saveJsonToR2` 是 R2 JSON block，用于把请求或流程中的 JSON 数据保存到 Cloudflare R2。
+`saveJsonToR2` 是 R2 JSON block，用于把请求或流程中的 JSON 数据保存到 Cloudflare R2，也用于 API Builder 发布时写入已发布 API DSL。
 
 ## 错误响应
 
@@ -63,7 +63,7 @@
 | `addSession` | 无 |
 | `removeSession` | 无 |
 | `readSession` | `value` |
-| `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag` |
+| `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag`、`skipped` |
 
 ## 模板规则
 
@@ -1105,17 +1105,69 @@ inputs：
 | `directory` | `string` | 是 | R2 子目录，会去掉首尾 `/`；不能包含空路径段、`.`、`..` 或反斜杠。 |
 | `fileName` | `string` | 是 | R2 文件名，不能包含 `/`、反斜杠、`.` 或 `..`。 |
 | `data` | `any \| string` | 是 | 要保存的 JSON 数据；字符串会先按 JSON 解析。 |
+| `enabled` | `boolean` | 否 | 为 `false` 时跳过目录、文件名、data、R2 配置校验和上传。 |
 
 固定 outputs：
 
 | 输出 | 类型 | 说明 |
 | --- | --- | --- |
-| `key` | `string` | R2 object key，格式为 `{directory}/{fileName}`。 |
-| `directory` | `string` | 规范化后的目录。 |
-| `fileName` | `string` | 最终文件名。 |
-| `bucket` | `string` | 写入的 R2 bucket。 |
-| `size` | `number` | 写入内容的 UTF-8 字节数。 |
+| `key` | `string \| null` | R2 object key，格式为 `{directory}/{fileName}`；跳过时为 `null`。 |
+| `directory` | `string \| null` | 规范化后的目录；跳过时为 `null`。 |
+| `fileName` | `string \| null` | 最终文件名；跳过时为 `null`。 |
+| `bucket` | `string \| null` | 写入的 R2 bucket；跳过时为 `null`。 |
+| `size` | `number` | 写入内容的 UTF-8 字节数；跳过时为 `0`。 |
 | `etag` | `string \| null` | R2 返回的 ETag。 |
+| `skipped` | `boolean` | 是否因 `enabled=false` 跳过上传。 |
+
+## API DSL 发布示例
+
+API Builder 发布流程复用 `saveJsonToR2`。它通过 processors 让 `status='published'` 时写入 `MOKELAY_APIS_R2_PREFIX/{uuid}.json`，其它状态跳过上传。
+
+```json
+{
+  "uuid": "publish_api_json_to_r2_block",
+  "functionName": "saveJsonToR2",
+  "inputs": {
+    "enabled": {
+      "template": "{{request.body.status}}",
+      "processors": [
+        {
+          "processor": "equals",
+          "param": "published"
+        }
+      ]
+    },
+    "directory": {
+      "template": "{{request.body.status}}",
+      "processors": [
+        {
+          "processor": "env_value",
+          "param": "MOKELAY_APIS_R2_PREFIX"
+        }
+      ]
+    },
+    "fileName": {
+      "template": "{{request.body.uuid}}.json"
+    },
+    "data": {
+      "template": "{{request.body.apiJson}}",
+      "processors": [
+        {
+          "processor": "api_json_when_published",
+          "param": {
+            "uuid": {
+              "template": "{{request.body.uuid}}"
+            },
+            "status": {
+              "template": "{{request.body.status}}"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
 
 ## response 中使用 Block 输出
 
@@ -1151,5 +1203,6 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板，并统
 - `assertUnique` 应放在 `create` 或 `upsert` 前面，用于提前返回更清晰的唯一性冲突错误。
 - `update` 的 `outputs` 固定为 `["affected"]`；如果需要完整数据，用后续 `read` block。
 - `saveJsonToR2` 需要 R2 token 具备目标 bucket 的 Object Write 权限。
+- API Builder 中用于发布 API DSL 的 `saveJsonToR2` 应放在 `apis` 表写入前，确保 R2 发布失败时不会把 API 标记为已发布。
 - `fields` 一律写真实数据库字段名，不写 alias。
 - 数据库字段错误、表名错误、字段类型不匹配时，按数据库报错修正 API JSON 配置。

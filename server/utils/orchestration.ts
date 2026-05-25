@@ -172,7 +172,7 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   addSession: [],
   removeSession: [],
   readSession: ['value'],
-  saveJsonToR2: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag'],
+  saveJsonToR2: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag', 'skipped'],
 }
 
 const databaseBlockFunctions = new Set(['list', 'page', 'count', 'read', 'delete', 'create', 'upsert', 'assertUnique', 'update'])
@@ -228,20 +228,14 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
     if (code === 'ENOENT') {
-      throw mokelayError('API_JSON_NOT_FOUND', 'API JSON 不存在。', 404)
+      return undefined
     }
 
     throw error
   }
 }
 
-export async function loadApiJson(apiJsonUuid: string) {
-  assertApiJsonUuid(apiJsonUuid)
-
-  const value = await loadApiJsonFromR2(apiJsonUuid)
-    ?? await loadApiJsonFromNitroAssets(apiJsonUuid)
-    ?? await loadApiJsonFromFileSystem(apiJsonUuid)
-
+function parseLoadedApiJson(apiJsonUuid: string, value: unknown) {
   if (typeof value !== 'string') {
     return value
   }
@@ -255,6 +249,62 @@ export async function loadApiJson(apiJsonUuid: string) {
 
 async function defaultExecuteSql<T extends Record<string, unknown> = Record<string, unknown>>(query: SQL, datasource: string) {
   return await executeDatasourceSql<T>(query, datasource)
+}
+
+async function loadApiJsonFromDatabase(apiJsonUuid: string, executeSql: DatasourceSqlExecutor) {
+  try {
+    const table = identifierSql('apis', 'table', 'BLOCK_INVALID_TABLE')
+    const apiJsonField = identifierSql('api_json', 'fields', 'BLOCK_INVALID_FIELDS')
+    const uuidField = identifierSql('uuid', 'fields', 'BLOCK_INVALID_FIELDS')
+    const statusField = identifierSql('status', 'fields', 'BLOCK_INVALID_FIELDS')
+    const databaseType = datasourceDatabaseType('Mokelay')
+    const result = await executeSql<{ api_json: unknown }>(
+      sql`SELECT ${apiJsonField} FROM ${table} WHERE ${uuidField} = ${apiJsonUuid} AND ${statusField} = ${'published'} LIMIT 1`,
+      'Mokelay',
+      databaseType,
+    )
+
+    return result.rows[0]?.api_json
+  } catch (error) {
+    const data = typeof error === 'object' && error && 'data' in error ? error.data : undefined
+    const code = isRecord(data) ? data.code : undefined
+
+    if (code === 'BLOCK_DATASOURCE_URL_MISSING') {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+export async function loadApiJson(apiJsonUuid: string, executeSql: DatasourceSqlExecutor = defaultExecuteSql) {
+  assertApiJsonUuid(apiJsonUuid)
+
+  const localFileValue = await loadApiJsonFromFileSystem(apiJsonUuid)
+
+  if (localFileValue !== undefined) {
+    return parseLoadedApiJson(apiJsonUuid, localFileValue)
+  }
+
+  const nitroAssetsValue = await loadApiJsonFromNitroAssets(apiJsonUuid)
+
+  if (nitroAssetsValue !== undefined) {
+    return parseLoadedApiJson(apiJsonUuid, nitroAssetsValue)
+  }
+
+  const r2Value = await loadApiJsonFromR2(apiJsonUuid)
+
+  if (r2Value !== undefined) {
+    return parseLoadedApiJson(apiJsonUuid, r2Value)
+  }
+
+  const databaseValue = await loadApiJsonFromDatabase(apiJsonUuid, executeSql)
+
+  if (databaseValue !== undefined) {
+    return databaseValue
+  }
+
+  throw mokelayError('API_JSON_NOT_FOUND', 'API JSON 不存在。', 404)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -400,6 +450,34 @@ async function applyProcessor(value: unknown, config: ProcessorConfig, label: st
       if (!isDeepStrictEqual(value, expected)) {
         processorValidationError(name, label, `必须等于 ${stringifyProcessorValue(expected)}。`)
       }
+
+      return value
+    }
+    case 'equals':
+      return isDeepStrictEqual(value, getSingleParam(name, params))
+    case 'env_value': {
+      const envKey = getSingleParam(name, params)
+
+      if (typeof envKey !== 'string' || !envKey.trim()) {
+        processorConfigError(name, 'param 必须是非空环境变量 key。')
+      }
+
+      return process.env[envKey.trim()]
+    }
+    case 'api_json_when_published': {
+      const param = getSingleParam(name, params)
+
+      if (!isRecord(param)) {
+        processorConfigError(name, 'param 必须包含 uuid 和 status。')
+      }
+
+      if (param.status !== 'published') {
+        return value
+      }
+
+      const apiJsonUuid = assertApiJsonUuid(typeof param.uuid === 'string' ? param.uuid : undefined)
+
+      parseApiJson(apiJsonUuid, value)
 
       return value
     }
@@ -1154,6 +1232,18 @@ async function executeReadSession(event: H3Event, inputs: Record<string, unknown
 }
 
 async function executeSaveJsonToR2(inputs: Record<string, unknown>) {
+  if (inputs.enabled === false) {
+    return {
+      key: null,
+      directory: null,
+      fileName: null,
+      bucket: null,
+      size: 0,
+      etag: null,
+      skipped: true,
+    }
+  }
+
   const directory = normalizeR2Directory(inputs.directory)
   const fileName = normalizeR2FileName(inputs.fileName)
 
@@ -1178,6 +1268,7 @@ async function executeSaveJsonToR2(inputs: Record<string, unknown>) {
       bucket: result.bucket,
       size: result.size,
       etag: result.etag ?? null,
+      skipped: false,
     }
   } catch (error) {
     const data = typeof error === 'object' && error && 'data' in error ? error.data : undefined
@@ -1322,7 +1413,9 @@ export function createMokelayOrchestrationHandler(options: OrchestrationHandlerO
   return defineEventHandler(async (event) => {
     try {
       const apiJsonUuid = assertApiJsonUuid(getRouterParam(event, 'apiJsonUuid'))
-      const rawApiJson = await (options.loadApiJson ?? loadApiJson)(apiJsonUuid)
+      const rawApiJson = options.loadApiJson
+        ? await options.loadApiJson(apiJsonUuid)
+        : await loadApiJson(apiJsonUuid, options.executeSql)
 
       return await executeApiJson(event, rawApiJson, options)
     } catch (error) {

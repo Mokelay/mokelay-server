@@ -1,6 +1,6 @@
 # 登录注册 JSON API 接口文档
 
-本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。生产环境可通过 Cloudflare R2 的 `mokelay-apis/*.json` 读取同名配置，本地目录仍作为同步源和兜底：
+本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。运行时会先读取本地/Nitro assets，再读取 Cloudflare R2 的 `mokelay-apis/*.json`，最后兜底读取数据库中已发布的同名配置：
 
 - `register.json`
 - `login.json`
