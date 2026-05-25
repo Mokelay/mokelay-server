@@ -23,6 +23,7 @@ import {
 } from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
 import { hashPassword, verifyPassword } from './password'
+import { loadApiJsonFromR2 } from './r2-api-json'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
@@ -234,7 +235,9 @@ async function loadApiJsonFromFileSystem(apiJsonUuid: string) {
 export async function loadApiJson(apiJsonUuid: string) {
   assertApiJsonUuid(apiJsonUuid)
 
-  const value = await loadApiJsonFromNitroAssets(apiJsonUuid) ?? await loadApiJsonFromFileSystem(apiJsonUuid)
+  const value = await loadApiJsonFromR2(apiJsonUuid)
+    ?? await loadApiJsonFromNitroAssets(apiJsonUuid)
+    ?? await loadApiJsonFromFileSystem(apiJsonUuid)
 
   if (typeof value !== 'string') {
     return value

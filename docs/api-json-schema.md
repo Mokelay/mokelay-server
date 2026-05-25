@@ -1,12 +1,13 @@
 # API JSON Schema 描述文档
 
-本文档描述 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 的完整配置结构。API JSON 由编排路由 `GET|POST /api/mokelay/{API_JSON_UUID}` 加载，并由 `server/utils/orchestration.ts` 解析和执行。
+本文档描述 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 的完整配置结构。生产环境可先从 Cloudflare R2 的 `mokelay-apis/{API_JSON_UUID}.json` 读取同一份配置，再回退到 Nitro assets 和本地目录。API JSON 由编排路由 `GET|POST /api/mokelay/{API_JSON_UUID}` 加载，并由 `server/utils/orchestration.ts` 解析和执行。
 
 更细的 block SQL 行为和示例见 [orchestration-blocks.md](./orchestration-blocks.md)。
 
 ## 总体规则
 
 - API JSON 文件名建议与顶层 `uuid` 一致，例如 `server/assets/mokelay-apis/login.json` 的 `uuid` 应为 `login`。
+- R2 object key 默认使用 `mokelay-apis/{API_JSON_UUID}.json`。修改本地 JSON 后，用 `npm run sync:mokelay-apis:r2` 同步到 R2。
 - 请求路径里的 `{API_JSON_UUID}` 只能包含字母、数字、下划线、连字符，长度 `1-128`。
 - 顶层 `uuid` 必须等于请求路径里的 `{API_JSON_UUID}`，否则返回 `API_JSON_UUID_MISMATCH`。
 - 顶层对象、`request`、`block`、`processor` 对象、`condition` 对象都是严格结构，不允许多余字段。

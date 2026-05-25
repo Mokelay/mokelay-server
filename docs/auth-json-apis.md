@@ -1,6 +1,6 @@
 # 登录注册 JSON API 接口文档
 
-本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API：
+本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。生产环境可通过 Cloudflare R2 的 `mokelay-apis/*.json` 读取同名配置，本地目录仍作为同步源和兜底：
 
 - `register.json`
 - `login.json`
