@@ -23,7 +23,7 @@ import {
 } from './db'
 import { mokelayError, toMokelayErrorResponse, type MokelayErrorCode } from './mokelay-error'
 import { hashPassword, verifyPassword } from './password'
-import { loadApiJsonFromR2 } from './r2-api-json'
+import { loadApiJsonFromR2, saveJsonObjectToR2 } from './r2-api-json'
 import { readSessionValue, removeSessionValue, setSessionValue } from './session'
 
 const apiJsonUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
@@ -170,6 +170,7 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   addSession: [],
   removeSession: [],
   readSession: ['value'],
+  saveJsonToR2: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag'],
 }
 
 const databaseBlockFunctions = new Set(['list', 'page', 'count', 'read', 'delete', 'create', 'update'])
@@ -765,6 +766,65 @@ function getSessionKey(value: unknown) {
   return value.trim()
 }
 
+function normalizeR2Directory(value: unknown) {
+  if (typeof value !== 'string') {
+    throw mokelayError('BLOCK_R2_DIRECTORY_INVALID', 'directory 必须是非空字符串。', 400)
+  }
+
+  const directory = value.trim().replace(/^\/+|\/+$/g, '')
+  const parts = directory.split('/')
+
+  if (
+    !directory
+    || directory.includes('\\')
+    || parts.some((part) => !part || part === '.' || part === '..')
+  ) {
+    throw mokelayError('BLOCK_R2_DIRECTORY_INVALID', 'directory 不是合法 R2 目录。', 400)
+  }
+
+  return directory
+}
+
+function normalizeR2FileName(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw mokelayError('BLOCK_R2_FILE_NAME_INVALID', 'fileName 必须是非空字符串。', 400)
+  }
+
+  const fileName = value.trim()
+
+  if (!fileName || fileName === '.' || fileName === '..' || fileName.includes('/') || fileName.includes('\\')) {
+    throw mokelayError('BLOCK_R2_FILE_NAME_INVALID', 'fileName 不是合法 R2 文件名。', 400)
+  }
+
+  return fileName
+}
+
+function parseR2JsonData(value: unknown) {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as unknown
+    } catch (error) {
+      throw mokelayError('BLOCK_R2_JSON_INVALID', 'data 不是合法 JSON 字符串。', 400, error)
+    }
+  }
+
+  return value
+}
+
+function stringifyR2JsonData(value: unknown) {
+  try {
+    const body = JSON.stringify(value, null, 2)
+
+    if (body === undefined) {
+      throw new Error('JSON.stringify returned undefined.')
+    }
+
+    return `${body}\n`
+  } catch (error) {
+    throw mokelayError('BLOCK_R2_JSON_INVALID', 'data 不是可序列化的 JSON 数据。', 400, error)
+  }
+}
+
 function getCreateIdField(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
     throw mokelayError('BLOCK_INVALID_ID_FIELD', 'idField 必须是非空字符串。', 400)
@@ -1022,6 +1082,44 @@ async function executeReadSession(event: H3Event, inputs: Record<string, unknown
   }
 }
 
+async function executeSaveJsonToR2(inputs: Record<string, unknown>) {
+  const directory = normalizeR2Directory(inputs.directory)
+  const fileName = normalizeR2FileName(inputs.fileName)
+
+  if (!Object.prototype.hasOwnProperty.call(inputs, 'data') || inputs.data === undefined) {
+    throw mokelayError('BLOCK_R2_JSON_INVALID', 'data 不能为空。', 400)
+  }
+
+  const body = stringifyR2JsonData(parseR2JsonData(inputs.data))
+  const key = `${directory}/${fileName}`
+
+  try {
+    const result = await saveJsonObjectToR2({ key, body })
+
+    if (!result) {
+      throw mokelayError('BLOCK_R2_CONFIG_MISSING', 'Cloudflare R2 配置缺失。', 500)
+    }
+
+    return {
+      key: result.key,
+      directory,
+      fileName,
+      bucket: result.bucket,
+      size: result.size,
+      etag: result.etag ?? null,
+    }
+  } catch (error) {
+    const data = typeof error === 'object' && error && 'data' in error ? error.data : undefined
+    const code = isRecord(data) ? data.code : undefined
+
+    if (code === 'BLOCK_R2_CONFIG_MISSING') {
+      throw error
+    }
+
+    throw mokelayError('BLOCK_R2_SAVE_FAILED', '保存 JSON 到 Cloudflare R2 失败。', 500, error)
+  }
+}
+
 function requireDatabaseType(databaseType: DatabaseType | undefined) {
   if (!databaseType) {
     throw mokelayError('BLOCK_SQL_UNSUPPORTED', '数据库 Block 缺少数据库类型。', 500)
@@ -1041,6 +1139,7 @@ const blockExecutors: Record<string, BlockExecutor> = {
   addSession: ({ event, inputs }) => executeAddSession(event, inputs),
   removeSession: ({ event, inputs }) => executeRemoveSession(event, inputs),
   readSession: ({ event, inputs }) => executeReadSession(event, inputs),
+  saveJsonToR2: ({ inputs }) => executeSaveJsonToR2(inputs),
 }
 
 function validateDeclaredOutputs(block: Block) {

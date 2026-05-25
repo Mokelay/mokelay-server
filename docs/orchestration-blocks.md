@@ -1,12 +1,14 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。
+本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。
 
 编排接口统一按 R2 `mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session。
+
+`saveJsonToR2` 是 R2 JSON block，用于把请求或流程中的 JSON 数据保存到 Cloudflare R2。
 
 ## 错误响应
 
@@ -41,7 +43,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`。 |
+| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -59,6 +61,7 @@
 | `addSession` | 无 |
 | `removeSession` | 无 |
 | `readSession` | `value` |
+| `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag` |
 
 ## 模板规则
 
@@ -985,6 +988,48 @@ response 示例：
 }
 ```
 
+## R2 JSON Block
+
+`saveJsonToR2` 将 JSON 字符串或 JSON 值保存到 Cloudflare R2。它复用 `CLOUDFLARE_R2_*` 和 `MOKELAY_APIS_R2_BUCKET` 配置。
+
+```json
+{
+  "uuid": "save_json_block",
+  "functionName": "saveJsonToR2",
+  "inputs": {
+    "directory": {
+      "template": "{{request.body.directory}}"
+    },
+    "fileName": {
+      "template": "{{request.body.fileName}}"
+    },
+    "data": {
+      "template": "{{request.body.data}}"
+    }
+  },
+  "outputs": ["key", "directory", "fileName", "bucket", "size", "etag"]
+}
+```
+
+inputs：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `directory` | `string` | 是 | R2 子目录，会去掉首尾 `/`；不能包含空路径段、`.`、`..` 或反斜杠。 |
+| `fileName` | `string` | 是 | R2 文件名，不能包含 `/`、反斜杠、`.` 或 `..`。 |
+| `data` | `any \| string` | 是 | 要保存的 JSON 数据；字符串会先按 JSON 解析。 |
+
+固定 outputs：
+
+| 输出 | 类型 | 说明 |
+| --- | --- | --- |
+| `key` | `string` | R2 object key，格式为 `{directory}/{fileName}`。 |
+| `directory` | `string` | 规范化后的目录。 |
+| `fileName` | `string` | 最终文件名。 |
+| `bucket` | `string` | 写入的 R2 bucket。 |
+| `size` | `number` | 写入内容的 UTF-8 字节数。 |
+| `etag` | `string \| null` | R2 返回的 ETag。 |
+
 ## response 中使用 Block 输出
 
 API JSON 的 `response` 会在所有 blocks 执行完成后解析模板，并统一放到接口响应的 `data` 字段下。成功响应固定为 `{ "ok": true, "data": ... }`，异常响应固定为 `{ "ok": false, "error": { "code": "...", "message": "..." } }`。
@@ -1017,5 +1062,6 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板，并统
 - 每个数据库 block 都必须配置 `datasource`，并确保环境变量 `${datasource}_DATABASE_URL` 已设置。
 - `create` 的 `outputs` 固定为 `["uuid"]`；不要写物理字段名。物理唯一 ID 字段用 `inputs.idField` 配置。
 - `update` 的 `outputs` 固定为 `["affected"]`；如果需要完整数据，用后续 `read` block。
+- `saveJsonToR2` 需要 R2 token 具备目标 bucket 的 Object Write 权限。
 - `fields` 一律写真实数据库字段名，不写 alias。
 - 数据库字段错误、表名错误、字段类型不匹配时，按数据库报错修正 API JSON 配置。

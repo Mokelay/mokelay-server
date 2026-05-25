@@ -1,4 +1,4 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 
 const defaultR2Prefix = 'mokelay-apis'
 
@@ -8,6 +8,18 @@ type R2ApiJsonConfig = {
   accessKeyId: string
   secretAccessKey: string
   prefix: string
+}
+
+type SaveJsonObjectToR2Input = {
+  key: string
+  body: string
+}
+
+type SaveJsonObjectToR2Result = {
+  bucket: string
+  key: string
+  size: number
+  etag?: string
 }
 
 let cachedClient: { key: string, client: S3Client } | undefined
@@ -85,5 +97,27 @@ export async function loadApiJsonFromR2(apiJsonUuid: string) {
     return await response.Body?.transformToString()
   } catch {
     return undefined
+  }
+}
+
+export async function saveJsonObjectToR2(input: SaveJsonObjectToR2Input): Promise<SaveJsonObjectToR2Result | undefined> {
+  const config = getR2ApiJsonConfig()
+
+  if (!config) {
+    return undefined
+  }
+
+  const response = await getR2Client(config).send(new PutObjectCommand({
+    Bucket: config.bucket,
+    Key: input.key,
+    Body: input.body,
+    ContentType: 'application/json; charset=utf-8',
+  }))
+
+  return {
+    bucket: config.bucket,
+    key: input.key,
+    size: Buffer.byteLength(input.body, 'utf8'),
+    etag: response.ETag,
   }
 }

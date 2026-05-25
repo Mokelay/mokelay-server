@@ -1,0 +1,47 @@
+{
+  "uuid": "save_json_to_r2",
+  "alias": "保存 JSON 到 R2 接口",
+  "method": "POST",
+  "request": {
+    "body": ["directory", "fileName", "data"]
+  },
+  "blocks": [
+    {
+      "uuid": "save_json_block",
+      "alias": "保存 JSON 到 R2 Block",
+      "functionName": "saveJsonToR2",
+      "inputs": {
+        "directory": {
+          "template": "{{request.body.directory}}"
+        },
+        "fileName": {
+          "template": "{{request.body.fileName}}"
+        },
+        "data": {
+          "template": "{{request.body.data}}"
+        }
+      },
+      "outputs": ["key", "directory", "fileName", "bucket", "size", "etag"]
+    }
+  ],
+  "response": {
+    "key": {
+      "template": "{{blocks['save_json_block'].outputs.key}}"
+    },
+    "directory": {
+      "template": "{{blocks['save_json_block'].outputs.directory}}"
+    },
+    "fileName": {
+      "template": "{{blocks['save_json_block'].outputs.fileName}}"
+    },
+    "bucket": {
+      "template": "{{blocks['save_json_block'].outputs.bucket}}"
+    },
+    "size": {
+      "template": "{{blocks['save_json_block'].outputs.size}}"
+    },
+    "etag": {
+      "template": "{{blocks['save_json_block'].outputs.etag}}"
+    }
+  }
+}

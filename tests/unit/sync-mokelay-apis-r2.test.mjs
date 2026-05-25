@@ -37,11 +37,12 @@ describe('syncMokelayApisToR2', () => {
       log: null,
     })
 
-    expect(result.count).toBe(22)
+    expect(result.count).toBe(23)
     expect(result.keys).toContain('mokelay-apis/login.json')
+    expect(result.keys).toContain('mokelay-apis/save_json_to_r2.json')
     expect(result.keys).toContain('mokelay-apis/update_page_blocks_by_uuid.json')
-    expect(new Set(result.keys)).toHaveProperty('size', 22)
-    expect(sentInputs).toHaveLength(22)
+    expect(new Set(result.keys)).toHaveProperty('size', 23)
+    expect(sentInputs).toHaveLength(23)
     expect(sentInputs.every((input) => input.Bucket === 'mokelay-api-json')).toBe(true)
     expect(sentInputs.every((input) => input.ContentType === 'application/json')).toBe(true)
   })
