@@ -98,6 +98,34 @@ type PageListResponse = {
   }
 }
 
+type PublicApi = {
+  uuid: string
+  name: string
+  method: string
+  status: string
+  apiJson?: Record<string, unknown>
+  createdAt?: string
+  updatedAt?: string
+  created_at?: string
+  updated_at?: string
+}
+
+type ApiResponse = {
+  api: PublicApi | null
+}
+
+type ApiListResponse = {
+  apis: PublicApi[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+  }
+}
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const pgDialect = new PgDialect()
 const mysqlDialect = new MySqlDialect()
@@ -120,9 +148,31 @@ type PageRow = {
   updated_at: string
 }
 
+type ApiRow = {
+  uuid: string
+  name: string
+  method: string
+  status: string
+  api_json: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+type ApiSnapshotRow = {
+  id: string
+  api_uuid: string
+  name: string
+  method: string
+  status: string
+  api_json: Record<string, unknown>
+  created_at: string
+}
+
 class FakeSqlExecutor {
   readonly users: UserRow[] = []
   readonly pages: PageRow[] = []
+  readonly apis: ApiRow[] = []
+  readonly apiSnapshots: ApiSnapshotRow[] = []
   readonly datasources: string[] = []
 
   execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
@@ -144,6 +194,14 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.insertPage<T>(queryText, params))
     }
 
+    if (queryText.startsWith('INSERT INTO "apis"')) {
+      return this.result(databaseType, this.upsertApi<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('INSERT INTO "apis_snapshot"')) {
+      return this.result(databaseType, this.insertApiSnapshot<T>(queryText, params))
+    }
+
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "users"')) {
       return this.result(databaseType, [{ total: this.filterUsers(queryText, params).length }] as unknown as T[])
     }
@@ -152,7 +210,15 @@ class FakeSqlExecutor {
       return this.result(databaseType, [{ total: this.filterPages(queryText, params).length }] as unknown as T[])
     }
 
+    if (queryText.startsWith('SELECT count(*)::int AS total FROM "apis"')) {
+      return this.result(databaseType, [{ total: this.filterApis(queryText, params).length }] as unknown as T[])
+    }
+
     if (queryText.startsWith('SELECT')) {
+      if (queryText.includes('FROM "apis"')) {
+        return this.result(databaseType, this.selectApis<T>(queryText, params))
+      }
+
       if (queryText.includes('FROM "pages"')) {
         return this.result(databaseType, this.selectPages<T>(queryText, params))
       }
@@ -170,6 +236,10 @@ class FakeSqlExecutor {
 
     if (queryText.startsWith('DELETE FROM "users"')) {
       return this.result(databaseType, this.deleteUsers<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('DELETE FROM "apis"')) {
+      return this.result(databaseType, this.deleteApis<T>(queryText, params))
     }
 
     throw new Error(`Unsupported SQL in test fake: ${queryText}`)
@@ -230,6 +300,64 @@ class FakeSqlExecutor {
     return [this.projectReturning(row, queryText)] as T[]
   }
 
+  private upsertApi<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'apis')
+    const now = new Date().toISOString()
+    const nextRow: ApiRow = {
+      uuid: '',
+      name: '',
+      method: 'GET',
+      status: 'draft',
+      api_json: {},
+      created_at: now,
+      updated_at: now,
+    }
+
+    columns.forEach((column, index) => {
+      nextRow[column as keyof ApiRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    const existing = this.apis.find((api) => api.uuid === nextRow.uuid)
+
+    if (existing) {
+      Object.assign(existing, {
+        name: nextRow.name,
+        method: nextRow.method,
+        status: nextRow.status,
+        api_json: nextRow.api_json,
+        updated_at: nextRow.updated_at,
+      })
+
+      return [this.projectReturning(existing, queryText)] as T[]
+    }
+
+    this.apis.push(nextRow)
+
+    return [this.projectReturning(nextRow, queryText)] as T[]
+  }
+
+  private insertApiSnapshot<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'apis_snapshot')
+    const now = new Date().toISOString()
+    const row: ApiSnapshotRow = {
+      id: crypto.randomUUID(),
+      api_uuid: '',
+      name: '',
+      method: 'GET',
+      status: 'draft',
+      api_json: {},
+      created_at: now,
+    }
+
+    columns.forEach((column, index) => {
+      row[column as keyof ApiSnapshotRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    this.apiSnapshots.push(row)
+
+    return [this.projectReturning(row, queryText)] as T[]
+  }
+
   private selectUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const fields = this.selectFields(queryText)
     const users = this.filterUsers(queryText, params)
@@ -260,6 +388,24 @@ class FakeSqlExecutor {
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
 
+  private selectApis<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const apis = this.filterApis(queryText, params)
+    const sortedApis = queryText.includes('ORDER BY "updated_at" DESC')
+      ? apis.sort((firstApi, secondApi) => (
+          secondApi.updated_at.localeCompare(firstApi.updated_at)
+          || secondApi.created_at.localeCompare(firstApi.created_at)
+        ))
+      : apis
+    const rows = queryText.includes(' OFFSET ')
+      ? sortedApis.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      : queryText.includes(' LIMIT 1')
+        ? sortedApis.slice(0, 1)
+        : sortedApis
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
   private updateUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
@@ -273,6 +419,19 @@ class FakeSqlExecutor {
     }
 
     return users.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
+  private deleteApis<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const apis = this.filterApis(queryText, params)
+    const uuids = new Set(apis.map((api) => api.uuid))
+
+    for (let index = this.apis.length - 1; index >= 0; index -= 1) {
+      if (uuids.has(this.apis[index]?.uuid || '')) {
+        this.apis.splice(index, 1)
+      }
+    }
+
+    return apis.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
   private updatePages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -388,6 +547,24 @@ class FakeSqlExecutor {
     }
 
     return [...this.pages]
+  }
+
+  private filterApis(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.apis]
+    }
+
+    if (queryText.includes('"uuid" =') && queryText.includes('"uuid" <>')) {
+      const [uuid, ignoredUuid] = params
+      return this.apis.filter((api) => api.uuid === uuid && api.uuid !== ignoredUuid)
+    }
+
+    if (queryText.includes('"uuid" =')) {
+      const uuid = params.at(-1)
+      return this.apis.filter((api) => api.uuid === uuid)
+    }
+
+    return [...this.apis]
   }
 }
 
@@ -970,6 +1147,210 @@ describe('mokelay orchestration API', () => {
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
+  it('executes the stored API builder CRUD JSON definitions', async () => {
+    const registerApiJson = {
+      uuid: 'register_users',
+      alias: 'users 注册接口',
+      method: 'POST',
+      blocks: [],
+      response: null,
+    }
+    const loginApiJson = {
+      uuid: 'login_users',
+      alias: 'users 登录接口',
+      method: 'POST',
+      blocks: [],
+      response: null,
+    }
+    const firstSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: registerApiJson.uuid,
+      name: 'users 注册接口',
+      method: 'POST',
+      status: 'draft',
+      apiJson: registerApiJson,
+    })
+    const firstSaveBody = await readMokelayData<ApiResponse>(firstSaveResponse)
+
+    expect(firstSaveResponse.status).toBe(200)
+    expect(firstSaveBody.api).toMatchObject({
+      uuid: 'register_users',
+      name: 'users 注册接口',
+      method: 'POST',
+      status: 'draft',
+      apiJson: registerApiJson,
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    })
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(1)
+    expect(fakeSqlExecutor.apiSnapshots[0]).toMatchObject({
+      api_uuid: 'register_users',
+      name: 'users 注册接口',
+      method: 'POST',
+      status: 'draft',
+      api_json: registerApiJson,
+      created_at: expect.any(String),
+    })
+
+    const secondSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: loginApiJson.uuid,
+      name: 'users 登录接口',
+      method: 'POST',
+      status: 'published',
+      apiJson: loginApiJson,
+    })
+
+    expect(secondSaveResponse.status).toBe(200)
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(2)
+    expect(fakeSqlExecutor.apiSnapshots[1]).toMatchObject({
+      api_uuid: 'login_users',
+      name: 'users 登录接口',
+      status: 'published',
+      api_json: loginApiJson,
+    })
+
+    const overwriteResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: registerApiJson.uuid,
+      originalUuid: registerApiJson.uuid,
+      name: 'users 注册接口 v2',
+      method: 'POST',
+      status: 'published',
+      apiJson: {
+        ...registerApiJson,
+        alias: 'users 注册接口 v2',
+      },
+    })
+    const overwriteBody = await readMokelayData<ApiResponse>(overwriteResponse)
+
+    expect(overwriteResponse.status).toBe(200)
+    expect(overwriteBody.api).toMatchObject({
+      uuid: 'register_users',
+      name: 'users 注册接口 v2',
+      status: 'published',
+      apiJson: {
+        uuid: 'register_users',
+        alias: 'users 注册接口 v2',
+      },
+    })
+    expect(overwriteBody.api?.createdAt).toBe(firstSaveBody.api?.createdAt)
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(3)
+    expect(fakeSqlExecutor.apiSnapshots[2]).toMatchObject({
+      api_uuid: 'register_users',
+      name: 'users 注册接口 v2',
+      status: 'published',
+      api_json: {
+        uuid: 'register_users',
+        alias: 'users 注册接口 v2',
+      },
+    })
+
+    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_api_by_uuid?uuid=register_users`)
+    const readBody = await readMokelayData<ApiResponse>(readResponse)
+
+    expect(readResponse.status).toBe(200)
+    expect(readBody.api).toEqual(overwriteBody.api)
+
+    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apis?page=1&pageSize=1`)
+    const listBody = await readMokelayData<ApiListResponse>(listResponse)
+
+    expect(listResponse.status).toBe(200)
+    expect(listBody.apis).toHaveLength(1)
+    expect(listBody.apis[0]).toEqual(expect.objectContaining({
+      uuid: 'register_users',
+      name: 'users 注册接口 v2',
+      method: 'POST',
+      status: 'published',
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+    }))
+    expect(listBody.apis[0]).not.toHaveProperty('api_json')
+    expect(listBody.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true,
+    })
+
+    const duplicateUuidResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: loginApiJson.uuid,
+      name: '重复登录接口',
+      method: 'POST',
+      status: 'draft',
+      apiJson: {
+        ...loginApiJson,
+        alias: '重复登录接口',
+      },
+    })
+
+    await expectMokelayError(duplicateUuidResponse, 'BLOCK_UNIQUE_CONFLICT', 'API 标识已存在。')
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(3)
+
+    const saveSelfResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: loginApiJson.uuid,
+      originalUuid: loginApiJson.uuid,
+      name: 'users 登录接口 v2',
+      method: 'POST',
+      status: 'draft',
+      apiJson: {
+        ...loginApiJson,
+        alias: 'users 登录接口 v2',
+      },
+    })
+    const saveSelfBody = await readMokelayData<ApiResponse>(saveSelfResponse)
+
+    expect(saveSelfResponse.status).toBe(200)
+    expect(saveSelfBody.api).toMatchObject({
+      uuid: 'login_users',
+      name: 'users 登录接口 v2',
+      status: 'draft',
+    })
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(4)
+    expect(fakeSqlExecutor.apiSnapshots[3]).toMatchObject({
+      api_uuid: 'login_users',
+      name: 'users 登录接口 v2',
+      status: 'draft',
+    })
+
+    const renameToExistingUuidResponse = await postJson(testServer.baseUrl, 'save_api', {
+      uuid: loginApiJson.uuid,
+      originalUuid: registerApiJson.uuid,
+      name: '冲突注册接口',
+      method: 'POST',
+      status: 'draft',
+      apiJson: {
+        ...registerApiJson,
+        uuid: loginApiJson.uuid,
+        alias: '冲突注册接口',
+      },
+    })
+
+    await expectMokelayError(renameToExistingUuidResponse, 'BLOCK_UNIQUE_CONFLICT', 'API 标识已存在。')
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(4)
+
+    const deleteResponse = await postJson(testServer.baseUrl, 'delete_api_by_uuid', {
+      uuid: 'register_users',
+    })
+    const deleteBody = await readMokelayData<Record<string, unknown>>(deleteResponse)
+
+    expect(deleteResponse.status).toBe(200)
+    expect(deleteBody).toEqual({
+      affected: 1,
+      message: '删除成功',
+    })
+
+    const deleteMissingResponse = await postJson(testServer.baseUrl, 'delete_api_by_uuid', {
+      uuid: 'missing_api',
+    })
+    const deleteMissingBody = await readMokelayData<Record<string, unknown>>(deleteMissingResponse)
+
+    expect(deleteMissingResponse.status).toBe(200)
+    expect(deleteMissingBody).toEqual({
+      affected: 0,
+      message: '删除成功',
+    })
+  })
+
   it('returns an error body when API_JSON_UUID is missing', async () => {
     const response = await fetch(`${testServer.baseUrl}/api/mokelay`)
 
@@ -1209,6 +1590,23 @@ describe('mokelay orchestration API', () => {
             outputs: ['affected'],
           },
           {
+            uuid: 'upsert_contract',
+            functionName: 'upsert',
+            inputs: {
+              datasource: 'BingX',
+              table: 'smart_contracts',
+              idField: 'id',
+              fields: {
+                id: { template: "{{blocks['create_contract'].outputs.uuid}}" },
+                chain_id: 1,
+                address: '0xabc',
+                contract_name: 'Upserted Contract',
+                abi_json: { upserted: true },
+              },
+            },
+            outputs: ['uuid'],
+          },
+          {
             uuid: 'delete_contract',
             functionName: 'delete',
             inputs: {
@@ -1231,6 +1629,7 @@ describe('mokelay orchestration API', () => {
           total: { template: "{{blocks['count_contracts'].outputs.total}}" },
           pageTotal: { template: "{{blocks['page_contracts'].outputs.total}}" },
           updateAffected: { template: "{{blocks['update_contract'].outputs.affected}}" },
+          upsertUuid: { template: "{{blocks['upsert_contract'].outputs.uuid}}" },
           deleteAffected: { template: "{{blocks['delete_contract'].outputs.affected}}" },
         },
       }),
@@ -1250,6 +1649,7 @@ describe('mokelay orchestration API', () => {
         total: 1,
         pageTotal: 1,
         updateAffected: 1,
+        upsertUuid: 42,
         deleteAffected: 1,
       })
       expect(mysqlExecutor.queries.every((query) => query.datasource === 'BingX')).toBe(true)
@@ -1259,6 +1659,7 @@ describe('mokelay orchestration API', () => {
       expect(sqlTexts.some((queryText) => queryText.startsWith('SELECT count(*) AS total FROM `smart_contracts`'))).toBe(true)
       expect(insertQuery?.params).toContain(JSON.stringify({ ok: true }))
       expect(updateQuery?.params).toContain(JSON.stringify({ updated: true }))
+      expect(sqlTexts.some((queryText) => queryText.includes('ON DUPLICATE KEY UPDATE'))).toBe(true)
     } finally {
       await server.close()
     }

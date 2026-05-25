@@ -1,0 +1,56 @@
+{
+  "uuid": "read_api_by_uuid",
+  "alias": "读取 API 接口",
+  "method": "GET",
+  "request": {
+    "query": ["uuid"]
+  },
+  "blocks": [
+    {
+      "uuid": "read_api_block",
+      "alias": "读取 API Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis",
+        "fields": ["uuid", "name", "method", "status", "api_json", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "api": {
+      "uuid": {
+        "template": "{{blocks['read_api_block'].outputs.data.uuid}}"
+      },
+      "name": {
+        "template": "{{blocks['read_api_block'].outputs.data.name}}"
+      },
+      "method": {
+        "template": "{{blocks['read_api_block'].outputs.data.method}}"
+      },
+      "status": {
+        "template": "{{blocks['read_api_block'].outputs.data.status}}"
+      },
+      "apiJson": {
+        "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
+      },
+      "createdAt": {
+        "template": "{{blocks['read_api_block'].outputs.data.created_at}}"
+      },
+      "updatedAt": {
+        "template": "{{blocks['read_api_block'].outputs.data.updated_at}}"
+      }
+    }
+  }
+}

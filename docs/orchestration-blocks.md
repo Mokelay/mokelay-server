@@ -1,10 +1,10 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。
+本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。
 
 编排接口统一按 R2 `mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
-`list`、`page`、`count`、`read`、`delete`、`create`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
+`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session。
 
@@ -43,7 +43,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。 |
+| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -57,6 +57,8 @@
 | `read` | `data` |
 | `delete` | `affected` |
 | `create` | `uuid` |
+| `upsert` | `uuid` |
+| `assertUnique` | 无 |
 | `update` | `affected` |
 | `addSession` | 无 |
 | `removeSession` | 无 |
@@ -771,7 +773,92 @@ INSERT INTO table (columns) VALUES (values) RETURNING idField
 ]
 ```
 
-## 7. update
+## 7. upsert
+
+`upsert` 用于按唯一 ID 创建或覆盖数据。它和 `create` 使用相同的 `datasource`、`table`、`idField`、`fields` 输入；`fields` 必须包含 `idField` 对应字段。
+
+冲突时会更新除 `idField` 外的其他字段，并更新 `updated_at`；适合 API Builder 这类“保存即覆盖”的场景。
+
+### SQL 行为
+
+PostgreSQL：
+
+```sql
+INSERT INTO table (columns) VALUES (values)
+ON CONFLICT (idField) DO UPDATE SET assignments
+RETURNING idField
+```
+
+MySQL：
+
+```sql
+INSERT INTO table (columns) VALUES (values)
+ON DUPLICATE KEY UPDATE assignments
+```
+
+### outputs
+
+`upsert` 的输出 key 固定为 `uuid`，表示保存记录的唯一 ID。物理字段仍由 `inputs.idField` 指定。
+
+推荐声明：
+
+```json
+{
+  "outputs": ["uuid"]
+}
+```
+
+## 8. assertUnique
+
+`assertUnique` 用于在写入前校验某个字段值是否唯一。存在冲突记录时，block 会抛出 `BLOCK_UNIQUE_CONFLICT`，后续 block 不再执行。
+
+### inputs
+
+```json
+{
+  "datasource": "Mokelay",
+  "table": "apis",
+  "fieldName": "uuid",
+  "value": {
+    "template": "{{request.body.uuid}}"
+  },
+  "ignoreField": "uuid",
+  "ignoreValue": {
+    "template": "{{request.body.originalUuid}}"
+  },
+  "message": "API 标识已存在。"
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `datasource` | `string` | 是 | 数据源名称。执行器读取 `${datasource}_DATABASE_URL`。 |
+| `table` | `string` | 是 | 数据库表名。 |
+| `fieldName` | `string` | 是 | 需要校验唯一性的字段名。 |
+| `value` | `unknown` | 是 | 需要校验的字段值，可使用模板。 |
+| `ignoreField` | `string` | 否 | 编辑已有记录时，用于排除当前记录的字段名。 |
+| `ignoreValue` | `unknown` | 否 | 编辑已有记录时，用于排除当前记录的字段值。 |
+| `message` | `string` | 否 | 冲突时返回给调用方的错误消息，默认 `记录已存在。`。 |
+
+### SQL 行为
+
+```sql
+SELECT count(*) AS total FROM table WHERE fieldName = value
+```
+
+配置 `ignoreField` 和 `ignoreValue` 时：
+
+```sql
+SELECT count(*) AS total FROM table WHERE fieldName = value AND ignoreField <> ignoreValue
+```
+
+### outputs
+
+`assertUnique` 不产生业务输出，通常不需要声明 `outputs`。
+
+## 9. update
 
 `update` 用于更新数据。
 
@@ -1061,6 +1148,7 @@ API JSON 的 `response` 会在所有 blocks 执行完成后解析模板，并统
 - `read`、`update`、`delete` 通常都应该配置 `conditions`，避免误读、误改、误删整张表。
 - 每个数据库 block 都必须配置 `datasource`，并确保环境变量 `${datasource}_DATABASE_URL` 已设置。
 - `create` 的 `outputs` 固定为 `["uuid"]`；不要写物理字段名。物理唯一 ID 字段用 `inputs.idField` 配置。
+- `assertUnique` 应放在 `create` 或 `upsert` 前面，用于提前返回更清晰的唯一性冲突错误。
 - `update` 的 `outputs` 固定为 `["affected"]`；如果需要完整数据，用后续 `read` block。
 - `saveJsonToR2` 需要 R2 token 具备目标 bucket 的 Object Write 权限。
 - `fields` 一律写真实数据库字段名，不写 alias。

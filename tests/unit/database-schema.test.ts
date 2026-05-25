@@ -4,6 +4,11 @@ import { mapDatabaseSchemaRows } from '../../server/utils/database-schema'
 describe('database schema utilities', () => {
   it('groups columns by table while preserving query order', () => {
     const tables = mapDatabaseSchemaRows([
+      { tableName: 'apis', columnName: 'uuid', columnType: 'character varying(128)' },
+      { tableName: 'apis', columnName: 'api_json', columnType: 'jsonb' },
+      { tableName: 'apis_snapshot', columnName: 'id', columnType: 'uuid' },
+      { tableName: 'apis_snapshot', columnName: 'api_uuid', columnType: 'character varying(128)' },
+      { tableName: 'apis_snapshot', columnName: 'api_json', columnType: 'jsonb' },
       { tableName: 'pages', columnName: 'uuid', columnType: 'uuid' },
       { tableName: 'pages', columnName: 'name', columnType: 'character varying(120)' },
       { tableName: 'users', columnName: 'id', columnType: 'uuid' },
@@ -11,6 +16,21 @@ describe('database schema utilities', () => {
     ])
 
     expect(tables).toEqual([
+      {
+        name: 'apis',
+        columns: [
+          { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+          { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+        ],
+      },
+      {
+        name: 'apis_snapshot',
+        columns: [
+          { name: 'id', type: 'uuid', dataType: 'uuid' },
+          { name: 'api_uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+          { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+        ],
+      },
       {
         name: 'pages',
         columns: [

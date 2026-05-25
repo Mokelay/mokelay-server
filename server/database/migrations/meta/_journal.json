@@ -22,6 +22,20 @@
       "when": 1778173538579,
       "tag": "0002_freezing_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779694111275,
+      "tag": "0003_new_black_bolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779702610643,
+      "tag": "0004_woozy_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

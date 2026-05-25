@@ -65,6 +65,21 @@ describe('database schema API', () => {
   it('returns database tables with their columns', async () => {
     mockedListDatabaseSchema.mockResolvedValueOnce([
       {
+        name: 'apis',
+        columns: [
+          { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+          { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+        ],
+      },
+      {
+        name: 'apis_snapshot',
+        columns: [
+          { name: 'id', type: 'uuid', dataType: 'uuid' },
+          { name: 'api_uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+          { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+        ],
+      },
+      {
         name: 'users',
         columns: [
           { name: 'id', type: 'uuid', dataType: 'uuid' },
@@ -86,6 +101,21 @@ describe('database schema API', () => {
     expect(response.status).toBe(200)
     expect(body).toEqual({
       tables: [
+        {
+          name: 'apis',
+          columns: [
+            { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+            { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+          ],
+        },
+        {
+          name: 'apis_snapshot',
+          columns: [
+            { name: 'id', type: 'uuid', dataType: 'uuid' },
+            { name: 'api_uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
+            { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+          ],
+        },
         {
           name: 'users',
           columns: [

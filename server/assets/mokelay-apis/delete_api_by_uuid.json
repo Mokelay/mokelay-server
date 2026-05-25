@@ -1,0 +1,36 @@
+{
+  "uuid": "delete_api_by_uuid",
+  "alias": "删除 API 接口",
+  "method": "POST",
+  "request": {
+    "body": ["uuid"]
+  },
+  "blocks": [
+    {
+      "uuid": "delete_api_block",
+      "alias": "删除 API Block",
+      "functionName": "delete",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["affected"]
+    }
+  ],
+  "response": {
+    "affected": {
+      "template": "{{blocks['delete_api_block'].outputs.affected}}"
+    },
+    "message": "删除成功"
+  }
+}

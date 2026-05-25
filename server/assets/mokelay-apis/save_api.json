@@ -1,0 +1,142 @@
+{
+  "uuid": "save_api",
+  "alias": "保存 API 接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      "uuid",
+      "name",
+      "method",
+      "status",
+      "apiJson",
+      {
+        "key": "originalUuid"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "assert_unique_api_uuid_block",
+      "alias": "校验 API 标识唯一",
+      "functionName": "assertUnique",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis",
+        "fieldName": "uuid",
+        "value": {
+          "template": "{{request.body.uuid}}"
+        },
+        "ignoreField": "uuid",
+        "ignoreValue": {
+          "template": "{{request.body.originalUuid}}"
+        },
+        "message": "API 标识已存在。"
+      }
+    },
+    {
+      "uuid": "save_api_block",
+      "alias": "保存 API Block",
+      "functionName": "upsert",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis",
+        "idField": "uuid",
+        "fields": {
+          "uuid": {
+            "template": "{{request.body.uuid}}"
+          },
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "method": {
+            "template": "{{request.body.method}}"
+          },
+          "status": {
+            "template": "{{request.body.status}}"
+          },
+          "api_json": {
+            "template": "{{request.body.apiJson}}"
+          },
+          "updated_at": {
+            "template": "{{now}}"
+          }
+        }
+      },
+      "outputs": ["uuid"]
+    },
+    {
+      "uuid": "create_api_snapshot_block",
+      "alias": "创建 API 快照 Block",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis_snapshot",
+        "idField": "id",
+        "fields": {
+          "api_uuid": {
+            "template": "{{blocks['save_api_block'].outputs.uuid}}"
+          },
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "method": {
+            "template": "{{request.body.method}}"
+          },
+          "status": {
+            "template": "{{request.body.status}}"
+          },
+          "api_json": {
+            "template": "{{request.body.apiJson}}"
+          }
+        }
+      },
+      "outputs": ["uuid"]
+    },
+    {
+      "uuid": "read_api_block",
+      "alias": "读取保存后的 API Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apis",
+        "fields": ["uuid", "name", "method", "status", "api_json", "created_at", "updated_at"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['save_api_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"]
+    }
+  ],
+  "response": {
+    "api": {
+      "uuid": {
+        "template": "{{blocks['read_api_block'].outputs.data.uuid}}"
+      },
+      "name": {
+        "template": "{{blocks['read_api_block'].outputs.data.name}}"
+      },
+      "method": {
+        "template": "{{blocks['read_api_block'].outputs.data.method}}"
+      },
+      "status": {
+        "template": "{{blocks['read_api_block'].outputs.data.status}}"
+      },
+      "apiJson": {
+        "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
+      },
+      "createdAt": {
+        "template": "{{blocks['read_api_block'].outputs.data.created_at}}"
+      },
+      "updatedAt": {
+        "template": "{{blocks['read_api_block'].outputs.data.updated_at}}"
+      }
+    }
+  }
+}

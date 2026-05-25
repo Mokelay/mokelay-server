@@ -166,6 +166,8 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   read: ['data'],
   delete: ['affected'],
   create: ['uuid'],
+  upsert: ['uuid'],
+  assertUnique: [],
   update: ['affected'],
   addSession: [],
   removeSession: [],
@@ -173,7 +175,7 @@ const allowedBlockOutputs: Record<string, readonly string[]> = {
   saveJsonToR2: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag'],
 }
 
-const databaseBlockFunctions = new Set(['list', 'page', 'count', 'read', 'delete', 'create', 'update'])
+const databaseBlockFunctions = new Set(['list', 'page', 'count', 'read', 'delete', 'create', 'upsert', 'assertUnique', 'update'])
 
 function assertApiJsonUuid(value: string | undefined) {
   if (!value || !apiJsonUuidPattern.test(value)) {
@@ -1008,6 +1010,75 @@ async function executeCreate(inputs: Record<string, unknown>, executeSql: SqlExe
   }
 }
 
+function upsertUpdateAssignmentsSql(columns: string[], idFieldName: string, databaseType: DatabaseType) {
+  const updateColumns = columns.filter((column) => column !== idFieldName)
+  const assignmentColumns = updateColumns.length > 0 ? updateColumns : [idFieldName]
+  const assignments = assignmentColumns.map((column) => (
+    databaseType === 'postgres'
+      ? sql`${identifierSql(column, 'fields', 'BLOCK_INVALID_FIELDS')} = ${identifierSql(`excluded.${column}`, 'fields', 'BLOCK_INVALID_FIELDS')}`
+      : sql`${identifierSql(column, 'fields', 'BLOCK_INVALID_FIELDS')} = VALUES(${identifierSql(column, 'fields', 'BLOCK_INVALID_FIELDS')})`
+  ))
+
+  if (!columns.includes('updated_at')) {
+    assignments.push(sql`${identifierSql('updated_at', 'fields', 'BLOCK_INVALID_FIELDS')} = ${databaseType === 'postgres' ? sql`now()` : sql`CURRENT_TIMESTAMP`}`)
+  }
+
+  return sql.join(assignments, sql`, `)
+}
+
+async function executeUpsert(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
+  const fields = getFieldValues(inputs.fields)
+  const idField = getCreateIdField(inputs.idField)
+  const columns = Object.keys(fields)
+
+  if (!columns.includes(idField.fieldName)) {
+    throw mokelayError('BLOCK_INVALID_FIELDS', 'fields 必须包含 idField 字段。', 400)
+  }
+
+  const columnSql = sql.join(columns.map((field) => identifierSql(field, 'fields', 'BLOCK_INVALID_FIELDS')), sql`, `)
+  const valueSql = sql.join(columns.map((field) => fieldValueSql(fields[field], databaseType)), sql`, `)
+  const assignments = upsertUpdateAssignmentsSql(columns, idField.fieldName, databaseType)
+  const result = databaseType === 'postgres'
+    ? await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) ON CONFLICT (${idField.fieldSql}) DO UPDATE SET ${assignments} RETURNING ${idField.fieldSql}`)
+    : await executeSql(sql`INSERT INTO ${table} (${columnSql}) VALUES (${valueSql}) ON DUPLICATE KEY UPDATE ${assignments}`)
+  const uuid = databaseType === 'postgres'
+    ? result.rows[0]?.[idField.fieldName]
+    : fields[idField.fieldName]
+
+  if (uuid === undefined || uuid === null || uuid === '') {
+    throw mokelayError('BLOCK_CREATE_MISSING_ID', 'upsert Block 未返回记录的唯一 ID。', 500)
+  }
+
+  return { uuid }
+}
+
+async function executeAssertUnique(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
+  const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
+  const fieldName = identifierSql(inputs.fieldName, 'fieldName', 'BLOCK_INVALID_FIELDS')
+  const ignoreFieldName = inputs.ignoreField === undefined || inputs.ignoreField === null || inputs.ignoreField === ''
+    ? undefined
+    : identifierSql(inputs.ignoreField, 'ignoreField', 'BLOCK_INVALID_FIELDS')
+  const value = inputs.value
+  const ignoreValue = inputs.ignoreValue
+  const hasIgnoreValue = ignoreFieldName && ignoreValue !== undefined && ignoreValue !== null && ignoreValue !== ''
+  const where = hasIgnoreValue
+    ? sql`${fieldName} = ${fieldValueSql(value, databaseType)} AND ${ignoreFieldName} <> ${fieldValueSql(ignoreValue, databaseType)}`
+    : sql`${fieldName} = ${fieldValueSql(value, databaseType)}`
+  const result = await executeSql<{ total: number | string | bigint }>(sql`SELECT ${countExpressionSql(databaseType)} AS total FROM ${table} WHERE ${where}`)
+  const total = normalizeCountTotal(result.rows[0]?.total)
+
+  if (total > 0) {
+    const message = typeof inputs.message === 'string' && inputs.message.trim()
+      ? inputs.message.trim()
+      : '记录已存在。'
+
+    throw mokelayError('BLOCK_UNIQUE_CONFLICT', message, 409)
+  }
+
+  return {}
+}
+
 async function executeUpdate(inputs: Record<string, unknown>, executeSql: SqlExecutor, databaseType: DatabaseType) {
   const table = identifierSql(inputs.table, 'table', 'BLOCK_INVALID_TABLE')
   const fields = getFieldValues(inputs.fields)
@@ -1135,6 +1206,8 @@ const blockExecutors: Record<string, BlockExecutor> = {
   read: ({ inputs, executeSql }) => executeRead(inputs, executeSql),
   delete: ({ inputs, executeSql, databaseType }) => executeDelete(inputs, executeSql, requireDatabaseType(databaseType)),
   create: ({ inputs, executeSql, databaseType }) => executeCreate(inputs, executeSql, requireDatabaseType(databaseType)),
+  upsert: ({ inputs, executeSql, databaseType }) => executeUpsert(inputs, executeSql, requireDatabaseType(databaseType)),
+  assertUnique: ({ inputs, executeSql, databaseType }) => executeAssertUnique(inputs, executeSql, requireDatabaseType(databaseType)),
   update: ({ inputs, executeSql, databaseType }) => executeUpdate(inputs, executeSql, requireDatabaseType(databaseType)),
   addSession: ({ event, inputs }) => executeAddSession(event, inputs),
   removeSession: ({ event, inputs }) => executeRemoveSession(event, inputs),
