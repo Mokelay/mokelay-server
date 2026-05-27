@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { detectDatabaseType, mokelayDatabaseUrl } from '../../server/utils/db'
+import { detectDatabaseType, mokelayDatabaseUrl } from 'mokelay-server-core/utils/db'
 
 describe('database utilities', () => {
   const originalEnv = { ...process.env }

@@ -5,7 +5,7 @@ import {
   analyzeDataSourceText,
   imageBufferToDataUrl,
   normalizeAiDataSourceOutput,
-} from '../../server/utils/ai-data-source'
+} from 'mokelay-server-core/utils/ai-data-source'
 
 describe('AI data source normalization', () => {
   it('parses JSON model output into rawData', () => {

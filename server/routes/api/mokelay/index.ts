@@ -1,5 +1,5 @@
 import { defineEventHandler, setResponseStatus } from 'h3'
-import { mokelayError, toMokelayErrorResponse } from '../../../utils/mokelay-error'
+import { mokelayError, toMokelayErrorResponse } from 'mokelay-server-core/utils/mokelay-error'
 
 export default defineEventHandler((event) => {
   setResponseStatus(event, 200)

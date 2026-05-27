@@ -9,10 +9,10 @@ import {
   analyzeDataSourceText,
   maxImageBytes,
   maxTextBytes,
-} from '../../server/utils/ai-data-source'
+} from 'mokelay-server-core/utils/ai-data-source'
 
-vi.mock('../../server/utils/ai-data-source', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../server/utils/ai-data-source')>()
+vi.mock('mokelay-server-core/utils/ai-data-source', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('mokelay-server-core/utils/ai-data-source')>()
 
   return {
     ...actual,

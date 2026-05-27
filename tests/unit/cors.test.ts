@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { allowedOrigins } from '../../server/utils/cors'
+import { allowedOrigins } from 'mokelay-server-core/utils/cors'
 
 describe('CORS origins', () => {
   const originalCorsOrigins = process.env.CORS_ORIGINS

@@ -8,7 +8,7 @@ if (!databaseUrl) {
 }
 
 export default defineConfig({
-  schema: './server/database/schema.ts',
+  schema: './node_modules/mokelay-server-core/dist/database/schema.js',
   out: './server/database/migrations',
   dialect: 'postgresql',
   dbCredentials: {

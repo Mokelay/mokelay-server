@@ -4,5 +4,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    server: {
+      deps: {
+        inline: ['mokelay-server-core'],
+      },
+    },
   },
 })

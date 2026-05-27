@@ -9,7 +9,7 @@ import {
   isSupportedImageMimeType,
   maxImageBytes,
   maxTextBytes,
-} from '../../../utils/ai-data-source'
+} from 'mokelay-server-core/utils/ai-data-source'
 
 export default defineEventHandler(async (event) => {
   const contentType = (getHeader(event, 'content-type') || '').toLowerCase()

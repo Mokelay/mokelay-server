@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import { createPool, type Pool } from 'mysql2/promise'
-import { createMokelayOrchestrationHandler } from '../../server/utils/orchestration'
+import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
 
 type TestServer = {
   baseUrl: string

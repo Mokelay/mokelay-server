@@ -3,10 +3,10 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp, toNodeListener } from 'h3'
 import databaseSchemaHandler from '../../server/routes/api/database/schema.get'
-import { listDatabaseSchema } from '../../server/utils/database-schema'
+import { listDatabaseSchema } from 'mokelay-server-core/utils/database-schema'
 
-vi.mock('../../server/utils/database-schema', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../server/utils/database-schema')>()
+vi.mock('mokelay-server-core/utils/database-schema', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('mokelay-server-core/utils/database-schema')>()
 
   return {
     ...actual,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hashPassword, verifyPassword } from '../../server/utils/password'
+import { hashPassword, verifyPassword } from 'mokelay-server-core/utils/password'
 
 describe('password hashing', () => {
   it('creates scrypt hashes that can be verified', async () => {

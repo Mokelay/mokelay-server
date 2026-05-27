@@ -111,7 +111,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('from_nitro_assets')).resolves.toEqual(apiJson)
   })
@@ -123,7 +123,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('login')).resolves.toMatchObject({
       uuid: 'login',
@@ -153,7 +153,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('login')).resolves.toMatchObject({
       uuid: 'login',
@@ -204,7 +204,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('from_r2')).resolves.toEqual(apiJson)
     expect(sentCommands).toHaveLength(1)
@@ -246,7 +246,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('from_nitro_assets')).resolves.toEqual(apiJson)
   })
@@ -273,7 +273,7 @@ describe('loadApiJson', () => {
       },
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     try {
       await loadApiJson('invalid_r2_json')
@@ -321,7 +321,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     await expect(loadApiJson('db_published_api', executeSql)).resolves.toEqual(apiJson)
   })
@@ -351,7 +351,7 @@ describe('loadApiJson', () => {
       }),
     }))
 
-    const { loadApiJson } = await import('../../server/utils/orchestration')
+    const { loadApiJson } = await import('mokelay-server-core/utils/orchestration')
 
     try {
       await loadApiJson('db_draft_api', executeSql)
@@ -422,7 +422,7 @@ describe('saveJsonToR2 publish processors', () => {
     process.env.MOKELAY_APIS_R2_PREFIX = '/custom-api-prefix/'
     mockR2Put(sentInputs)
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'publish_api_json_with_save_json',
@@ -501,7 +501,7 @@ describe('saveJsonToR2 publish processors', () => {
     clearR2Env()
     mockR2Put(sentInputs)
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'skip_draft_publish',
@@ -575,7 +575,7 @@ describe('saveJsonToR2 publish processors', () => {
   })
 
   it('does not support the removed publishApiJsonToR2 block', async () => {
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'removed_publish_block',
@@ -619,7 +619,7 @@ describe('saveJsonToR2 block', () => {
   it('skips upload and validation when enabled is false', async () => {
     clearR2Env()
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'disabled_r2_save',
@@ -682,7 +682,7 @@ describe('saveJsonToR2 block', () => {
     configureR2Env()
     mockR2Put(sentInputs)
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: readApiJsonAsset,
     }))
@@ -733,7 +733,7 @@ describe('saveJsonToR2 block', () => {
     configureR2Env()
     mockR2Put(sentInputs, { ETag: undefined })
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'save_json_string',
@@ -791,7 +791,7 @@ describe('saveJsonToR2 block', () => {
   it('returns block errors for invalid JSON strings and missing R2 config', async () => {
     clearR2Env()
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: readApiJsonAsset,
     }))
@@ -846,7 +846,7 @@ describe('saveJsonToR2 block', () => {
   })
 
   it('rejects invalid R2 directories and file names', async () => {
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const missingFileNameServer = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
         uuid: 'missing_r2_file_name',
@@ -956,7 +956,7 @@ describe('saveJsonToR2 block', () => {
     configureR2Env()
     mockR2PutFailure()
 
-    const { createMokelayOrchestrationHandler } = await import('../../server/utils/orchestration')
+    const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
       loadApiJson: readApiJsonAsset,
     }))

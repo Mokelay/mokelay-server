@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,6 +13,7 @@ const r2Env = {
 }
 
 let tempDir
+const defaultApiJsonDir = new URL('../../server/assets/mokelay-apis/', import.meta.url)
 
 afterEach(async () => {
   if (tempDir) {
@@ -37,7 +38,11 @@ describe('syncMokelayApisToR2', () => {
       log: null,
     })
 
-    expect(result.count).toBe(27)
+    const expectedCount = (await readdir(defaultApiJsonDir))
+      .filter((fileName) => fileName.endsWith('.json'))
+      .length
+
+    expect(result.count).toBe(expectedCount)
     expect(result.keys).toContain('mokelay-apis/delete_api_by_uuid.json')
     expect(result.keys).toContain('mokelay-apis/list_apis.json')
     expect(result.keys).toContain('mokelay-apis/login.json')
@@ -45,8 +50,8 @@ describe('syncMokelayApisToR2', () => {
     expect(result.keys).toContain('mokelay-apis/save_api.json')
     expect(result.keys).toContain('mokelay-apis/save_json_to_r2.json')
     expect(result.keys).toContain('mokelay-apis/update_page_blocks_by_uuid.json')
-    expect(new Set(result.keys)).toHaveProperty('size', 27)
-    expect(sentInputs).toHaveLength(27)
+    expect(new Set(result.keys)).toHaveProperty('size', expectedCount)
+    expect(sentInputs).toHaveLength(expectedCount)
     expect(sentInputs.every((input) => input.Bucket === 'mokelay-api-json')).toBe(true)
     expect(sentInputs.every((input) => input.ContentType === 'application/json')).toBe(true)
   })

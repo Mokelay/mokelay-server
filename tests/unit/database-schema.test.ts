@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapDatabaseSchemaRows } from '../../server/utils/database-schema'
+import { mapDatabaseSchemaRows } from 'mokelay-server-core/utils/database-schema'
 
 describe('database schema utilities', () => {
   it('groups columns by table while preserving query order', () => {
