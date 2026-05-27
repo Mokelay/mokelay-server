@@ -44,6 +44,10 @@ export type { OrchestrationCondition as Condition } from './orchestration-schema
 const templatePattern = /\{\{\s*([^}]+?)\s*\}\}/g
 const wholeTemplatePattern = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/
 
+function formatSqlTimestamp(date: Date) {
+  return date.toISOString().replace('T', ' ').replace('Z', '+00:00')
+}
+
 async function loadApiJsonFromNitroAssets(apiJsonUuid: string) {
   try {
     const { useStorage } = await import('nitropack/runtime')
@@ -474,7 +478,7 @@ export async function executeApiJson(event: H3Event, rawApiJson: unknown, option
     header: request.header,
     query: request.query,
     body: request.body,
-    now: new Date().toISOString(),
+    now: formatSqlTimestamp(new Date()),
     blocks: {},
   }
 

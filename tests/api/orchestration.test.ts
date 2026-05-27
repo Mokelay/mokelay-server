@@ -636,6 +636,14 @@ class MysqlRecordingExecutor {
       params,
     })
 
+    if (queryText.startsWith('SELECT DATA_TYPE AS data_type')) {
+      return this.result(databaseType, [{
+        data_type: 'int',
+        column_default: null,
+        extra: 'auto_increment',
+      }] as unknown as T[])
+    }
+
     if (queryText.startsWith('INSERT INTO `smart_contracts`')) {
       return this.result<T>(databaseType, [], { affectedRows: 1, insertId: 42 })
     }
@@ -1169,6 +1177,7 @@ describe('mokelay orchestration API', () => {
       uuid: firstPage?.uuid,
       name: 'First Page Updated',
       blocks: [{ type: 'text', value: 'Updated' }],
+      updatedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\+00:00$/),
     })
 
     const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=1`)
@@ -1802,6 +1811,135 @@ describe('mokelay orchestration API', () => {
     }
   })
 
+  it('returns generated MySQL UUID defaults from create blocks', async () => {
+    process.env.Mokelay_DATABASE_URL = 'mysql://unit-test'
+    const queries: RecordedQuery[] = []
+    let insertedPage: PageRow | undefined
+    const handler = createMokelayOrchestrationHandler({
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(
+        query: SQL,
+        datasource: string,
+        databaseType: DatabaseType,
+      ): Promise<SqlExecutionResult<T>> => {
+        const builtQuery = mysqlDialect.sqlToQuery(query)
+        const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
+        const params = builtQuery.params
+
+        queries.push({
+          datasource,
+          databaseType,
+          sql: queryText,
+          params,
+        })
+
+        if (queryText.startsWith('SELECT DATA_TYPE AS data_type')) {
+          return {
+            databaseType,
+            rows: [{
+              data_type: 'char',
+              column_default: 'uuid()',
+              extra: 'DEFAULT_GENERATED',
+            }] as unknown as T[],
+          }
+        }
+
+        if (queryText.startsWith('INSERT INTO `pages`')) {
+          const uuid = params.at(-1)
+
+          expect(uuid).toEqual(expect.stringMatching(uuidPattern))
+          insertedPage = {
+            uuid: uuid as string,
+            name: params[0] as string,
+            blocks: JSON.parse(params[1] as string) as unknown[],
+            created_at: '2026-05-27T00:00:00.000Z',
+            updated_at: '2026-05-27T00:00:00.000Z',
+          }
+
+          return {
+            databaseType,
+            rows: [] as T[],
+            affectedRows: 1,
+            insertId: 0,
+          }
+        }
+
+        if (queryText.startsWith('SELECT')) {
+          expect(params).toContain(insertedPage?.uuid)
+
+          return {
+            databaseType,
+            rows: [insertedPage] as unknown as T[],
+          }
+        }
+
+        throw new Error(`Unsupported MySQL SQL in UUID default test fake: ${queryText}`)
+      },
+      loadApiJson: async () => ({
+        uuid: 'mysql_create_page',
+        method: 'POST',
+        request: { body: ['name', 'blocks'], query: [], header: [] },
+        blocks: [
+          {
+            uuid: 'create_page_block',
+            functionName: 'create',
+            inputs: {
+              datasource: 'Mokelay',
+              table: 'pages',
+              idField: 'uuid',
+              fields: {
+                name: { template: '{{request.body.name}}' },
+                blocks: { template: '{{request.body.blocks}}' },
+              },
+            },
+            outputs: ['uuid'],
+          },
+          {
+            uuid: 'read_page_block',
+            functionName: 'read',
+            inputs: {
+              datasource: 'Mokelay',
+              table: 'pages',
+              fields: ['uuid', 'name', 'blocks', 'created_at', 'updated_at'],
+              conditions: [{
+                group: false,
+                conditionType: 'EQ',
+                fieldName: 'uuid',
+                fieldValue: { template: "{{blocks['create_page_block'].outputs.uuid}}" },
+              }],
+            },
+            outputs: ['data'],
+          },
+        ],
+        response: {
+          page: { template: "{{blocks['read_page_block'].outputs.data}}" },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await postJson(server.baseUrl, 'mysql_create_page', {
+        name: 'MySQL Page',
+        blocks: [],
+      })
+      const body = await readMokelayData<{ page: PageRow }>(response)
+      const insertQuery = queries.find((query) => query.sql.startsWith('INSERT INTO `pages`'))
+
+      expect(response.status).toBe(200)
+      expect(body.page).toMatchObject({
+        uuid: expect.stringMatching(uuidPattern),
+        name: 'MySQL Page',
+        blocks: [],
+      })
+      expect(insertQuery?.sql).toContain('`uuid`')
+      expect(insertQuery?.params.at(-1)).toBe(body.page.uuid)
+      expect(queries.every((query) => query.datasource === 'Mokelay')).toBe(true)
+      expect(queries.every((query) => query.databaseType === 'mysql')).toBe(true)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('maps MySQL duplicate key errors to the duplicate record block error', async () => {
     process.env.BingX_DATABASE_URL = 'mysql://unit-test'
     const duplicateError = Object.assign(new Error('Duplicate entry'), {
@@ -1809,7 +1947,25 @@ describe('mokelay orchestration API', () => {
       errno: 1062,
     })
     const handler = createMokelayOrchestrationHandler({
-      executeSql: async () => {
+      executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(
+        query: SQL,
+        _datasource: string,
+        databaseType: DatabaseType,
+      ) => {
+        const builtQuery = mysqlDialect.sqlToQuery(query)
+        const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
+
+        if (queryText.startsWith('SELECT DATA_TYPE AS data_type')) {
+          return {
+            databaseType,
+            rows: [{
+              data_type: 'int',
+              column_default: null,
+              extra: 'auto_increment',
+            }] as unknown as T[],
+          }
+        }
+
         throw duplicateError
       },
       loadApiJson: async () => ({

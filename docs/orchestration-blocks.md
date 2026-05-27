@@ -87,7 +87,7 @@
 | `body.xxx` | `request.body.xxx` 的快捷路径。 |
 | `blocks['block_uuid'].outputs.xxx` | 读取前面某个 block 的输出。 |
 | `blocks['block_uuid'].outputs.data.xxx` | 读取 `read` block 返回的数据字段。 |
-| `now` | 当前编排执行时间，ISO 字符串。 |
+| `now` | 当前编排执行时间，SQL 时间字符串，例如 `2026-05-27 03:02:30.093+00:00`。 |
 
 模板类型规则：
 
@@ -706,9 +706,17 @@ DELETE FROM table RETURNING 1 AS affected_marker
 
 ### SQL 行为
 
+PostgreSQL：
+
 ```sql
 INSERT INTO table (columns) VALUES (values) RETURNING idField
 ```
+
+MySQL：
+
+- 对自增整型主键，使用 MySQL 返回的 `insertId`。
+- 对 `CHAR/VARCHAR DEFAULT UUID()` 的 `idField`，执行器会在插入前生成 UUID 并写入该字段，再把这个 UUID 作为 `outputs.uuid` 返回。
+- 如果 `fields` 已经显式包含 `idField`，直接返回传入的字段值。
 
 ### outputs
 
