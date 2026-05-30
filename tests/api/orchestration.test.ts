@@ -60,6 +60,13 @@ type MokelayErrorBody = {
   }
 }
 
+type MokelayDebugTrace = {
+  blocks: Record<string, {
+    inputs: Record<string, unknown>
+    outputs: Record<string, unknown>
+  }>
+}
+
 type CreateUserResponse = {
   id: string
 }
@@ -1131,6 +1138,151 @@ describe('mokelay orchestration API', () => {
 
       expect(response.status).toBe(200)
       expect(body).toEqual({ echoed: 'abc' })
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('returns block debug traces only when __debug=1 is provided', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'debug_blocks',
+        method: 'POST',
+        request: {
+          body: [{
+            key: 'value',
+            processors: ['trim'],
+          }],
+        },
+        blocks: [
+          {
+            uuid: 'store',
+            functionName: 'addSession',
+            inputs: {
+              key: 'debug-value',
+              value: { template: '{{request.body.value}}' },
+            },
+          },
+          {
+            uuid: 'read',
+            functionName: 'readSession',
+            inputs: { key: 'debug-value' },
+            outputs: ['value'],
+          },
+        ],
+        response: {
+          echoed: { template: "{{blocks['read'].outputs.value}}" },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const responseWithoutDebug = await postJson(server.baseUrl, 'debug_blocks', {
+        value: '  Alice  ',
+      })
+      const bodyWithoutDebug = await readJson<MokelaySuccessBody<Record<string, unknown>> & { debug?: MokelayDebugTrace }>(responseWithoutDebug)
+
+      expect(responseWithoutDebug.status).toBe(200)
+      expect(bodyWithoutDebug).toEqual({
+        ok: true,
+        data: { echoed: 'Alice' },
+      })
+
+      const responseWithDebug = await postJson(server.baseUrl, 'debug_blocks', {
+        value: '  Alice  ',
+      }, '?__debug=1')
+      const bodyWithDebug = await readJson<MokelaySuccessBody<Record<string, unknown>> & { debug: MokelayDebugTrace }>(responseWithDebug)
+
+      expect(responseWithDebug.status).toBe(200)
+      expect(bodyWithDebug).toEqual({
+        ok: true,
+        data: { echoed: 'Alice' },
+        debug: {
+          blocks: {
+            store: {
+              inputs: {
+                key: 'debug-value',
+                value: 'Alice',
+              },
+              outputs: {},
+            },
+            read: {
+              inputs: {
+                key: 'debug-value',
+              },
+              outputs: {
+                value: 'Alice',
+              },
+            },
+          },
+        },
+      })
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('returns partial block debug traces on block errors', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'debug_error',
+        method: 'POST',
+        request: { body: ['value'] },
+        blocks: [
+          {
+            uuid: 'store',
+            functionName: 'addSession',
+            inputs: {
+              key: 'debug-value',
+              value: { template: '{{request.body.value}}' },
+            },
+          },
+          {
+            uuid: 'fail',
+            functionName: 'addSession',
+            inputs: { key: 'missing-value' },
+          },
+          {
+            uuid: 'never',
+            functionName: 'readSession',
+            inputs: { key: 'debug-value' },
+            outputs: ['value'],
+          },
+        ],
+        response: { ok: true },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const response = await postJson(server.baseUrl, 'debug_error', {
+        value: 'kept',
+      }, '?__debug=1')
+      const body = await readJson<MokelayErrorBody & { debug: MokelayDebugTrace }>(response)
+
+      expect(response.status).toBe(200)
+      expect(body.ok).toBe(false)
+      expect(body.error).toEqual({
+        code: 'BLOCK_SESSION_VALUE_MISSING',
+        message: 'value 不能为空。',
+      })
+      expect(body.debug.blocks).toEqual({
+        store: {
+          inputs: {
+            key: 'debug-value',
+            value: 'kept',
+          },
+          outputs: {},
+        },
+        fail: {
+          inputs: {
+            key: 'missing-value',
+          },
+          outputs: {},
+        },
+      })
+      expect(body.debug.blocks).not.toHaveProperty('never')
     } finally {
       await server.close()
     }
