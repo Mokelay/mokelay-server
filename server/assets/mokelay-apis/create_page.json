@@ -3,9 +3,16 @@
   "alias": "创建页面接口",
   "method": "POST",
   "request": {
-    "body": ["name", "blocks"]
+    "body": [
+      "name",
+      "blocks"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "create_page_block"
+    },
     {
       "uuid": "create_page_block",
       "alias": "创建页面Block",
@@ -23,7 +30,10 @@
           }
         }
       },
-      "outputs": ["uuid"]
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_page_block"
     },
     {
       "uuid": "read_page_block",
@@ -32,7 +42,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "pages",
-        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "blocks",
+          "created_at",
+          "updated_at"
+        ],
         "conditions": [
           {
             "group": false,
@@ -44,7 +60,10 @@
           }
         ]
       },
-      "outputs": ["data"]
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

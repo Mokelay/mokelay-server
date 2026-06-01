@@ -3,9 +3,15 @@
   "alias": "读取 API 接口",
   "method": "GET",
   "request": {
-    "query": ["uuid"]
+    "query": [
+      "uuid"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_api_block"
+    },
     {
       "uuid": "read_api_block",
       "alias": "读取 API Block",
@@ -13,7 +19,15 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "apis",
-        "fields": ["uuid", "name", "method", "status", "api_json", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "method",
+          "status",
+          "api_json",
+          "created_at",
+          "updated_at"
+        ],
         "conditions": [
           {
             "group": false,
@@ -25,7 +39,10 @@
           }
         ]
       },
-      "outputs": ["data"]
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

@@ -4,19 +4,28 @@
   "method": "GET",
   "blocks": [
     {
+      "uuid": "starter",
+      "nextBlock": "read_user_session"
+    },
+    {
       "uuid": "read_user_session",
       "alias": "读取登录态Session",
       "functionName": "readSession",
       "inputs": {
         "key": "user"
       },
-      "outputs": ["value"]
+      "outputs": [
+        "value"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {
     "loggedIn": {
       "template": "{{blocks['read_user_session'].outputs.value}}",
-      "processors": ["not_null"]
+      "processors": [
+        "not_null"
+      ]
     },
     "user": {
       "template": "{{blocks['read_user_session'].outputs.value}}"

@@ -3,9 +3,15 @@
   "alias": "删除 API 接口",
   "method": "POST",
   "request": {
-    "body": ["uuid"]
+    "body": [
+      "uuid"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "delete_api_block"
+    },
     {
       "uuid": "delete_api_block",
       "alias": "删除 API Block",
@@ -24,7 +30,10 @@
           }
         ]
       },
-      "outputs": ["affected"]
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

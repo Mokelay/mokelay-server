@@ -7,7 +7,7 @@
     "build": "nitro build",
     "preview": "nitro preview --host 127.0.0.1 --port 8787",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "npm run test:unit && npm run test:api && vitest run tests/integration",
     "test:unit": "vitest run tests/unit",
     "test:api": "vitest run tests/api",
     "sync:mokelay-apis:r2": "node scripts/sync-mokelay-apis-r2.mjs",

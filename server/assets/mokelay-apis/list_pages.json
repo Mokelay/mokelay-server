@@ -3,9 +3,16 @@
   "alias": "页面列表接口",
   "method": "GET",
   "request": {
-    "query": ["page", "pageSize"]
+    "query": [
+      "page",
+      "pageSize"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_pages_block"
+    },
     {
       "uuid": "list_pages_block",
       "alias": "页面分页Block",
@@ -13,7 +20,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "pages",
-        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "blocks",
+          "created_at",
+          "updated_at"
+        ],
         "page": {
           "template": "{{request.query.page}}"
         },
@@ -31,7 +44,16 @@
           }
         ]
       },
-      "outputs": ["datas", "total", "totalPages", "page", "pageSize", "hasPreviousPage", "hasNextPage"]
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

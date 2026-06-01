@@ -4,12 +4,17 @@
   "method": "POST",
   "blocks": [
     {
+      "uuid": "starter",
+      "nextBlock": "clear_user_session"
+    },
+    {
       "uuid": "clear_user_session",
       "alias": "清除登录态Session",
       "functionName": "removeSession",
       "inputs": {
         "key": "user"
-      }
+      },
+      "nextBlock": null
     }
   ],
   "response": {

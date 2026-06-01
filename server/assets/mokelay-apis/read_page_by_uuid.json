@@ -3,9 +3,15 @@
   "alias": "读取页面接口",
   "method": "GET",
   "request": {
-    "query": ["uuid"]
+    "query": [
+      "uuid"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_page_block"
+    },
     {
       "uuid": "read_page_block",
       "alias": "读取页面Block",
@@ -13,7 +19,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "pages",
-        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "blocks",
+          "created_at",
+          "updated_at"
+        ],
         "conditions": [
           {
             "group": false,
@@ -25,7 +37,10 @@
           }
         ]
       },
-      "outputs": ["data"]
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

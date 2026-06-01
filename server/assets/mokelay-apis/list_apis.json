@@ -3,9 +3,16 @@
   "alias": "API 列表接口",
   "method": "GET",
   "request": {
-    "query": ["page", "pageSize"]
+    "query": [
+      "page",
+      "pageSize"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_apis_block"
+    },
     {
       "uuid": "list_apis_block",
       "alias": "API 分页 Block",
@@ -13,7 +20,14 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "apis",
-        "fields": ["uuid", "name", "method", "status", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "method",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
         "page": {
           "template": "{{request.query.page}}"
         },
@@ -31,7 +45,16 @@
           }
         ]
       },
-      "outputs": ["datas", "total", "totalPages", "page", "pageSize", "hasPreviousPage", "hasNextPage"]
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

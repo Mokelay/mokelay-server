@@ -12,7 +12,9 @@
           "email_check",
           {
             "processor": "max",
-            "param": [255]
+            "param": [
+              255
+            ]
           }
         ]
       },
@@ -22,7 +24,9 @@
           "is_not_null",
           {
             "processor": "min",
-            "param": [1]
+            "param": [
+              1
+            ]
           }
         ]
       }
@@ -30,13 +34,23 @@
   },
   "blocks": [
     {
+      "uuid": "starter",
+      "nextBlock": "read_user_info"
+    },
+    {
       "uuid": "read_user_info",
       "alias": "按邮箱读取用户信息",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
         "table": "users",
-        "fields": ["id", "name", "email", "plan", "password_hash"],
+        "fields": [
+          "id",
+          "name",
+          "email",
+          "plan",
+          "password_hash"
+        ],
         "conditions": [
           {
             "group": false,
@@ -51,17 +65,20 @@
       "outputs": [
         {
           "key": "data",
-          "processors": ["is_not_null"]
+          "processors": [
+            "is_not_null"
+          ]
         }
-      ]
+      ],
+      "nextBlock": "check_user_password"
     },
     {
-      "uuid": "set_user_session",
-      "alias": "校验密码并保存用户信息到Session",
-      "functionName": "addSession",
+      "uuid": "check_user_password",
+      "alias": "校验密码控制器",
+      "functionName": "if_controller",
+      "type": "controller",
       "inputs": {
-        "key": "user",
-        "password_check": {
+        "value": {
           "template": "{{blocks['read_user_info'].outputs.data.password_hash}}",
           "processors": [
             {
@@ -73,7 +90,29 @@
               ]
             }
           ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "password_check_true_node",
+          "alias": "密码校验通过",
+          "value": true,
+          "nextBlock": "set_user_session"
         },
+        {
+          "uuid": "password_check_false_node",
+          "alias": "密码校验失败",
+          "value": false,
+          "nextBlock": null
+        }
+      ]
+    },
+    {
+      "uuid": "set_user_session",
+      "alias": "保存用户信息到Session",
+      "functionName": "addSession",
+      "inputs": {
+        "key": "user",
         "value": {
           "id": {
             "template": "{{blocks['read_user_info'].outputs.data.id}}"
@@ -88,7 +127,8 @@
             "template": "{{blocks['read_user_info'].outputs.data.plan}}"
           }
         }
-      }
+      },
+      "nextBlock": null
     }
   ],
   "response": {

@@ -7,7 +7,7 @@ import { PgDialect } from 'drizzle-orm/pg-core'
 import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
-import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
+import { createMokelayOrchestrationHandler as createCoreMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
 import type { MokelayErrorCode } from 'mokelay-server-core/utils/mokelay-error'
 import { verifyPassword } from 'mokelay-server-core/utils/password'
 import { orchestrationSessionCookieName } from 'mokelay-server-core/utils/session'
@@ -60,11 +60,36 @@ type MokelayErrorBody = {
   }
 }
 
+type MokelayDebugError = {
+  code: string
+  message: string
+}
+
+type MokelayDebugBlockStep = {
+  uuid: string
+  type: 'block'
+  inputs: Record<string, unknown>
+  outputs: Record<string, unknown>
+  nextBlock: MokelayDebugStep | null
+  error?: MokelayDebugError
+}
+
+type MokelayDebugControllerStep = {
+  uuid: string
+  type: 'controller'
+  inputs: Record<string, unknown>
+  node?: {
+    uuid: string
+    nextBlock: MokelayDebugStep | null
+  }
+  error?: MokelayDebugError
+}
+
+type MokelayDebugStep = MokelayDebugBlockStep | MokelayDebugControllerStep
+
 type MokelayDebugTrace = {
-  blocks: Record<string, {
-    inputs: Record<string, unknown>
-    outputs: Record<string, unknown>
-  }>
+  uuid: 'starter'
+  nextBlock: MokelayDebugStep | null
 }
 
 type CreateUserResponse = {
@@ -173,6 +198,107 @@ const apiR2EnvKeys = [
   'MOKELAY_APIS_R2_BUCKET',
   'MOKELAY_APIS_R2_PREFIX',
 ]
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function blockUuid(block: unknown) {
+  return isRecord(block) && typeof block.uuid === 'string' ? block.uuid : null
+}
+
+function normalizeBlockSequence(blocks: unknown[], continuation: string | null): { first: string | null, blocks: unknown[] } {
+  const migratedBlocks: unknown[] = []
+
+  blocks.forEach((block, index) => {
+    if (!isRecord(block)) {
+      migratedBlocks.push(block)
+      return
+    }
+
+    const nextTopLevelBlock = index + 1 < blocks.length ? blockUuid(blocks[index + 1]) : continuation
+
+    if (block.type === 'controller' && Array.isArray(block.nodes)) {
+      const nestedBlocks: unknown[] = []
+      const controller: Record<string, unknown> = {
+        ...block,
+        nodes: block.nodes.map((node) => {
+          if (!isRecord(node)) {
+            return node
+          }
+
+          if (!Array.isArray(node.blocks)) {
+            return Object.prototype.hasOwnProperty.call(node, 'nextBlock')
+              ? node
+              : { ...node, nextBlock: nextTopLevelBlock }
+          }
+
+          const nested = normalizeBlockSequence(node.blocks, nextTopLevelBlock)
+          const { blocks: _blocks, nextBlock: _nextBlock, ...nodeWithoutBlocks } = node
+
+          nestedBlocks.push(...nested.blocks)
+
+          return {
+            ...nodeWithoutBlocks,
+            nextBlock: nested.first,
+          }
+        }),
+      }
+
+      delete controller.nextBlock
+      migratedBlocks.push(controller, ...nestedBlocks)
+      return
+    }
+
+    migratedBlocks.push(
+      Object.prototype.hasOwnProperty.call(block, 'nextBlock')
+        ? block
+        : { ...block, nextBlock: nextTopLevelBlock },
+    )
+  })
+
+  return {
+    first: blockUuid(blocks[0]) ?? continuation,
+    blocks: migratedBlocks,
+  }
+}
+
+function normalizeApiJsonFlow(value: unknown) {
+  if (!isRecord(value) || !Array.isArray(value.blocks)) {
+    return value
+  }
+
+  if (value.blocks.some((block) => isRecord(block) && block.uuid === 'starter')) {
+    return value
+  }
+
+  const migrated = normalizeBlockSequence(value.blocks, null)
+
+  return {
+    ...value,
+    blocks: [
+      { uuid: 'starter', nextBlock: migrated.first },
+      ...migrated.blocks,
+    ],
+  }
+}
+
+function emptyApiJsonBlocks() {
+  return [{ uuid: 'starter', nextBlock: null }]
+}
+
+function createMokelayOrchestrationHandler(
+  options: Parameters<typeof createCoreMokelayOrchestrationHandler>[0] = {},
+) {
+  const loadApiJson = options.loadApiJson
+
+  return createCoreMokelayOrchestrationHandler({
+    ...options,
+    loadApiJson: loadApiJson
+      ? async (apiJsonUuid) => normalizeApiJsonFlow(await loadApiJson(apiJsonUuid))
+      : undefined,
+  })
+}
 
 type UserRow = {
   id: string
@@ -1143,6 +1269,603 @@ describe('mokelay orchestration API', () => {
     }
   })
 
+  it('executes if_controller branches for boolean, number, string, and fallback values', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'if_controller_values',
+        method: 'POST',
+        request: {
+          body: [{ key: 'value' }],
+        },
+        blocks: [
+          {
+            uuid: 'starter',
+            nextBlock: 'choose',
+          },
+          {
+            uuid: 'choose',
+            alias: '选择真假分支',
+            functionName: 'if_controller',
+            type: 'controller',
+            inputs: {
+              value: { template: '{{request.body.value}}' },
+            },
+            nodes: [
+              {
+                uuid: 'if_true_node',
+                value: true,
+                nextBlock: 'store_true',
+              },
+              {
+                uuid: 'if_false_node',
+                value: false,
+                nextBlock: 'store_false',
+              },
+            ],
+          },
+          {
+            uuid: 'store_true',
+            functionName: 'addSession',
+            inputs: {
+              key: 'if-result',
+              value: 'true-branch',
+            },
+            nextBlock: 'read_result',
+          },
+          {
+            uuid: 'store_false',
+            functionName: 'addSession',
+            inputs: {
+              key: 'if-result',
+              value: 'false-branch',
+            },
+            nextBlock: 'read_result',
+          },
+          {
+            uuid: 'read_result',
+            functionName: 'readSession',
+            inputs: { key: 'if-result' },
+            outputs: ['value'],
+            nextBlock: null,
+          },
+        ],
+        response: {
+          result: { template: "{{blocks['read_result'].outputs.value}}" },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const cases: Array<{ value: unknown, expected: string }> = [
+        { value: true, expected: 'true-branch' },
+        { value: 1, expected: 'true-branch' },
+        { value: 'ok', expected: 'true-branch' },
+        { value: false, expected: 'false-branch' },
+        { value: 0, expected: 'false-branch' },
+        { value: '', expected: 'false-branch' },
+        { value: null, expected: 'false-branch' },
+        { value: { ok: true }, expected: 'false-branch' },
+        { value: [], expected: 'false-branch' },
+      ]
+
+      for (const item of cases) {
+        const response = await postJson(server.baseUrl, 'if_controller_values', {
+          value: item.value,
+        })
+        const body = await readMokelayData<Record<string, unknown>>(response)
+
+        expect(response.status).toBe(200)
+        expect(body).toEqual({ result: item.expected })
+      }
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('executes switch_controller cases, default nodes, nested controllers, and controller debug traces', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'switch_controller_debug',
+        method: 'POST',
+        request: {
+          body: [{ key: 'status' }],
+        },
+        blocks: [
+          {
+            uuid: 'starter',
+            nextBlock: 'status_switch',
+          },
+          {
+            uuid: 'status_switch',
+            alias: '状态分支',
+            functionName: 'switch_controller',
+            type: 'controller',
+            inputs: {
+              value: { template: '{{request.body.status}}' },
+              dataType: 'string',
+            },
+            nodes: [
+              {
+                uuid: 'published_node',
+                value: 'published',
+                nextBlock: 'nested_if',
+              },
+              {
+                uuid: 'default_status_node',
+                alias: '默认分支',
+                type: 'DEFAULT',
+                nextBlock: 'store_default',
+              },
+            ],
+          },
+          {
+            uuid: 'nested_if',
+            alias: '嵌套 if',
+            functionName: 'if_controller',
+            type: 'controller',
+            inputs: { value: 1 },
+            nodes: [
+              {
+                uuid: 'nested_true_node',
+                value: true,
+                nextBlock: 'store_nested',
+              },
+              {
+                uuid: 'nested_false_node',
+                value: false,
+                nextBlock: 'store_status',
+              },
+            ],
+          },
+          {
+            uuid: 'store_nested',
+            functionName: 'addSession',
+            inputs: {
+              key: 'nested-result',
+              value: 'nested-true',
+            },
+            nextBlock: 'store_status',
+          },
+          {
+            uuid: 'store_status',
+            functionName: 'addSession',
+            inputs: {
+              key: 'switch-result',
+              value: 'published-branch',
+            },
+            nextBlock: 'read_switch',
+          },
+          {
+            uuid: 'store_default',
+            functionName: 'addSession',
+            inputs: {
+              key: 'switch-result',
+              value: 'default-branch',
+            },
+            nextBlock: 'read_switch',
+          },
+          {
+            uuid: 'read_switch',
+            functionName: 'readSession',
+            inputs: { key: 'switch-result' },
+            outputs: ['value'],
+            nextBlock: 'read_nested',
+          },
+          {
+            uuid: 'read_nested',
+            functionName: 'readSession',
+            inputs: { key: 'nested-result' },
+            outputs: ['value'],
+            nextBlock: null,
+          },
+        ],
+        response: {
+          result: { template: "{{blocks['read_switch'].outputs.value}}" },
+          nested: { template: "{{blocks['read_nested'].outputs.value}}" },
+        },
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      const publishedResponse = await postJson(server.baseUrl, 'switch_controller_debug', {
+        status: 'published',
+      }, '?__debug=1')
+      const publishedBody = await readJson<MokelaySuccessBody<Record<string, unknown>> & { debug: MokelayDebugTrace }>(publishedResponse)
+
+      expect(publishedResponse.status).toBe(200)
+      expect(publishedBody.data).toEqual({
+        result: 'published-branch',
+        nested: 'nested-true',
+      })
+      expect(publishedBody.debug).toEqual({
+        uuid: 'starter',
+        nextBlock: {
+          uuid: 'status_switch',
+          type: 'controller',
+          inputs: {
+            value: 'published',
+            dataType: 'string',
+          },
+          node: {
+            uuid: 'published_node',
+            nextBlock: {
+              uuid: 'nested_if',
+              type: 'controller',
+              inputs: {
+                value: 1,
+              },
+              node: {
+                uuid: 'nested_true_node',
+                nextBlock: {
+                  uuid: 'store_nested',
+                  type: 'block',
+                  inputs: {
+                    key: 'nested-result',
+                    value: 'nested-true',
+                  },
+                  outputs: {},
+                  nextBlock: {
+                    uuid: 'store_status',
+                    type: 'block',
+                    inputs: {
+                      key: 'switch-result',
+                      value: 'published-branch',
+                    },
+                    outputs: {},
+                    nextBlock: {
+                      uuid: 'read_switch',
+                      type: 'block',
+                      inputs: {
+                        key: 'switch-result',
+                      },
+                      outputs: {
+                        value: 'published-branch',
+                      },
+                      nextBlock: {
+                        uuid: 'read_nested',
+                        type: 'block',
+                        inputs: {
+                          key: 'nested-result',
+                        },
+                        outputs: {
+                          value: 'nested-true',
+                        },
+                        nextBlock: null,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+      expect(JSON.stringify(publishedBody.debug)).not.toContain('store_default')
+
+      const defaultResponse = await postJson(server.baseUrl, 'switch_controller_debug', {
+        status: 'draft',
+      })
+      const defaultBody = await readMokelayData<Record<string, unknown>>(defaultResponse)
+
+      expect(defaultResponse.status).toBe(200)
+      expect(defaultBody).toEqual({
+        result: 'default-branch',
+        nested: null,
+      })
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('returns controller errors for invalid switch configuration', async () => {
+    const apiJsons: Record<string, unknown> = {
+      switch_data_type_error: {
+        uuid: 'switch_data_type_error',
+        method: 'POST',
+        blocks: [
+          { uuid: 'starter', nextBlock: 'switch' },
+          {
+            uuid: 'switch',
+            functionName: 'switch_controller',
+            type: 'controller',
+            inputs: {
+              value: 1,
+              dataType: 'string',
+            },
+            nodes: [{
+              uuid: 'default_node',
+              type: 'DEFAULT',
+              nextBlock: null,
+            }],
+          },
+        ],
+        response: { ok: true },
+      },
+      switch_duplicate_default: {
+        uuid: 'switch_duplicate_default',
+        method: 'POST',
+        blocks: [
+          { uuid: 'starter', nextBlock: 'switch' },
+          {
+            uuid: 'switch',
+            functionName: 'switch_controller',
+            type: 'controller',
+            inputs: {
+              value: 'draft',
+              dataType: 'string',
+            },
+            nodes: [
+              {
+                uuid: 'default_node_one',
+                type: 'DEFAULT',
+                nextBlock: null,
+              },
+              {
+                uuid: 'default_node_two',
+                type: 'DEFAULT',
+                nextBlock: null,
+              },
+            ],
+          },
+        ],
+        response: { ok: true },
+      },
+      switch_missing_default: {
+        uuid: 'switch_missing_default',
+        method: 'POST',
+        blocks: [
+          { uuid: 'starter', nextBlock: 'switch' },
+          {
+            uuid: 'switch',
+            functionName: 'switch_controller',
+            type: 'controller',
+            inputs: {
+              value: 'draft',
+              dataType: 'string',
+            },
+            nodes: [{
+              uuid: 'published_node',
+              value: 'published',
+              nextBlock: null,
+            }],
+          },
+        ],
+        response: { ok: true },
+      },
+    }
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async (apiJsonUuid) => apiJsons[apiJsonUuid],
+    })
+    const server = await startServer(handler)
+
+    try {
+      await expectMokelayError(
+        await postJson(server.baseUrl, 'switch_data_type_error', {}),
+        'CONTROLLER_INVALID_INPUTS',
+      )
+      const duplicateDefaultBody = await expectMokelayError(
+        await postJson(server.baseUrl, 'switch_duplicate_default', {}, '?__debug=1'),
+        'CONTROLLER_INVALID_NODES',
+      ) as MokelayErrorBody & { debug: MokelayDebugTrace }
+
+      expect(duplicateDefaultBody.debug).toEqual({
+        uuid: 'starter',
+        nextBlock: {
+          uuid: 'switch',
+          type: 'controller',
+          inputs: {
+            value: 'draft',
+            dataType: 'string',
+          },
+          error: {
+            code: 'CONTROLLER_INVALID_NODES',
+            message: 'Controller switch nodes 配置无效：switch_controller 只能配置一个 DEFAULT node。',
+          },
+        },
+      })
+      await expectMokelayError(
+        await postJson(server.baseUrl, 'switch_missing_default', {}),
+        'CONTROLLER_INVALID_NODES',
+      )
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('rejects duplicate UUIDs across controller nodes and blocks', async () => {
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'duplicate_controller_uuid',
+        method: 'POST',
+        blocks: [
+          { uuid: 'starter', nextBlock: 'choose' },
+          {
+            uuid: 'choose',
+            functionName: 'if_controller',
+            type: 'controller',
+            inputs: {
+              value: true,
+            },
+            nodes: [
+              {
+                uuid: 'duplicate_uuid',
+                value: true,
+                nextBlock: 'store',
+              },
+              {
+                uuid: 'duplicate_uuid',
+                value: false,
+                nextBlock: null,
+              },
+            ],
+          },
+          {
+            uuid: 'store',
+            functionName: 'addSession',
+            inputs: {
+              key: 'result',
+              value: true,
+            },
+            nextBlock: null,
+          },
+        ],
+        response: null,
+      }),
+    })
+    const server = await startServer(handler)
+
+    try {
+      await expectMokelayError(
+        await postJson(server.baseUrl, 'duplicate_controller_uuid', {}),
+        'API_JSON_DUPLICATE_UUID',
+      )
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('validates starter and nextBlock graph configuration', async () => {
+    async function expectRawApiJsonError(apiJsonUuid: string, apiJson: unknown, code: MokelayErrorCode) {
+      const handler = createCoreMokelayOrchestrationHandler({
+        loadApiJson: async () => apiJson,
+      })
+      const server = await startServer(handler)
+
+      try {
+        await expectMokelayError(
+          await postJson(server.baseUrl, apiJsonUuid, {}),
+          code,
+        )
+      } finally {
+        await server.close()
+      }
+    }
+
+    await expectRawApiJsonError('missing_starter', {
+      uuid: 'missing_starter',
+      method: 'POST',
+      blocks: [{
+        uuid: 'store',
+        functionName: 'addSession',
+        inputs: { key: 'value', value: true },
+        nextBlock: null,
+      }],
+      response: null,
+    }, 'API_JSON_INVALID_FLOW')
+
+    await expectRawApiJsonError('multiple_starter', {
+      uuid: 'multiple_starter',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: null },
+        { uuid: 'starter', nextBlock: null },
+      ],
+      response: null,
+    }, 'API_JSON_DUPLICATE_UUID')
+
+    await expectRawApiJsonError('missing_next_block', {
+      uuid: 'missing_next_block',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: 'store' },
+        {
+          uuid: 'store',
+          functionName: 'addSession',
+          inputs: { key: 'value', value: true },
+        },
+      ],
+      response: null,
+    }, 'API_JSON_INVALID_SCHEMA')
+
+    await expectRawApiJsonError('unknown_next_block', {
+      uuid: 'unknown_next_block',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: 'missing' },
+        {
+          uuid: 'store',
+          functionName: 'addSession',
+          inputs: { key: 'value', value: true },
+          nextBlock: null,
+        },
+      ],
+      response: null,
+    }, 'API_JSON_INVALID_FLOW')
+
+    await expectRawApiJsonError('node_next_block', {
+      uuid: 'node_next_block',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: 'true_node' },
+        {
+          uuid: 'choose',
+          functionName: 'if_controller',
+          type: 'controller',
+          inputs: { value: true },
+          nodes: [
+            { uuid: 'true_node', value: true, nextBlock: null },
+            { uuid: 'false_node', value: false, nextBlock: null },
+          ],
+        },
+      ],
+      response: null,
+    }, 'API_JSON_INVALID_FLOW')
+
+    await expectRawApiJsonError('starter_next_block', {
+      uuid: 'starter_next_block',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: 'store' },
+        {
+          uuid: 'store',
+          functionName: 'addSession',
+          inputs: { key: 'value', value: true },
+          nextBlock: 'starter',
+        },
+      ],
+      response: null,
+    }, 'API_JSON_INVALID_FLOW')
+
+    await expectRawApiJsonError('cycle_next_block', {
+      uuid: 'cycle_next_block',
+      method: 'POST',
+      blocks: [
+        { uuid: 'starter', nextBlock: 'store' },
+        {
+          uuid: 'store',
+          functionName: 'addSession',
+          inputs: { key: 'value', value: true },
+          nextBlock: 'store',
+        },
+      ],
+      response: null,
+    }, 'API_JSON_INVALID_FLOW')
+
+    const terminalHandler = createCoreMokelayOrchestrationHandler({
+      loadApiJson: async () => ({
+        uuid: 'terminal_next_block',
+        method: 'POST',
+        blocks: [
+          { uuid: 'starter', nextBlock: null },
+        ],
+        response: { ok: true },
+      }),
+    })
+    const terminalServer = await startServer(terminalHandler)
+
+    try {
+      const response = await postJson(terminalServer.baseUrl, 'terminal_next_block', {})
+      const body = await readMokelayData<Record<string, unknown>>(response)
+
+      expect(response.status).toBe(200)
+      expect(body).toEqual({ ok: true })
+    } finally {
+      await terminalServer.close()
+    }
+  })
+
   it('returns block debug traces only when __debug=1 is provided', async () => {
     const handler = createMokelayOrchestrationHandler({
       loadApiJson: async () => ({
@@ -1199,21 +1922,25 @@ describe('mokelay orchestration API', () => {
         ok: true,
         data: { echoed: 'Alice' },
         debug: {
-          blocks: {
-            store: {
-              inputs: {
-                key: 'debug-value',
-                value: 'Alice',
-              },
-              outputs: {},
+          uuid: 'starter',
+          nextBlock: {
+            uuid: 'store',
+            type: 'block',
+            inputs: {
+              key: 'debug-value',
+              value: 'Alice',
             },
-            read: {
+            outputs: {},
+            nextBlock: {
+              uuid: 'read',
+              type: 'block',
               inputs: {
                 key: 'debug-value',
               },
               outputs: {
                 value: 'Alice',
               },
+              nextBlock: null,
             },
           },
         },
@@ -1267,22 +1994,32 @@ describe('mokelay orchestration API', () => {
         code: 'BLOCK_SESSION_VALUE_MISSING',
         message: 'value 不能为空。',
       })
-      expect(body.debug.blocks).toEqual({
-        store: {
+      expect(body.debug).toEqual({
+        uuid: 'starter',
+        nextBlock: {
+          uuid: 'store',
+          type: 'block',
           inputs: {
             key: 'debug-value',
             value: 'kept',
           },
           outputs: {},
-        },
-        fail: {
-          inputs: {
-            key: 'missing-value',
+          nextBlock: {
+            uuid: 'fail',
+            type: 'block',
+            inputs: {
+              key: 'missing-value',
+            },
+            outputs: {},
+            nextBlock: null,
+            error: {
+              code: 'BLOCK_SESSION_VALUE_MISSING',
+              message: 'value 不能为空。',
+            },
           },
-          outputs: {},
         },
       })
-      expect(body.debug.blocks).not.toHaveProperty('never')
+      expect(JSON.stringify(body.debug)).not.toContain('never')
     } finally {
       await server.close()
     }
@@ -1374,14 +2111,14 @@ describe('mokelay orchestration API', () => {
       uuid: 'register_users',
       alias: 'users 注册接口',
       method: 'POST',
-      blocks: [],
+      blocks: emptyApiJsonBlocks(),
       response: null,
     }
     const loginApiJson = {
       uuid: 'login_users',
       alias: 'users 登录接口',
       method: 'POST',
-      blocks: [],
+      blocks: emptyApiJsonBlocks(),
       response: null,
     }
     const firstSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
@@ -1597,7 +2334,7 @@ describe('mokelay orchestration API', () => {
       uuid: 'draft_builder_api',
       alias: '草稿 API',
       method: 'POST',
-      blocks: [],
+      blocks: emptyApiJsonBlocks(),
       response: null,
     }
     const saveResponse = await postJson(testServer.baseUrl, 'save_api', {
@@ -1628,7 +2365,7 @@ describe('mokelay orchestration API', () => {
       uuid: 'failed_publish_api',
       alias: '失败发布 API',
       method: 'POST',
-      blocks: [],
+      blocks: emptyApiJsonBlocks(),
       response: null,
     }
     const response = await postJson(testServer.baseUrl, 'save_api', {

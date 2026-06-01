@@ -16,6 +16,10 @@
   },
   "blocks": [
     {
+      "uuid": "starter",
+      "nextBlock": "assert_unique_api_uuid_block"
+    },
+    {
       "uuid": "assert_unique_api_uuid_block",
       "alias": "校验 API 标识唯一",
       "functionName": "assertUnique",
@@ -31,22 +35,40 @@
           "template": "{{request.body.originalUuid}}"
         },
         "message": "API 标识已存在。"
-      }
+      },
+      "nextBlock": "publish_api_json_controller"
+    },
+    {
+      "uuid": "publish_api_json_controller",
+      "alias": "按状态决定是否发布 API DSL",
+      "functionName": "switch_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{request.body.status}}"
+        },
+        "dataType": "string"
+      },
+      "nodes": [
+        {
+          "uuid": "publish_api_json_node",
+          "alias": "已发布状态",
+          "value": "published",
+          "nextBlock": "publish_api_json_to_r2_block"
+        },
+        {
+          "uuid": "skip_api_json_publish_node",
+          "alias": "非发布状态",
+          "type": "DEFAULT",
+          "nextBlock": "save_api_block"
+        }
+      ]
     },
     {
       "uuid": "publish_api_json_to_r2_block",
       "alias": "发布 API DSL 到 R2 Block",
       "functionName": "saveJsonToR2",
       "inputs": {
-        "enabled": {
-          "template": "{{request.body.status}}",
-          "processors": [
-            {
-              "processor": "equals",
-              "param": "published"
-            }
-          ]
-        },
         "directory": {
           "template": "{{request.body.status}}",
           "processors": [
@@ -75,7 +97,8 @@
             }
           ]
         }
-      }
+      },
+      "nextBlock": "save_api_block"
     },
     {
       "uuid": "save_api_block",
@@ -106,7 +129,10 @@
           }
         }
       },
-      "outputs": ["uuid"]
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "create_api_snapshot_block"
     },
     {
       "uuid": "create_api_snapshot_block",
@@ -134,7 +160,10 @@
           }
         }
       },
-      "outputs": ["uuid"]
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_api_block"
     },
     {
       "uuid": "read_api_block",
@@ -143,7 +172,15 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "apis",
-        "fields": ["uuid", "name", "method", "status", "api_json", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "method",
+          "status",
+          "api_json",
+          "created_at",
+          "updated_at"
+        ],
         "conditions": [
           {
             "group": false,
@@ -155,7 +192,10 @@
           }
         ]
       },
-      "outputs": ["data"]
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {

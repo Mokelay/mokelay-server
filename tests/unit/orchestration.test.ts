@@ -77,6 +77,10 @@ async function readApiJsonAsset(apiJsonUuid: string) {
   return JSON.parse(await readFile(resolve(process.cwd(), `server/assets/mokelay-apis/${apiJsonUuid}.json`), 'utf8')) as unknown
 }
 
+function emptyApiJsonBlocks() {
+  return [{ uuid: 'starter', nextBlock: null }]
+}
+
 function configureR2Env() {
   process.env.CLOUDFLARE_R2_ACCOUNT_ID = 'account-id'
   process.env.CLOUDFLARE_R2_ACCESS_KEY_ID = 'access-key-id'
@@ -414,7 +418,7 @@ describe('saveJsonToR2 publish processors', () => {
       alias: '发布自 API 编排',
       method: 'POST',
       request: { header: [], query: [], body: [] },
-      blocks: [],
+      blocks: emptyApiJsonBlocks(),
       response: null,
     }
 
@@ -428,32 +432,36 @@ describe('saveJsonToR2 publish processors', () => {
         uuid: 'publish_api_json_with_save_json',
         method: 'POST',
         request: { body: ['uuid', 'status', 'apiJson'] },
-        blocks: [{
-          uuid: 'publish',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            enabled: {
-              template: '{{request.body.status}}',
-              processors: [{ processor: 'equals', param: 'published' }],
+        blocks: [
+          { uuid: 'starter', nextBlock: 'publish' },
+          {
+            uuid: 'publish',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              enabled: {
+                template: '{{request.body.status}}',
+                processors: [{ processor: 'equals', param: 'published' }],
+              },
+              directory: {
+                template: '{{request.body.status}}',
+                processors: [{ processor: 'env_value', param: 'MOKELAY_APIS_R2_PREFIX' }],
+              },
+              fileName: { template: '{{request.body.uuid}}.json' },
+              data: {
+                template: '{{request.body.apiJson}}',
+                processors: [{
+                  processor: 'api_json_when_published',
+                  param: {
+                    uuid: { template: '{{request.body.uuid}}' },
+                    status: { template: '{{request.body.status}}' },
+                  },
+                }],
+              },
             },
-            directory: {
-              template: '{{request.body.status}}',
-              processors: [{ processor: 'env_value', param: 'MOKELAY_APIS_R2_PREFIX' }],
-            },
-            fileName: { template: '{{request.body.uuid}}.json' },
-            data: {
-              template: '{{request.body.apiJson}}',
-              processors: [{
-                processor: 'api_json_when_published',
-                param: {
-                  uuid: { template: '{{request.body.uuid}}' },
-                  status: { template: '{{request.body.status}}' },
-                },
-              }],
-            },
+            outputs: ['key', 'skipped'],
+            nextBlock: null,
           },
-          outputs: ['key', 'skipped'],
-        }],
+        ],
         response: {
           key: { template: "{{blocks['publish'].outputs.key}}" },
           skipped: { template: "{{blocks['publish'].outputs.skipped}}" },
@@ -507,32 +515,36 @@ describe('saveJsonToR2 publish processors', () => {
         uuid: 'skip_draft_publish',
         method: 'POST',
         request: { body: ['uuid', 'status', 'apiJson'] },
-        blocks: [{
-          uuid: 'publish',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            enabled: {
-              template: '{{request.body.status}}',
-              processors: [{ processor: 'equals', param: 'published' }],
+        blocks: [
+          { uuid: 'starter', nextBlock: 'publish' },
+          {
+            uuid: 'publish',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              enabled: {
+                template: '{{request.body.status}}',
+                processors: [{ processor: 'equals', param: 'published' }],
+              },
+              directory: {
+                template: '{{request.body.status}}',
+                processors: [{ processor: 'env_value', param: 'MOKELAY_APIS_R2_PREFIX' }],
+              },
+              fileName: { template: '{{request.body.uuid}}.json' },
+              data: {
+                template: '{{request.body.apiJson}}',
+                processors: [{
+                  processor: 'api_json_when_published',
+                  param: {
+                    uuid: { template: '{{request.body.uuid}}' },
+                    status: { template: '{{request.body.status}}' },
+                  },
+                }],
+              },
             },
-            directory: {
-              template: '{{request.body.status}}',
-              processors: [{ processor: 'env_value', param: 'MOKELAY_APIS_R2_PREFIX' }],
-            },
-            fileName: { template: '{{request.body.uuid}}.json' },
-            data: {
-              template: '{{request.body.apiJson}}',
-              processors: [{
-                processor: 'api_json_when_published',
-                param: {
-                  uuid: { template: '{{request.body.uuid}}' },
-                  status: { template: '{{request.body.status}}' },
-                },
-              }],
-            },
+            outputs: ['key', 'skipped'],
+            nextBlock: null,
           },
-          outputs: ['key', 'skipped'],
-        }],
+        ],
         response: {
           key: { template: "{{blocks['publish'].outputs.key}}" },
           skipped: { template: "{{blocks['publish'].outputs.skipped}}" },
@@ -550,7 +562,7 @@ describe('saveJsonToR2 publish processors', () => {
           apiJson: {
             uuid: 'draft_from_builder',
             method: 'POST',
-            blocks: [],
+            blocks: emptyApiJsonBlocks(),
             response: null,
           },
         }),
@@ -580,11 +592,15 @@ describe('saveJsonToR2 publish processors', () => {
       loadApiJson: async () => ({
         uuid: 'removed_publish_block',
         method: 'POST',
-        blocks: [{
-          uuid: 'publish',
-          functionName: 'publishApiJsonToR2',
-          inputs: {},
-        }],
+        blocks: [
+          { uuid: 'starter', nextBlock: 'publish' },
+          {
+            uuid: 'publish',
+            functionName: 'publishApiJsonToR2',
+            inputs: {},
+            nextBlock: null,
+          },
+        ],
         response: { ok: true },
       }),
     }))
@@ -624,14 +640,18 @@ describe('saveJsonToR2 block', () => {
       loadApiJson: async () => ({
         uuid: 'disabled_r2_save',
         method: 'POST',
-        blocks: [{
-          uuid: 'save',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            enabled: false,
+        blocks: [
+          { uuid: 'starter', nextBlock: 'save' },
+          {
+            uuid: 'save',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              enabled: false,
+            },
+            outputs: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag', 'skipped'],
+            nextBlock: null,
           },
-          outputs: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag', 'skipped'],
-        }],
+        ],
         response: {
           key: { template: "{{blocks['save'].outputs.key}}" },
           directory: { template: "{{blocks['save'].outputs.directory}}" },
@@ -739,16 +759,20 @@ describe('saveJsonToR2 block', () => {
         uuid: 'save_json_string',
         method: 'POST',
         request: { body: ['data'] },
-        blocks: [{
-          uuid: 'save',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            directory: 'snapshots',
-            fileName: 'payload.json',
-            data: { template: '{{request.body.data}}' },
+        blocks: [
+          { uuid: 'starter', nextBlock: 'save' },
+          {
+            uuid: 'save',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              directory: 'snapshots',
+              fileName: 'payload.json',
+              data: { template: '{{request.body.data}}' },
+            },
+            outputs: ['key', 'etag'],
+            nextBlock: null,
           },
-          outputs: ['key', 'etag'],
-        }],
+        ],
         response: {
           key: { template: "{{blocks['save'].outputs.key}}" },
           etag: { template: "{{blocks['save'].outputs.etag}}" },
@@ -851,14 +875,18 @@ describe('saveJsonToR2 block', () => {
       loadApiJson: async () => ({
         uuid: 'missing_r2_file_name',
         method: 'POST',
-        blocks: [{
-          uuid: 'save',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            directory: 'user-json/forms',
-            data: { ok: true },
+        blocks: [
+          { uuid: 'starter', nextBlock: 'save' },
+          {
+            uuid: 'save',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              directory: 'user-json/forms',
+              data: { ok: true },
+            },
+            nextBlock: null,
           },
-        }],
+        ],
         response: { ok: true },
       }),
     }))
@@ -885,15 +913,19 @@ describe('saveJsonToR2 block', () => {
       loadApiJson: async () => ({
         uuid: 'invalid_r2_directory',
         method: 'POST',
-        blocks: [{
-          uuid: 'save',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            directory: 'user-json//forms',
-            fileName: 'payload.json',
-            data: { ok: true },
+        blocks: [
+          { uuid: 'starter', nextBlock: 'save' },
+          {
+            uuid: 'save',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              directory: 'user-json//forms',
+              fileName: 'payload.json',
+              data: { ok: true },
+            },
+            nextBlock: null,
           },
-        }],
+        ],
         response: { ok: true },
       }),
     }))
@@ -920,15 +952,19 @@ describe('saveJsonToR2 block', () => {
       loadApiJson: async () => ({
         uuid: 'invalid_r2_file_name',
         method: 'POST',
-        blocks: [{
-          uuid: 'save',
-          functionName: 'saveJsonToR2',
-          inputs: {
-            directory: 'user-json/forms',
-            fileName: 'nested/payload.json',
-            data: { ok: true },
+        blocks: [
+          { uuid: 'starter', nextBlock: 'save' },
+          {
+            uuid: 'save',
+            functionName: 'saveJsonToR2',
+            inputs: {
+              directory: 'user-json/forms',
+              fileName: 'nested/payload.json',
+              data: { ok: true },
+            },
+            nextBlock: null,
           },
-        }],
+        ],
         response: { ok: true },
       }),
     }))

@@ -3,10 +3,19 @@
   "alias": "更新页面区块接口",
   "method": "POST",
   "request": {
-    "query": ["uuid"],
-    "body": ["name", "blocks"]
+    "query": [
+      "uuid"
+    ],
+    "body": [
+      "name",
+      "blocks"
+    ]
   },
   "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "update_page_block"
+    },
     {
       "uuid": "update_page_block",
       "alias": "更新页面Block",
@@ -36,7 +45,10 @@
           }
         ]
       },
-      "outputs": ["affected"]
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": "read_page_block"
     },
     {
       "uuid": "read_page_block",
@@ -45,7 +57,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "pages",
-        "fields": ["uuid", "name", "blocks", "created_at", "updated_at"],
+        "fields": [
+          "uuid",
+          "name",
+          "blocks",
+          "created_at",
+          "updated_at"
+        ],
         "conditions": [
           {
             "group": false,
@@ -57,11 +75,14 @@
           }
         ]
       },
-      "outputs": ["data"]
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
     }
   ],
   "response": {
-    "affected":{
+    "affected": {
       "template": "{{blocks['update_page_block'].outputs.affected}}"
     },
     "page": {

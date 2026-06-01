@@ -3,137 +3,177 @@
   "alias": "注册接口",
   "method": "POST",
   "request": {
-      "body": [
+    "body": [
+      {
+        "key": "name",
+        "processors": [
+          "trim",
           {
-            "key":"name",
-            "processors":[
-              "trim",
-              {
-                "processor":"min",
-                "param":[1]
-              },{
-                "processor":"max",
-                "param":[120]
-              }
+            "processor": "min",
+            "param": [
+              1
             ]
-          },{
-            "key":"email",
-            "processors":[
-              "trim",
-              "is_not_null",
-              "email_check",
-              {
-                "processor":"max",
-                "param":[255]
-              }
-            ]
-          },{
-            "key":"password",
-            "processors":[
-              "is_not_null",
-              {
-                "processor":"min",
-                "param":[8]
-              },
-              {
-                "processor":"max",
-                "param":[128]
-              },{
-                "processor":"regex",
-                "param":"/[A-Za-z]/"
-              },{
-                "processor":"regex",
-                "param":"/[0-9]/"
-              },"hash_make"
+          },
+          {
+            "processor": "max",
+            "param": [
+              120
             ]
           }
-      ]
+        ]
+      },
+      {
+        "key": "email",
+        "processors": [
+          "trim",
+          "is_not_null",
+          "email_check",
+          {
+            "processor": "max",
+            "param": [
+              255
+            ]
+          }
+        ]
+      },
+      {
+        "key": "password",
+        "processors": [
+          "is_not_null",
+          {
+            "processor": "min",
+            "param": [
+              8
+            ]
+          },
+          {
+            "processor": "max",
+            "param": [
+              128
+            ]
+          },
+          {
+            "processor": "regex",
+            "param": "/[A-Za-z]/"
+          },
+          {
+            "processor": "regex",
+            "param": "/[0-9]/"
+          },
+          "hash_make"
+        ]
+      }
+    ]
   },
   "blocks": [
-      {
-          "uuid": "check_email_duplicate",
-          "alias": "检查Email是否有重复注册",
-          "functionName": "count",
-          "inputs": {
-              "datasource": "Mokelay",
-              "table": "users",
-              "conditions": [
-                  {
-                      "group": false,
-                      "conditionType": "EQ",
-                      "fieldName": "email",
-                      "fieldValue": {
-                          "template": "{{request.body.email}}"
-                      }
-                  }
-              ]
-          },
-          "outputs": [
-              {
-                "key":"total",
-                "processors":[
-                  {
-                    "processor":"eq",
-                    "param":[0]
-                  }
-                ]
-              }
-          ]
-      },{
-          "uuid": "create_user_info",
-          "alias": "创建用户信息",
-          "functionName": "create",
-          "inputs": {
-            "datasource": "Mokelay",
-            "table": "users",
-            "idField": "id",
-            "fields": {
-              "name": {
-                "template": "{{request.body.name}}"
-              },
-              "email": {
-                "template": "{{request.body.email}}"
-              },
-              "password_hash": {
-                "template": "{{request.body.password}}"
-              }
-            }
-          },
-          "outputs": ["uuid"]
-      },{
-        "uuid": "read_user_info",
-          "alias": "读取创建的用户信息",
-          "functionName": "read",
-          "inputs": {
-            "datasource": "Mokelay",
-            "table": "users",
-            "idField": "id",
-            "fields": ["id", "name", "email", "plan"],
-            "conditions": [{
-              "group": false,
-              "conditionType": "EQ",
-              "fieldName": "id",
-              "fieldValue": {
-                "template": "{{blocks['create_user_info'].outputs.uuid}}"
-              }
-            }]
-          },
-          "outputs": ["data"]
-      },{
-          "uuid": "set_user_session",
-          "alias": "保存用户信息到Session",
-          "functionName": "addSession",
-          "inputs": {
-            "key": "user",
-            "value": {
-              "template": "{{blocks['read_user_info'].outputs.data}}"
+    {
+      "uuid": "starter",
+      "nextBlock": "check_email_duplicate"
+    },
+    {
+      "uuid": "check_email_duplicate",
+      "alias": "检查Email是否有重复注册",
+      "functionName": "count",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "users",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "email",
+            "fieldValue": {
+              "template": "{{request.body.email}}"
             }
           }
-      }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "total",
+          "processors": [
+            {
+              "processor": "eq",
+              "param": [
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "nextBlock": "create_user_info"
+    },
+    {
+      "uuid": "create_user_info",
+      "alias": "创建用户信息",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "users",
+        "idField": "id",
+        "fields": {
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "email": {
+            "template": "{{request.body.email}}"
+          },
+          "password_hash": {
+            "template": "{{request.body.password}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_user_info"
+    },
+    {
+      "uuid": "read_user_info",
+      "alias": "读取创建的用户信息",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "users",
+        "idField": "id",
+        "fields": [
+          "id",
+          "name",
+          "email",
+          "plan"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{blocks['create_user_info'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "set_user_session"
+    },
+    {
+      "uuid": "set_user_session",
+      "alias": "保存用户信息到Session",
+      "functionName": "addSession",
+      "inputs": {
+        "key": "user",
+        "value": {
+          "template": "{{blocks['read_user_info'].outputs.data}}"
+        }
+      },
+      "nextBlock": null
+    }
   ],
   "response": {
-      "user": {
-          "template": "{{blocks['read_user_info'].outputs.data}}"
-      }
+    "user": {
+      "template": "{{blocks['read_user_info'].outputs.data}}"
+    }
   }
 }
