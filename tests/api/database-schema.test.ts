@@ -69,6 +69,7 @@ describe('database schema API', () => {
         columns: [
           { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
           { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+          { name: 'layout', type: 'jsonb', dataType: 'jsonb' },
         ],
       },
       {
@@ -106,6 +107,7 @@ describe('database schema API', () => {
           columns: [
             { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
             { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+            { name: 'layout', type: 'jsonb', dataType: 'jsonb' },
           ],
         },
         {

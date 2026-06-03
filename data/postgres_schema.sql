@@ -84,6 +84,7 @@ CREATE TABLE public.apis (
     method character varying(16) NOT NULL,
     status character varying(32) DEFAULT 'draft'::character varying NOT NULL,
     api_json jsonb NOT NULL,
+    layout jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );

@@ -28,6 +28,7 @@ CREATE TABLE `apis` (
   `method` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
   `api_json` json NOT NULL,
+  `layout` json NOT NULL DEFAULT (json_object()),
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`uuid`)

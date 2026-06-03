@@ -10,6 +10,9 @@
       "status",
       "apiJson",
       {
+        "key": "layout"
+      },
+      {
         "key": "originalUuid"
       }
     ]
@@ -124,6 +127,15 @@
           "api_json": {
             "template": "{{request.body.apiJson}}"
           },
+          "layout": {
+            "template": "{{request.body.layout}}",
+            "processors": [
+              {
+                "processor": "default_value",
+                "param": {}
+              }
+            ]
+          },
           "updated_at": {
             "template": "{{now}}"
           }
@@ -178,6 +190,7 @@
           "method",
           "status",
           "api_json",
+          "layout",
           "created_at",
           "updated_at"
         ],
@@ -214,6 +227,9 @@
       },
       "apiJson": {
         "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
+      },
+      "layout": {
+        "template": "{{blocks['read_api_block'].outputs.data.layout}}"
       },
       "createdAt": {
         "template": "{{blocks['read_api_block'].outputs.data.created_at}}"

@@ -6,6 +6,7 @@ describe('database schema utilities', () => {
     const tables = mapDatabaseSchemaRows([
       { tableName: 'apis', columnName: 'uuid', columnType: 'character varying(128)' },
       { tableName: 'apis', columnName: 'api_json', columnType: 'jsonb' },
+      { tableName: 'apis', columnName: 'layout', columnType: 'jsonb' },
       { tableName: 'apis_snapshot', columnName: 'id', columnType: 'uuid' },
       { tableName: 'apis_snapshot', columnName: 'api_uuid', columnType: 'character varying(128)' },
       { tableName: 'apis_snapshot', columnName: 'api_json', columnType: 'jsonb' },
@@ -21,6 +22,7 @@ describe('database schema utilities', () => {
         columns: [
           { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
           { name: 'api_json', type: 'jsonb', dataType: 'jsonb' },
+          { name: 'layout', type: 'jsonb', dataType: 'jsonb' },
         ],
       },
       {

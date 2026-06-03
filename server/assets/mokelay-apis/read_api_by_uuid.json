@@ -25,6 +25,7 @@
           "method",
           "status",
           "api_json",
+          "layout",
           "created_at",
           "updated_at"
         ],
@@ -61,6 +62,9 @@
       },
       "apiJson": {
         "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
+      },
+      "layout": {
+        "template": "{{blocks['read_api_block'].outputs.data.layout}}"
       },
       "createdAt": {
         "template": "{{blocks['read_api_block'].outputs.data.created_at}}"

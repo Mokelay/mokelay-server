@@ -165,6 +165,7 @@ type PublicApi = {
   method: string
   status: string
   apiJson?: Record<string, unknown>
+  layout?: Record<string, unknown>
   createdAt?: string
   updatedAt?: string
   created_at?: string
@@ -324,6 +325,7 @@ type ApiRow = {
   method: string
   status: string
   api_json: Record<string, unknown>
+  layout: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -479,6 +481,7 @@ class FakeSqlExecutor {
       method: 'GET',
       status: 'draft',
       api_json: {},
+      layout: {},
       created_at: now,
       updated_at: now,
     }
@@ -495,6 +498,7 @@ class FakeSqlExecutor {
         method: nextRow.method,
         status: nextRow.status,
         api_json: nextRow.api_json,
+        layout: nextRow.layout,
         updated_at: nextRow.updated_at,
       })
 
@@ -2121,6 +2125,13 @@ describe('mokelay orchestration API', () => {
       blocks: emptyApiJsonBlocks(),
       response: null,
     }
+    const loginLayout = {
+      version: 1,
+      nodes: {
+        read_user: { x: 220, y: 80 },
+        login_controller: { x: 460, y: 80 },
+      },
+    }
     const firstSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
       uuid: registerApiJson.uuid,
       name: 'users 注册接口',
@@ -2137,9 +2148,11 @@ describe('mokelay orchestration API', () => {
       method: 'POST',
       status: 'draft',
       apiJson: registerApiJson,
+      layout: {},
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
     })
+    expect(firstSaveBody.api?.layout).toEqual({})
     expect(fakeSqlExecutor.apiSnapshots).toHaveLength(1)
     expect(fakeSqlExecutor.apiSnapshots[0]).toMatchObject({
       api_uuid: 'register_users',
@@ -2157,9 +2170,13 @@ describe('mokelay orchestration API', () => {
       method: 'POST',
       status: 'published',
       apiJson: loginApiJson,
+      layout: loginLayout,
     })
+    const secondSaveBody = await readMokelayData<ApiResponse>(secondSaveResponse)
 
     expect(secondSaveResponse.status).toBe(200)
+    expect(secondSaveBody.api?.layout).toEqual(loginLayout)
+    expect(fakeSqlExecutor.apis.find((api) => api.uuid === 'login_users')?.layout).toEqual(loginLayout)
     expect(fakeSqlExecutor.apiSnapshots).toHaveLength(2)
     expect(fakeSqlExecutor.apiSnapshots[1]).toMatchObject({
       api_uuid: 'login_users',
@@ -2240,6 +2257,7 @@ describe('mokelay orchestration API', () => {
       updated_at: expect.any(String),
     }))
     expect(listBody.apis[0]).not.toHaveProperty('api_json')
+    expect(listBody.apis[0]).not.toHaveProperty('layout')
     expect(listBody.pagination).toEqual({
       page: 1,
       pageSize: 1,
