@@ -23,57 +23,64 @@ DROP TABLE IF EXISTS `apis`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `apis` (
-  `uuid` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `method` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
-  `api_json` json NOT NULL,
-  `layout` json NOT NULL DEFAULT (json_object()),
-  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`uuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` varchar(128) NOT NULL COMMENT 'API 唯一标识（业务键，如 save_api）',
+  `name` varchar(120) NOT NULL COMMENT 'API 名称',
+  `method` varchar(16) NOT NULL COMMENT 'HTTP 请求方法',
+  `status` varchar(32) NOT NULL DEFAULT 'draft' COMMENT '发布状态',
+  `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON',
+  `layout` json NOT NULL COMMENT 'API Builder 布局 JSON',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_apis_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `apis_snapshot`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `apis_snapshot` (
-  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT (uuid()),
-  `api_uuid` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `method` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `api_json` json NOT NULL,
-  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `api_uuid` varchar(128) NOT NULL COMMENT '关联 API 业务标识',
+  `name` varchar(120) NOT NULL COMMENT 'API 名称（快照时点）',
+  `method` varchar(16) NOT NULL COMMENT 'HTTP 请求方法（快照时点）',
+  `status` varchar(32) NOT NULL COMMENT '发布状态（快照时点）',
+  `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON（快照时点）',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '快照创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_apis_snapshot_api_uuid` (`api_uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 定义快照表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `pages` (
-  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT (uuid()),
-  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `blocks` json NOT NULL DEFAULT (json_array()),
-  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`uuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '页面唯一标识',
+  `name` varchar(120) NOT NULL COMMENT '页面名称',
+  `blocks` json NOT NULL COMMENT '页面 Block 配置 JSON',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pages_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='页面定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
-  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT (uuid()),
-  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password_hash` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `plan` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'free',
-  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '用户唯一标识',
+  `name` varchar(120) NOT NULL COMMENT '用户名称',
+  `email` varchar(255) NOT NULL COMMENT '登录邮箱',
+  `password_hash` text NOT NULL COMMENT '密码哈希',
+  `plan` varchar(32) NOT NULL DEFAULT 'free' COMMENT '订阅计划',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `users_email_unique` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `uk_users_uuid` (`uuid`),
+  UNIQUE KEY `uk_users_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
