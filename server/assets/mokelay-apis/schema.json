@@ -1,0 +1,35 @@
+{
+  "uuid": "schema",
+  "alias": "数据库 Schema 接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "datasource"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "schema_block"
+    },
+    {
+      "uuid": "schema_block",
+      "alias": "数据库 Schema Block",
+      "functionName": "schema",
+      "inputs": {
+        "datasource": {
+          "template": "{{request.query.datasource}}"
+        }
+      },
+      "outputs": [
+        "tables"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "tables": {
+      "template": "{{blocks['schema_block'].outputs.tables}}"
+    }
+  }
+}
