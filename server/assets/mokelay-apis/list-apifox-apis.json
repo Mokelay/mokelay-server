@@ -1,0 +1,55 @@
+{
+  "uuid": "list-apifox-apis",
+  "alias": "APIFox 接口列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "projectId",
+      {
+        "key": "baseUrl"
+      },
+      {
+        "key": "locale"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_apifox_apis_block"
+    },
+    {
+      "uuid": "list_apifox_apis_block",
+      "alias": "APIFox 接口列表 Block",
+      "functionName": "listApifoxApis",
+      "inputs": {
+        "projectId": {
+          "template": "{{request.query.projectId}}"
+        },
+        "baseUrl": {
+          "template": "{{request.query.baseUrl}}"
+        },
+        "locale": {
+          "template": "{{request.query.locale}}"
+        }
+      },
+      "outputs": [
+        "apis",
+        "count",
+        "openapi"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "apis": {
+      "template": "{{blocks['list_apifox_apis_block'].outputs.apis}}"
+    },
+    "count": {
+      "template": "{{blocks['list_apifox_apis_block'].outputs.count}}"
+    },
+    "openapi": {
+      "template": "{{blocks['list_apifox_apis_block'].outputs.openapi}}"
+    }
+  }
+}
