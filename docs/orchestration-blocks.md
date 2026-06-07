@@ -1,6 +1,6 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。
+本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`、`analyzeDataSource`。
 
 编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
@@ -9,6 +9,8 @@
 `addSession`、`removeSession`、`readSession` 是 session block，使用独立签名 Cookie `mokelay_orchestration_session` 保存编排 session。
 
 `saveJsonToR2` 是 R2 JSON block，用于把请求或流程中的 JSON 数据保存到 Cloudflare R2，也用于 API Builder 发布时写入已发布 API DSL。
+
+`analyzeDataSource` 是 AI 数据源分析 block，用于识别用户输入或上传图片中的 JSON 数据或 HTTP API 信息。
 
 ## 错误响应
 
@@ -43,7 +45,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`。 |
+| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`、`analyzeDataSource`。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -64,6 +66,7 @@
 | `removeSession` | 无 |
 | `readSession` | `value` |
 | `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag`、`skipped` |
+| `analyzeDataSource` | `result` |
 
 ## 模板规则
 
@@ -1126,6 +1129,55 @@ inputs：
 | `size` | `number` | 写入内容的 UTF-8 字节数；跳过时为 `0`。 |
 | `etag` | `string \| null` | R2 返回的 ETag。 |
 | `skipped` | `boolean` | 是否因 `enabled=false` 跳过上传。 |
+
+## AI 数据源分析 Block
+
+`analyzeDataSource` 用于识别 JSON 数据或 HTTP API 信息。它复用 `OPENAI_API_KEY` 和可选 `OPENAI_MODEL` 配置。
+
+```json
+{
+  "uuid": "analyze_data_source_block",
+  "functionName": "analyzeDataSource",
+  "inputs": {
+    "prompt": {
+      "template": "{{request.body.prompt}}"
+    },
+    "userInput": {
+      "template": "{{request.body.userInput}}"
+    },
+    "image": {
+      "template": "{{request.body.image}}"
+    }
+  },
+  "outputs": ["result"]
+}
+```
+
+inputs：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `prompt` | `string` | 否 | 补充提示词，不替换默认数据源识别规则。 |
+| `userInput` | `string` | 否 | 用户输入的文本内容；不能超过 100KB。 |
+| `image` | `object` | 否 | 通过 `multipart/form-data` 上传的图片文件。只支持 JPEG、PNG、WebP，大小不能超过 10MB。 |
+
+必须至少提供 `userInput` 或 `image` 之一。JSON body 不支持传 `image` data URL；图片只能通过 multipart 文件字段上传。multipart 请求中普通字段会转成字符串，文件字段会转成 `{ data, mimeType, fileName, size }` 对象，且只读取 API JSON `request.body` 已声明的字段。
+
+固定 outputs：
+
+| 输出 | 类型 | 说明 |
+| --- | --- | --- |
+| `result` | `object` | 识别结果。JSON 数据返回 `{ type: "JSON", rawData }`；HTTP API 返回 `{ type: "API", domain, path, method, headerData, bodyData, queryData }`。 |
+
+错误码：
+
+| 错误码 | 说明 |
+| --- | --- |
+| `BLOCK_AI_INPUT_INVALID` | 输入为空、类型不对或超出大小/格式限制。 |
+| `BLOCK_AI_UNRECOGNIZED` | AI 无法从输入中识别出 JSON 数据或 API 信息。 |
+| `BLOCK_AI_CONFIG_MISSING` | 缺少或无效的 AI 服务配置，例如 `OPENAI_API_KEY` 或 `OPENAI_MODEL`。 |
+| `BLOCK_AI_PROVIDER_FAILED` | AI 服务调用失败。 |
+| `BLOCK_AI_OUTPUT_INVALID` | AI 返回结构无效或无法解析。 |
 
 ## API DSL 发布示例
 

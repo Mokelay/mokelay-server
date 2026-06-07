@@ -1,0 +1,47 @@
+{
+  "uuid": "analyze-data-source",
+  "alias": "AI 数据源分析接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "prompt"
+      },
+      {
+        "key": "userInput"
+      },
+      {
+        "key": "image"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "analyze_data_source_block"
+    },
+    {
+      "uuid": "analyze_data_source_block",
+      "alias": "AI 数据源分析 Block",
+      "functionName": "analyzeDataSource",
+      "inputs": {
+        "prompt": {
+          "template": "{{request.body.prompt}}"
+        },
+        "userInput": {
+          "template": "{{request.body.userInput}}"
+        },
+        "image": {
+          "template": "{{request.body.image}}"
+        }
+      },
+      "outputs": [
+        "result"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "template": "{{blocks['analyze_data_source_block'].outputs.result}}"
+  }
+}

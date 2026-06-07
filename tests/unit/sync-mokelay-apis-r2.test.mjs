@@ -43,6 +43,7 @@ describe('syncMokelayApisToR2', () => {
       .length
 
     expect(result.count).toBe(expectedCount)
+    expect(result.keys).toContain('mokelay-apis/analyze-data-source.json')
     expect(result.keys).toContain('mokelay-apis/delete_api_by_uuid.json')
     expect(result.keys).toContain('mokelay-apis/list_apis.json')
     expect(result.keys).toContain('mokelay-apis/login.json')
