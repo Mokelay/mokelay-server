@@ -19,7 +19,7 @@
     "@aws-sdk/client-s3": "^3.1053.0",
     "dotenv": "^17.4.2",
     "h3": "^1.15.4",
-    "mokelay-server-core": "^0.1.5",
+    "mokelay-server-core": "^0.1.9",
     "nitropack": "^2.12.9"
   },
   "devDependencies": {
