@@ -1,0 +1,51 @@
+{
+  "uuid": "list-apifox-projects",
+  "alias": "APIFox 项目列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "baseUrl"
+      },
+      {
+        "key": "locale"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_apifox_projects_block"
+    },
+    {
+      "uuid": "list_apifox_projects_block",
+      "alias": "APIFox 项目列表 Block",
+      "functionName": "listApifoxProjects",
+      "inputs": {
+        "baseUrl": {
+          "template": "{{request.query.baseUrl}}"
+        },
+        "locale": {
+          "template": "{{request.query.locale}}"
+        }
+      },
+      "outputs": [
+        "projects",
+        "count",
+        "raw"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "projects": {
+      "template": "{{blocks['list_apifox_projects_block'].outputs.projects}}"
+    },
+    "count": {
+      "template": "{{blocks['list_apifox_projects_block'].outputs.count}}"
+    },
+    "raw": {
+      "template": "{{blocks['list_apifox_projects_block'].outputs.raw}}"
+    }
+  }
+}
