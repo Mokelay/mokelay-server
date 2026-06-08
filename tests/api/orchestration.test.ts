@@ -2766,12 +2766,13 @@ describe('mokelay orchestration API', () => {
             databaseType,
             rows: [] as T[],
             affectedRows: 1,
-            insertId: 0,
+            insertId: 29,
           }
         }
 
         if (queryText.startsWith('SELECT')) {
           expect(params).toContain(insertedPage?.uuid)
+          expect(params).not.toContain(29)
 
           return {
             databaseType,
