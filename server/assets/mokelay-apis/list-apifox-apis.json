@@ -10,6 +10,12 @@
       },
       {
         "key": "locale"
+      },
+      {
+        "key": "folderId"
+      },
+      {
+        "key": "apiId"
       }
     ]
   },
@@ -31,6 +37,12 @@
         },
         "locale": {
           "template": "{{request.query.locale}}"
+        },
+        "folderId": {
+          "template": "{{request.query.folderId}}"
+        },
+        "apiId": {
+          "template": "{{request.query.apiId}}"
         }
       },
       "outputs": [
