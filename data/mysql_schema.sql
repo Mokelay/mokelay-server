@@ -19,6 +19,17 @@ CREATE TABLE `__drizzle_migrations` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `api_domains`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `api_domains` (
+  `uuid` varchar(128) NOT NULL COMMENT '域名唯一ID',
+  `alias` varchar(120) NOT NULL COMMENT '域名的描述名称',
+  `host` varchar(512) NOT NULL COMMENT '域名主机地址',
+  PRIMARY KEY (`uuid`),
+  UNIQUE KEY `uk_api_domains_host` (`host`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 域名列表表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `apis`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

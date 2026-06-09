@@ -31,6 +31,14 @@ INSERT INTO drizzle.__drizzle_migrations (id, hash, created_at) VALUES
 
 
 --
+-- Data for Name: api_domains; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+INSERT INTO public.api_domains (uuid, alias, host) VALUES
+	('mokelay', 'Mokelay 域名', 'https://api.mokelay.com');
+
+
+--
 -- Data for Name: apis; Type: TABLE DATA; Schema: public; Owner: -
 --
 

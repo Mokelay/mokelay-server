@@ -1,0 +1,39 @@
+{
+  "uuid": "list_api_domains",
+  "alias": "API 域名列表接口",
+  "method": "GET",
+  "request": {
+    "query": [],
+    "body": [],
+    "header": []
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_api_domains_block"
+    },
+    {
+      "uuid": "list_api_domains_block",
+      "alias": "API 域名列表 Block",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "api_domains",
+        "fields": [
+          "uuid",
+          "alias",
+          "host"
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "domains": {
+      "template": "{{blocks['list_api_domains_block'].outputs.datas}}"
+    }
+  }
+}

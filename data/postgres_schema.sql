@@ -75,6 +75,17 @@ ALTER SEQUENCE drizzle.__drizzle_migrations_id_seq OWNED BY drizzle.__drizzle_mi
 
 
 --
+-- Name: api_domains; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_domains (
+    uuid character varying(128) NOT NULL,
+    alias character varying(120) NOT NULL,
+    host text NOT NULL
+);
+
+
+--
 -- Name: apis; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -146,6 +157,22 @@ ALTER TABLE ONLY drizzle.__drizzle_migrations ALTER COLUMN id SET DEFAULT nextva
 
 ALTER TABLE ONLY drizzle.__drizzle_migrations
     ADD CONSTRAINT __drizzle_migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_domains api_domains_host_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_domains
+    ADD CONSTRAINT api_domains_host_unique UNIQUE (host);
+
+
+--
+-- Name: api_domains api_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_domains
+    ADD CONSTRAINT api_domains_pkey PRIMARY KEY (uuid);
 
 
 --
