@@ -1,0 +1,125 @@
+{
+  "uuid": "gitlab-commit",
+  "alias": "GitLab 远程提交示例接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "token"
+      },
+      {
+        "key": "projectId"
+      },
+      {
+        "key": "branch"
+      },
+      {
+        "key": "message"
+      },
+      {
+        "key": "files"
+      },
+      {
+        "key": "baseUrl"
+      },
+      {
+        "key": "authorName"
+      },
+      {
+        "key": "authorEmail"
+      },
+      {
+        "key": "expectedHeadSha"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "gitlab_commit_block"
+    },
+    {
+      "uuid": "gitlab_commit_block",
+      "alias": "GitLab 远程提交 Block",
+      "functionName": "gitlabCommit",
+      "inputs": {
+        "token": {
+          "template": "{{request.body.token}}"
+        },
+        "projectId": {
+          "template": "{{request.body.projectId}}"
+        },
+        "branch": {
+          "template": "{{request.body.branch}}"
+        },
+        "message": {
+          "template": "{{request.body.message}}"
+        },
+        "files": {
+          "template": "{{request.body.files}}"
+        },
+        "baseUrl": {
+          "template": "{{request.body.baseUrl}}"
+        },
+        "authorName": {
+          "template": "{{request.body.authorName}}"
+        },
+        "authorEmail": {
+          "template": "{{request.body.authorEmail}}"
+        },
+        "expectedHeadSha": {
+          "template": "{{request.body.expectedHeadSha}}"
+        }
+      },
+      "outputs": [
+        "provider",
+        "repo",
+        "projectId",
+        "branch",
+        "commitSha",
+        "commitUrl",
+        "treeSha",
+        "parentSha",
+        "fileCount",
+        "upsertedCount",
+        "deletedCount"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "provider": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.provider}}"
+    },
+    "repo": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.repo}}"
+    },
+    "projectId": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.projectId}}"
+    },
+    "branch": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.branch}}"
+    },
+    "commitSha": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.commitSha}}"
+    },
+    "commitUrl": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.commitUrl}}"
+    },
+    "treeSha": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.treeSha}}"
+    },
+    "parentSha": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.parentSha}}"
+    },
+    "fileCount": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.fileCount}}"
+    },
+    "upsertedCount": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.upsertedCount}}"
+    },
+    "deletedCount": {
+      "template": "{{blocks['gitlab_commit_block'].outputs.deletedCount}}"
+    }
+  }
+}

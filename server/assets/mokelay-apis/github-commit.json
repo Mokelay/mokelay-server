@@ -1,0 +1,125 @@
+{
+  "uuid": "github-commit",
+  "alias": "GitHub 远程提交示例接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "token"
+      },
+      {
+        "key": "repo"
+      },
+      {
+        "key": "branch"
+      },
+      {
+        "key": "message"
+      },
+      {
+        "key": "files"
+      },
+      {
+        "key": "apiBaseUrl"
+      },
+      {
+        "key": "authorName"
+      },
+      {
+        "key": "authorEmail"
+      },
+      {
+        "key": "expectedHeadSha"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "github_commit_block"
+    },
+    {
+      "uuid": "github_commit_block",
+      "alias": "GitHub 远程提交 Block",
+      "functionName": "githubCommit",
+      "inputs": {
+        "token": {
+          "template": "{{request.body.token}}"
+        },
+        "repo": {
+          "template": "{{request.body.repo}}"
+        },
+        "branch": {
+          "template": "{{request.body.branch}}"
+        },
+        "message": {
+          "template": "{{request.body.message}}"
+        },
+        "files": {
+          "template": "{{request.body.files}}"
+        },
+        "apiBaseUrl": {
+          "template": "{{request.body.apiBaseUrl}}"
+        },
+        "authorName": {
+          "template": "{{request.body.authorName}}"
+        },
+        "authorEmail": {
+          "template": "{{request.body.authorEmail}}"
+        },
+        "expectedHeadSha": {
+          "template": "{{request.body.expectedHeadSha}}"
+        }
+      },
+      "outputs": [
+        "provider",
+        "repo",
+        "projectId",
+        "branch",
+        "commitSha",
+        "commitUrl",
+        "treeSha",
+        "parentSha",
+        "fileCount",
+        "upsertedCount",
+        "deletedCount"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "provider": {
+      "template": "{{blocks['github_commit_block'].outputs.provider}}"
+    },
+    "repo": {
+      "template": "{{blocks['github_commit_block'].outputs.repo}}"
+    },
+    "projectId": {
+      "template": "{{blocks['github_commit_block'].outputs.projectId}}"
+    },
+    "branch": {
+      "template": "{{blocks['github_commit_block'].outputs.branch}}"
+    },
+    "commitSha": {
+      "template": "{{blocks['github_commit_block'].outputs.commitSha}}"
+    },
+    "commitUrl": {
+      "template": "{{blocks['github_commit_block'].outputs.commitUrl}}"
+    },
+    "treeSha": {
+      "template": "{{blocks['github_commit_block'].outputs.treeSha}}"
+    },
+    "parentSha": {
+      "template": "{{blocks['github_commit_block'].outputs.parentSha}}"
+    },
+    "fileCount": {
+      "template": "{{blocks['github_commit_block'].outputs.fileCount}}"
+    },
+    "upsertedCount": {
+      "template": "{{blocks['github_commit_block'].outputs.upsertedCount}}"
+    },
+    "deletedCount": {
+      "template": "{{blocks['github_commit_block'].outputs.deletedCount}}"
+    }
+  }
+}
