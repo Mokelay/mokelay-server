@@ -22,7 +22,7 @@ if (databaseProtocol !== 'postgres:' && databaseProtocol !== 'postgresql:') {
 }
 
 export default defineConfig({
-  schema: './node_modules/mokelay-server-core/dist/database/schema.js',
+  schema: './server/database/schema.ts',
   out: './server/database/migrations',
   dialect: 'postgresql',
   dbCredentials: {
