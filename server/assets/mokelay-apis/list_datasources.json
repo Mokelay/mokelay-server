@@ -17,7 +17,7 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "datasources",
-        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "fields": ["id", "uuid", "alias", "description", "schema_data"],
         "page": {
           "template": "{{request.query.page}}"
         },

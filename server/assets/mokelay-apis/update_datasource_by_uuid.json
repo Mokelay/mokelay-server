@@ -69,7 +69,7 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "datasources",
-        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "fields": ["id", "uuid", "alias", "description", "schema_data"],
         "conditions": [
           {
             "group": false,
@@ -102,8 +102,8 @@
       "description": {
         "template": "{{blocks['read_datasource_block'].outputs.data.description}}"
       },
-      "schema": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.schema}}"
+      "schema_data": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.schema_data}}"
       }
     }
   }

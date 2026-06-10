@@ -187,7 +187,7 @@ type PublicDatasource = {
   uuid: string
   alias: string
   description: string
-  schema: Array<{
+  schema_data: Array<{
     name: string
     columns: Array<{ name: string; type: string; dataType: string }>
   }>
@@ -375,7 +375,7 @@ type DatasourceRow = {
   uuid: string
   alias: string
   description: string
-  schema: PublicDatasource['schema']
+  schema_data: PublicDatasource['schema_data']
 }
 
 type ApiRow = {
@@ -598,7 +598,7 @@ class FakeSqlExecutor {
       uuid: `d${crypto.randomUUID().replaceAll('-', '').slice(0, 7)}`,
       alias: '',
       description: '',
-      schema: [],
+      schema_data: [],
     }
 
     columns.forEach((column, index) => {
@@ -2457,14 +2457,14 @@ describe('mokelay orchestration API', () => {
       uuid: 'analytic',
       alias: 'Analytics',
       description: 'Reporting database',
-      schema: [],
+      schema_data: [],
     })
     expect(secondDatasource).toMatchObject({
       id: 2,
       uuid: 'ops_db',
       alias: 'Operations',
       description: '',
-      schema: [],
+      schema_data: [],
     })
 
     const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_datasources?page=1&pageSize=1`)
@@ -2492,7 +2492,7 @@ describe('mokelay orchestration API', () => {
         uuid: firstDatasource?.uuid,
         alias: 'Analytics Primary',
         description: 'Updated description',
-        schema: [],
+        schema_data: [],
       },
     })
 
@@ -2506,7 +2506,7 @@ describe('mokelay orchestration API', () => {
     const syncBody = await readMokelayData<DatasourceResponse>(syncResponse)
 
     expect(syncResponse.status).toBe(200)
-    expect(syncBody.datasource?.schema).toEqual([
+    expect(syncBody.datasource?.schema_data).toEqual([
       {
         name: 'orders',
         columns: [
@@ -2521,7 +2521,7 @@ describe('mokelay orchestration API', () => {
         ],
       },
     ])
-    expect(fakeSqlExecutor.datasourceRows[0]?.schema).toEqual(syncBody.datasource?.schema)
+    expect(fakeSqlExecutor.datasourceRows[0]?.schema_data).toEqual(syncBody.datasource?.schema_data)
 
     process.env[`${firstDatasource?.uuid}_DATABASE_URL`] = ''
     const failedSyncResponse = await postJson(
@@ -2535,7 +2535,7 @@ describe('mokelay orchestration API', () => {
       'BLOCK_DATASOURCE_URL_MISSING',
       `${firstDatasource?.uuid}_DATABASE_URL is not configured.`,
     )
-    expect(fakeSqlExecutor.datasourceRows[0]?.schema).toEqual(syncBody.datasource?.schema)
+    expect(fakeSqlExecutor.datasourceRows[0]?.schema_data).toEqual(syncBody.datasource?.schema_data)
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay', firstDatasource?.uuid]))
   })
 

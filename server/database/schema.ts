@@ -31,7 +31,7 @@ export const datasources = pgTable('datasources', {
   uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
-  schema: jsonb('schema').$type<unknown[]>().notNull().default([]),
+  schemaData: jsonb('schema_data').$type<unknown[]>().notNull().default([]),
 })
 
 export const apiDomains = pgTable('api_domains', {

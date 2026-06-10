@@ -71,6 +71,13 @@
       "when": 1781069037026,
       "tag": "0009_empty_dracula",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781078684125,
+      "tag": "0010_pale_preak",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "datasources" RENAME COLUMN "schema" TO "schema_data";
