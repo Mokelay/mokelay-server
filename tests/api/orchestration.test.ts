@@ -182,6 +182,27 @@ type AppListResponse = {
   }
 }
 
+type PublicDatasource = {
+  id: number
+  uuid: string
+  alias: string
+  description: string
+  schema: Array<{
+    name: string
+    columns: Array<{ name: string; type: string; dataType: string }>
+  }>
+}
+
+type DatasourceResponse = {
+  datasource: PublicDatasource | null
+  affected?: number
+}
+
+type DatasourceListResponse = {
+  datasources: PublicDatasource[]
+  pagination: AppListResponse['pagination']
+}
+
 type PublicApi = {
   uuid: string
   name: string
@@ -349,6 +370,14 @@ type AppRow = {
   description: string
 }
 
+type DatasourceRow = {
+  id: number
+  uuid: string
+  alias: string
+  description: string
+  schema: PublicDatasource['schema']
+}
+
 type ApiRow = {
   uuid: string
   name: string
@@ -374,6 +403,7 @@ class FakeSqlExecutor {
   readonly users: UserRow[] = []
   readonly pages: PageRow[] = []
   readonly apps: AppRow[] = []
+  readonly datasourceRows: DatasourceRow[] = []
   readonly apis: ApiRow[] = []
   readonly apiSnapshots: ApiSnapshotRow[] = []
   readonly datasources: string[] = []
@@ -401,6 +431,10 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.insertApp<T>(queryText, params))
     }
 
+    if (queryText.startsWith('INSERT INTO "datasources"')) {
+      return this.result(databaseType, this.insertDatasource<T>(queryText, params))
+    }
+
     if (queryText.startsWith('INSERT INTO "apis"')) {
       return this.result(databaseType, this.upsertApi<T>(queryText, params))
     }
@@ -421,11 +455,27 @@ class FakeSqlExecutor {
       return this.result(databaseType, [{ total: this.filterApps(queryText, params).length }] as unknown as T[])
     }
 
+    if (queryText.startsWith('SELECT count(*)::int AS total FROM "datasources"')) {
+      return this.result(databaseType, [{ total: this.filterDatasourceRows(queryText, params).length }] as unknown as T[])
+    }
+
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "apis"')) {
       return this.result(databaseType, [{ total: this.filterApis(queryText, params).length }] as unknown as T[])
     }
 
     if (queryText.startsWith('SELECT')) {
+      if (queryText.includes('FROM pg_catalog.pg_class cls')) {
+        return this.result(databaseType, [
+          { tableName: 'orders', columnName: 'id', columnType: 'integer' },
+          { tableName: 'orders', columnName: 'total', columnType: 'numeric(12,2)' },
+          { tableName: 'users', columnName: 'uuid', columnType: 'uuid' },
+        ] as unknown as T[])
+      }
+
+      if (queryText.includes('FROM "datasources"')) {
+        return this.result(databaseType, this.selectDatasourceRows<T>(queryText, params))
+      }
+
       if (queryText.includes('FROM "apps"')) {
         return this.result(databaseType, this.selectApps<T>(queryText, params))
       }
@@ -447,6 +497,14 @@ class FakeSqlExecutor {
 
     if (queryText.startsWith('UPDATE "pages"')) {
       return this.result(databaseType, this.updatePages<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('UPDATE "apps"')) {
+      return this.result(databaseType, this.updateApps<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('UPDATE "datasources"')) {
+      return this.result(databaseType, this.updateDatasourceRows<T>(queryText, params))
     }
 
     if (queryText.startsWith('DELETE FROM "users"')) {
@@ -530,6 +588,24 @@ class FakeSqlExecutor {
 
     this.apps.push(row)
 
+    return [this.projectReturning(row, queryText)] as T[]
+  }
+
+  private insertDatasource<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'datasources')
+    const row: DatasourceRow = {
+      id: this.datasourceRows.length + 1,
+      uuid: `d${crypto.randomUUID().replaceAll('-', '').slice(0, 7)}`,
+      alias: '',
+      description: '',
+      schema: [],
+    }
+
+    columns.forEach((column, index) => {
+      row[column as keyof DatasourceRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    this.datasourceRows.push(row)
     return [this.projectReturning(row, queryText)] as T[]
   }
 
@@ -638,6 +714,21 @@ class FakeSqlExecutor {
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
 
+  private selectDatasourceRows<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const datasourceRows = this.filterDatasourceRows(queryText, params)
+    const sortedRows = queryText.includes('ORDER BY "id" DESC')
+      ? datasourceRows.sort((first, second) => second.id - first.id)
+      : datasourceRows
+    const rows = queryText.includes(' OFFSET ')
+      ? sortedRows.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      : queryText.includes(' LIMIT 1')
+        ? sortedRows.slice(0, 1)
+        : sortedRows
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
   private selectApis<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const fields = this.selectFields(queryText)
     const apis = this.filterApis(queryText, params)
@@ -699,6 +790,36 @@ class FakeSqlExecutor {
     return queryText.includes('affected_marker')
       ? pages.map(() => ({ affected_marker: 1 })) as unknown as T[]
       : pages.map((page) => this.projectReturning(page, queryText)) as T[]
+  }
+
+  private updateApps<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
+    const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
+    const setParamCount = setFields.length
+    const apps = this.filterApps(queryText, params.slice(setParamCount))
+
+    for (const app of apps) {
+      setFields.forEach((field, index) => {
+        app[field as keyof AppRow] = this.parseJsonParam(params[index]) as never
+      })
+    }
+
+    return apps.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
+  private updateDatasourceRows<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
+    const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
+    const setParamCount = setFields.length
+    const datasourceRows = this.filterDatasourceRows(queryText, params.slice(setParamCount))
+
+    for (const datasource of datasourceRows) {
+      setFields.forEach((field, index) => {
+        datasource[field as keyof DatasourceRow] = this.parseJsonParam(params[index]) as never
+      })
+    }
+
+    return datasourceRows.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
   private deleteUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -815,6 +936,24 @@ class FakeSqlExecutor {
     }
 
     return [...this.apps]
+  }
+
+  private filterDatasourceRows(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.datasourceRows]
+    }
+
+    if (queryText.includes('"id" =')) {
+      const id = Number(params.at(-1))
+      return this.datasourceRows.filter((datasource) => datasource.id === id)
+    }
+
+    if (queryText.includes('"uuid" =')) {
+      const uuid = params.at(-1)
+      return this.datasourceRows.filter((datasource) => datasource.uuid === uuid)
+    }
+
+    return [...this.datasourceRows]
   }
 
   private filterApis(queryText: string, params: unknown[]) {
@@ -1020,11 +1159,18 @@ async function createPage(baseUrl: string, input: { name: string, blocks: unknow
   return await readMokelayData<PageResponse>(response)
 }
 
-async function createMokelayApp(baseUrl: string, input: { alias: string, description?: string }) {
+async function createMokelayApp(baseUrl: string, input: { uuid: string, alias: string, description?: string }) {
   const response = await postJson(baseUrl, 'create_app', input)
 
   expect(response.status).toBe(200)
   return await readMokelayData<AppResponse>(response)
+}
+
+async function createMokelayDatasource(baseUrl: string, input: { uuid: string, alias: string, description?: string }) {
+  const response = await postJson(baseUrl, 'create_datasource', input)
+
+  expect(response.status).toBe(200)
+  return await readMokelayData<DatasourceResponse>(response)
 }
 
 describe('mokelay orchestration API', () => {
@@ -2211,10 +2357,12 @@ describe('mokelay orchestration API', () => {
 
   it('executes the stored app create and list API JSON definitions', async () => {
     const firstCreate = await createMokelayApp(testServer.baseUrl, {
+      uuid: 'launch',
       alias: '  Launch Pad  ',
       description: '  First app  ',
     })
     const secondCreate = await createMokelayApp(testServer.baseUrl, {
+      uuid: 'console',
       alias: 'Console',
       description: '',
     })
@@ -2223,13 +2371,13 @@ describe('mokelay orchestration API', () => {
 
     expect(firstApp).toMatchObject({
       id: 1,
-      uuid: expect.stringMatching(/^[0-9a-f]{8}$/),
+      uuid: 'launch',
       alias: 'Launch Pad',
       description: 'First app',
     })
     expect(secondApp).toMatchObject({
       id: 2,
-      uuid: expect.stringMatching(/^[0-9a-f]{8}$/),
+      uuid: 'console',
       alias: 'Console',
       description: '',
     })
@@ -2259,7 +2407,155 @@ describe('mokelay orchestration API', () => {
       hasPreviousPage: true,
       hasNextPage: false,
     })
+
+    const updateResponse = await postJson(testServer.baseUrl, 'update_app_by_uuid', {
+      alias: '  Launch Pad Updated  ',
+      description: '  Updated app  ',
+    }, '?uuid=launch')
+    const updateBody = await readMokelayData<AppResponse & { affected: number }>(updateResponse)
+
+    expect(updateBody).toMatchObject({
+      affected: 1,
+      app: {
+        id: 1,
+        uuid: 'launch',
+        alias: 'Launch Pad Updated',
+        description: 'Updated app',
+      },
+    })
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
+  })
+
+  it('requires an app UUID no longer than eight characters', async () => {
+    const missingUuidResponse = await postJson(testServer.baseUrl, 'create_app', {
+      alias: 'Missing UUID',
+    })
+    await expectMokelayError(missingUuidResponse, 'PROCESSOR_VALIDATION_FAILED')
+
+    const longUuidResponse = await postJson(testServer.baseUrl, 'create_app', {
+      uuid: 'more-than-eight',
+      alias: 'Long UUID',
+    })
+    await expectMokelayError(longUuidResponse, 'PROCESSOR_VALIDATION_FAILED')
+  })
+
+  it('executes datasource CRUD and schema sync API JSON definitions', async () => {
+    const firstCreate = await createMokelayDatasource(testServer.baseUrl, {
+      uuid: 'analytic',
+      alias: '  Analytics  ',
+      description: '  Reporting database  ',
+    })
+    const secondCreate = await createMokelayDatasource(testServer.baseUrl, {
+      uuid: 'ops_db',
+      alias: 'Operations',
+    })
+    const firstDatasource = firstCreate.datasource
+    const secondDatasource = secondCreate.datasource
+
+    expect(firstDatasource).toMatchObject({
+      id: 1,
+      uuid: 'analytic',
+      alias: 'Analytics',
+      description: 'Reporting database',
+      schema: [],
+    })
+    expect(secondDatasource).toMatchObject({
+      id: 2,
+      uuid: 'ops_db',
+      alias: 'Operations',
+      description: '',
+      schema: [],
+    })
+
+    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_datasources?page=1&pageSize=1`)
+    const listBody = await readMokelayData<DatasourceListResponse>(listResponse)
+
+    expect(listBody.datasources).toEqual([secondDatasource])
+    expect(listBody.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true,
+    })
+
+    const updateResponse = await postJson(testServer.baseUrl, 'update_datasource_by_uuid', {
+      alias: '  Analytics Primary  ',
+      description: '  Updated description  ',
+    }, `?uuid=${firstDatasource?.uuid}`)
+    const updateBody = await readMokelayData<DatasourceResponse>(updateResponse)
+
+    expect(updateBody).toMatchObject({
+      affected: 1,
+      datasource: {
+        uuid: firstDatasource?.uuid,
+        alias: 'Analytics Primary',
+        description: 'Updated description',
+        schema: [],
+      },
+    })
+
+    process.env[`${firstDatasource?.uuid}_DATABASE_URL`] = 'postgres://schema-unit-test'
+    const syncResponse = await postJson(
+      testServer.baseUrl,
+      'sync_datasource_schema',
+      {},
+      `?uuid=${firstDatasource?.uuid}`,
+    )
+    const syncBody = await readMokelayData<DatasourceResponse>(syncResponse)
+
+    expect(syncResponse.status).toBe(200)
+    expect(syncBody.datasource?.schema).toEqual([
+      {
+        name: 'orders',
+        columns: [
+          { name: 'id', type: 'integer', dataType: 'integer' },
+          { name: 'total', type: 'numeric(12,2)', dataType: 'numeric(12,2)' },
+        ],
+      },
+      {
+        name: 'users',
+        columns: [
+          { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+        ],
+      },
+    ])
+    expect(fakeSqlExecutor.datasourceRows[0]?.schema).toEqual(syncBody.datasource?.schema)
+
+    process.env[`${firstDatasource?.uuid}_DATABASE_URL`] = ''
+    const failedSyncResponse = await postJson(
+      testServer.baseUrl,
+      'sync_datasource_schema',
+      {},
+      `?uuid=${firstDatasource?.uuid}`,
+    )
+    await expectMokelayError(
+      failedSyncResponse,
+      'BLOCK_DATASOURCE_URL_MISSING',
+      `${firstDatasource?.uuid}_DATABASE_URL is not configured.`,
+    )
+    expect(fakeSqlExecutor.datasourceRows[0]?.schema).toEqual(syncBody.datasource?.schema)
+    expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay', firstDatasource?.uuid]))
+  })
+
+  it('requires a valid datasource UUID no longer than eight characters', async () => {
+    const missingUuidResponse = await postJson(testServer.baseUrl, 'create_datasource', {
+      alias: 'Missing UUID',
+    })
+    await expectMokelayError(missingUuidResponse, 'PROCESSOR_VALIDATION_FAILED')
+
+    const longUuidResponse = await postJson(testServer.baseUrl, 'create_datasource', {
+      uuid: 'more_than_8',
+      alias: 'Long UUID',
+    })
+    await expectMokelayError(longUuidResponse, 'PROCESSOR_VALIDATION_FAILED')
+
+    const invalidUuidResponse = await postJson(testServer.baseUrl, 'create_datasource', {
+      uuid: '1invalid',
+      alias: 'Invalid UUID',
+    })
+    await expectMokelayError(invalidUuidResponse, 'PROCESSOR_VALIDATION_FAILED')
   })
 
   it('executes the stored API builder CRUD JSON definitions', async () => {

@@ -74,6 +74,19 @@ CREATE TABLE `apps` (
   UNIQUE KEY `uk_apps_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='App 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `datasources`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `datasources` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` varchar(8) NOT NULL COMMENT '数据源唯一ID及数据库连接标识',
+  `alias` varchar(120) NOT NULL COMMENT '数据源名称',
+  `description` text NOT NULL COMMENT '数据源描述',
+  `schema` json NOT NULL DEFAULT (json_array()) COMMENT '数据库表和字段 Schema JSON',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_datasources_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='数据源定义表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

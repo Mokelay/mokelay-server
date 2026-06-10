@@ -21,9 +21,17 @@ export const pages = pgTable('pages', {
 
 export const apps = pgTable('apps', {
   id: serial('id').primaryKey(),
-  uuid: varchar('uuid', { length: 8 }).notNull().unique().default(sql`substr(md5(random()::text || clock_timestamp()::text), 1, 8)`),
+  uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
+})
+
+export const datasources = pgTable('datasources', {
+  id: serial('id').primaryKey(),
+  uuid: varchar('uuid', { length: 8 }).notNull().unique(),
+  alias: varchar('alias', { length: 120 }).notNull(),
+  description: text('description').notNull().default(''),
+  schema: jsonb('schema').$type<unknown[]>().notNull().default([]),
 })
 
 export const apiDomains = pgTable('api_domains', {
@@ -59,6 +67,8 @@ export type PageRecord = typeof pages.$inferSelect
 export type NewPageRecord = typeof pages.$inferInsert
 export type AppRecord = typeof apps.$inferSelect
 export type NewAppRecord = typeof apps.$inferInsert
+export type DatasourceRecord = typeof datasources.$inferSelect
+export type NewDatasourceRecord = typeof datasources.$inferInsert
 export type ApiDomainRecord = typeof apiDomains.$inferSelect
 export type NewApiDomainRecord = typeof apiDomains.$inferInsert
 export type ApiRecord = typeof apis.$inferSelect

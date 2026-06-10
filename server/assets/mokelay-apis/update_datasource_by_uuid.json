@@ -1,0 +1,110 @@
+{
+  "uuid": "update_datasource_by_uuid",
+  "alias": "修改数据源接口",
+  "method": "POST",
+  "request": {
+    "query": ["uuid"],
+    "body": [
+      {
+        "key": "alias",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [120]
+          }
+        ]
+      },
+      {
+        "key": "description",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": ""
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "update_datasource_block"
+    },
+    {
+      "uuid": "update_datasource_block",
+      "alias": "修改数据源 Block",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": {
+          "alias": {
+            "template": "{{request.body.alias}}"
+          },
+          "description": {
+            "template": "{{request.body.description}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["affected"],
+      "nextBlock": "read_datasource_block"
+    },
+    {
+      "uuid": "read_datasource_block",
+      "alias": "读取修改后的数据源 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "affected": {
+      "template": "{{blocks['update_datasource_block'].outputs.affected}}"
+    },
+    "datasource": {
+      "id": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.id}}"
+      },
+      "uuid": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
+      },
+      "alias": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.alias}}"
+      },
+      "description": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.description}}"
+      },
+      "schema": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.schema}}"
+      }
+    }
+  }
+}

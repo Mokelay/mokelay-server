@@ -1,0 +1,63 @@
+{
+  "uuid": "list_datasources",
+  "alias": "数据源列表接口",
+  "method": "GET",
+  "request": {
+    "query": ["page", "pageSize"]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_datasources_block"
+    },
+    {
+      "uuid": "list_datasources_block",
+      "alias": "数据源分页 Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "orderBy": [
+          {
+            "fieldName": "id",
+            "direction": "DESC"
+          }
+        ]
+      },
+      "outputs": ["datas", "total", "totalPages", "page", "pageSize", "hasPreviousPage", "hasNextPage"],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "datasources": {
+      "template": "{{blocks['list_datasources_block'].outputs.datas}}"
+    },
+    "pagination": {
+      "page": {
+        "template": "{{blocks['list_datasources_block'].outputs.page}}"
+      },
+      "pageSize": {
+        "template": "{{blocks['list_datasources_block'].outputs.pageSize}}"
+      },
+      "total": {
+        "template": "{{blocks['list_datasources_block'].outputs.total}}"
+      },
+      "totalPages": {
+        "template": "{{blocks['list_datasources_block'].outputs.totalPages}}"
+      },
+      "hasPreviousPage": {
+        "template": "{{blocks['list_datasources_block'].outputs.hasPreviousPage}}"
+      },
+      "hasNextPage": {
+        "template": "{{blocks['list_datasources_block'].outputs.hasNextPage}}"
+      }
+    }
+  }
+}

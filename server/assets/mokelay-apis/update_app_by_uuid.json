@@ -1,22 +1,12 @@
 {
-  "uuid": "create_app",
-  "alias": "创建 App 接口",
+  "uuid": "update_app_by_uuid",
+  "alias": "修改 App 接口",
   "method": "POST",
   "request": {
+    "query": [
+      "uuid"
+    ],
     "body": [
-      {
-        "key": "uuid",
-        "processors": [
-          "trim",
-          "is_not_null",
-          {
-            "processor": "max",
-            "param": [
-              8
-            ]
-          }
-        ]
-      },
       {
         "key": "alias",
         "processors": [
@@ -45,36 +35,42 @@
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "create_app_block"
+      "nextBlock": "update_app_block"
     },
     {
-      "uuid": "create_app_block",
-      "alias": "创建 App Block",
-      "functionName": "create",
+      "uuid": "update_app_block",
+      "alias": "修改 App Block",
+      "functionName": "update",
       "inputs": {
         "datasource": "Mokelay",
         "table": "apps",
-        "idField": "id",
         "fields": {
-          "uuid": {
-            "template": "{{request.body.uuid}}"
-          },
           "alias": {
             "template": "{{request.body.alias}}"
           },
           "description": {
             "template": "{{request.body.description}}"
           }
-        }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
       },
       "outputs": [
-        "uuid"
+        "affected"
       ],
       "nextBlock": "read_app_block"
     },
     {
       "uuid": "read_app_block",
-      "alias": "读取 App Block",
+      "alias": "读取修改后的 App Block",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
@@ -89,9 +85,9 @@
           {
             "group": false,
             "conditionType": "EQ",
-            "fieldName": "id",
+            "fieldName": "uuid",
             "fieldValue": {
-              "template": "{{blocks['create_app_block'].outputs.uuid}}"
+              "template": "{{request.query.uuid}}"
             }
           }
         ]
@@ -103,6 +99,9 @@
     }
   ],
   "response": {
+    "affected": {
+      "template": "{{blocks['update_app_block'].outputs.affected}}"
+    },
     "app": {
       "id": {
         "template": "{{blocks['read_app_block'].outputs.data.id}}"

@@ -1,0 +1,123 @@
+{
+  "uuid": "sync_datasource_schema",
+  "alias": "同步数据源 Schema 接口",
+  "method": "POST",
+  "request": {
+    "query": ["uuid"]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_datasource_block"
+    },
+    {
+      "uuid": "read_datasource_block",
+      "alias": "读取数据源 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": ["is_not_null"]
+        }
+      ],
+      "nextBlock": "schema_block"
+    },
+    {
+      "uuid": "schema_block",
+      "alias": "读取数据库 Schema Block",
+      "functionName": "schema",
+      "inputs": {
+        "datasource": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
+        }
+      },
+      "outputs": ["tables"],
+      "nextBlock": "update_datasource_schema_block"
+    },
+    {
+      "uuid": "update_datasource_schema_block",
+      "alias": "保存数据源 Schema Block",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": {
+          "schema": {
+            "template": "{{blocks['schema_block'].outputs.tables}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["affected"],
+      "nextBlock": "read_synced_datasource_block"
+    },
+    {
+      "uuid": "read_synced_datasource_block",
+      "alias": "读取同步后的数据源 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": ["id", "uuid", "alias", "description", "schema"],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": ["data"],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "affected": {
+      "template": "{{blocks['update_datasource_schema_block'].outputs.affected}}"
+    },
+    "datasource": {
+      "id": {
+        "template": "{{blocks['read_synced_datasource_block'].outputs.data.id}}"
+      },
+      "uuid": {
+        "template": "{{blocks['read_synced_datasource_block'].outputs.data.uuid}}"
+      },
+      "alias": {
+        "template": "{{blocks['read_synced_datasource_block'].outputs.data.alias}}"
+      },
+      "description": {
+        "template": "{{blocks['read_synced_datasource_block'].outputs.data.description}}"
+      },
+      "schema": {
+        "template": "{{blocks['read_synced_datasource_block'].outputs.data.schema}}"
+      }
+    }
+  }
+}

@@ -122,7 +122,7 @@ CREATE TABLE public.apis_snapshot (
 
 CREATE TABLE public.apps (
     id integer NOT NULL,
-    uuid character varying(8) DEFAULT substr(md5(((random())::text || (clock_timestamp())::text)), 1, 8) NOT NULL,
+    uuid character varying(8) NOT NULL,
     alias character varying(120) NOT NULL,
     description text DEFAULT ''::text NOT NULL
 );
@@ -146,6 +146,39 @@ CREATE SEQUENCE public.apps_id_seq
 --
 
 ALTER SEQUENCE public.apps_id_seq OWNED BY public.apps.id;
+
+
+--
+-- Name: datasources; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.datasources (
+    id integer NOT NULL,
+    uuid character varying(8) NOT NULL,
+    alias character varying(120) NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    schema jsonb DEFAULT '[]'::jsonb NOT NULL
+);
+
+
+--
+-- Name: datasources_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.datasources_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: datasources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.datasources_id_seq OWNED BY public.datasources.id;
 
 
 --
@@ -188,6 +221,13 @@ ALTER TABLE ONLY drizzle.__drizzle_migrations ALTER COLUMN id SET DEFAULT nextva
 --
 
 ALTER TABLE ONLY public.apps ALTER COLUMN id SET DEFAULT nextval('public.apps_id_seq'::regclass);
+
+
+--
+-- Name: datasources id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.datasources ALTER COLUMN id SET DEFAULT nextval('public.datasources_id_seq'::regclass);
 
 
 --
@@ -244,6 +284,22 @@ ALTER TABLE ONLY public.apps
 
 ALTER TABLE ONLY public.apps
     ADD CONSTRAINT apps_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: datasources datasources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.datasources
+    ADD CONSTRAINT datasources_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: datasources datasources_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.datasources
+    ADD CONSTRAINT datasources_uuid_unique UNIQUE (uuid);
 
 
 --

@@ -1,6 +1,6 @@
 {
-  "uuid": "create_app",
-  "alias": "创建 App 接口",
+  "uuid": "create_datasource",
+  "alias": "创建数据源接口",
   "method": "POST",
   "request": {
     "body": [
@@ -11,9 +11,11 @@
           "is_not_null",
           {
             "processor": "max",
-            "param": [
-              8
-            ]
+            "param": [8]
+          },
+          {
+            "processor": "regex",
+            "param": "^[A-Za-z_][A-Za-z0-9_]*$"
           }
         ]
       },
@@ -24,9 +26,7 @@
           "is_not_null",
           {
             "processor": "max",
-            "param": [
-              120
-            ]
+            "param": [120]
           }
         ]
       },
@@ -45,15 +45,15 @@
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "create_app_block"
+      "nextBlock": "create_datasource_block"
     },
     {
-      "uuid": "create_app_block",
-      "alias": "创建 App Block",
+      "uuid": "create_datasource_block",
+      "alias": "创建数据源 Block",
       "functionName": "create",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "apps",
+        "table": "datasources",
         "idField": "id",
         "fields": {
           "uuid": {
@@ -67,54 +67,48 @@
           }
         }
       },
-      "outputs": [
-        "uuid"
-      ],
-      "nextBlock": "read_app_block"
+      "outputs": ["uuid"],
+      "nextBlock": "read_datasource_block"
     },
     {
-      "uuid": "read_app_block",
-      "alias": "读取 App Block",
+      "uuid": "read_datasource_block",
+      "alias": "读取数据源 Block",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "apps",
-        "fields": [
-          "id",
-          "uuid",
-          "alias",
-          "description"
-        ],
+        "table": "datasources",
+        "fields": ["id", "uuid", "alias", "description", "schema"],
         "conditions": [
           {
             "group": false,
             "conditionType": "EQ",
             "fieldName": "id",
             "fieldValue": {
-              "template": "{{blocks['create_app_block'].outputs.uuid}}"
+              "template": "{{blocks['create_datasource_block'].outputs.uuid}}"
             }
           }
         ]
       },
-      "outputs": [
-        "data"
-      ],
+      "outputs": ["data"],
       "nextBlock": null
     }
   ],
   "response": {
-    "app": {
+    "datasource": {
       "id": {
-        "template": "{{blocks['read_app_block'].outputs.data.id}}"
+        "template": "{{blocks['read_datasource_block'].outputs.data.id}}"
       },
       "uuid": {
-        "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
+        "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
       },
       "alias": {
-        "template": "{{blocks['read_app_block'].outputs.data.alias}}"
+        "template": "{{blocks['read_datasource_block'].outputs.data.alias}}"
       },
       "description": {
-        "template": "{{blocks['read_app_block'].outputs.data.description}}"
+        "template": "{{blocks['read_datasource_block'].outputs.data.description}}"
+      },
+      "schema": {
+        "template": "{{blocks['read_datasource_block'].outputs.data.schema}}"
       }
     }
   }
