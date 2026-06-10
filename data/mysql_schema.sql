@@ -62,6 +62,18 @@ CREATE TABLE `apis_snapshot` (
   KEY `idx_apis_snapshot_api_uuid` (`api_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 定义快照表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `apps`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `apps` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` varchar(8) NOT NULL COMMENT 'App 唯一ID',
+  `alias` varchar(120) NOT NULL COMMENT 'App 名称',
+  `description` text NOT NULL COMMENT 'App 描述',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_apps_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='App 定义表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

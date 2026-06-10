@@ -1,0 +1,105 @@
+{
+  "uuid": "create_app",
+  "alias": "创建 App 接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "alias",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "key": "description",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": ""
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "create_app_block"
+    },
+    {
+      "uuid": "create_app_block",
+      "alias": "创建 App Block",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "idField": "id",
+        "fields": {
+          "alias": {
+            "template": "{{request.body.alias}}"
+          },
+          "description": {
+            "template": "{{request.body.description}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_app_block"
+    },
+    {
+      "uuid": "read_app_block",
+      "alias": "读取 App Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "id",
+            "fieldValue": {
+              "template": "{{blocks['create_app_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "app": {
+      "id": {
+        "template": "{{blocks['read_app_block'].outputs.data.id}}"
+      },
+      "uuid": {
+        "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
+      },
+      "alias": {
+        "template": "{{blocks['read_app_block'].outputs.data.alias}}"
+      },
+      "description": {
+        "template": "{{blocks['read_app_block'].outputs.data.description}}"
+      }
+    }
+  }
+}

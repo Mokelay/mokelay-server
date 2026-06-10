@@ -159,6 +159,29 @@ type PageListResponse = {
   }
 }
 
+type PublicApp = {
+  id: number
+  uuid: string
+  alias: string
+  description: string
+}
+
+type AppResponse = {
+  app: PublicApp | null
+}
+
+type AppListResponse = {
+  apps: PublicApp[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+    hasPreviousPage: boolean
+    hasNextPage: boolean
+  }
+}
+
 type PublicApi = {
   uuid: string
   name: string
@@ -319,6 +342,13 @@ type PageRow = {
   updated_at: string
 }
 
+type AppRow = {
+  id: number
+  uuid: string
+  alias: string
+  description: string
+}
+
 type ApiRow = {
   uuid: string
   name: string
@@ -343,6 +373,7 @@ type ApiSnapshotRow = {
 class FakeSqlExecutor {
   readonly users: UserRow[] = []
   readonly pages: PageRow[] = []
+  readonly apps: AppRow[] = []
   readonly apis: ApiRow[] = []
   readonly apiSnapshots: ApiSnapshotRow[] = []
   readonly datasources: string[] = []
@@ -366,6 +397,10 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.insertPage<T>(queryText, params))
     }
 
+    if (queryText.startsWith('INSERT INTO "apps"')) {
+      return this.result(databaseType, this.insertApp<T>(queryText, params))
+    }
+
     if (queryText.startsWith('INSERT INTO "apis"')) {
       return this.result(databaseType, this.upsertApi<T>(queryText, params))
     }
@@ -382,11 +417,19 @@ class FakeSqlExecutor {
       return this.result(databaseType, [{ total: this.filterPages(queryText, params).length }] as unknown as T[])
     }
 
+    if (queryText.startsWith('SELECT count(*)::int AS total FROM "apps"')) {
+      return this.result(databaseType, [{ total: this.filterApps(queryText, params).length }] as unknown as T[])
+    }
+
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "apis"')) {
       return this.result(databaseType, [{ total: this.filterApis(queryText, params).length }] as unknown as T[])
     }
 
     if (queryText.startsWith('SELECT')) {
+      if (queryText.includes('FROM "apps"')) {
+        return this.result(databaseType, this.selectApps<T>(queryText, params))
+      }
+
       if (queryText.includes('FROM "apis"')) {
         return this.result(databaseType, this.selectApis<T>(queryText, params))
       }
@@ -468,6 +511,24 @@ class FakeSqlExecutor {
     })
 
     this.pages.push(row)
+
+    return [this.projectReturning(row, queryText)] as T[]
+  }
+
+  private insertApp<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'apps')
+    const row: AppRow = {
+      id: this.apps.length + 1,
+      uuid: crypto.randomUUID().replaceAll('-', '').slice(0, 8),
+      alias: '',
+      description: '',
+    }
+
+    columns.forEach((column, index) => {
+      row[column as keyof AppRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    this.apps.push(row)
 
     return [this.projectReturning(row, queryText)] as T[]
   }
@@ -558,6 +619,21 @@ class FakeSqlExecutor {
       : queryText.includes(' LIMIT 1')
         ? sortedPages.slice(0, 1)
         : sortedPages
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
+  private selectApps<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const apps = this.filterApps(queryText, params)
+    const sortedApps = queryText.includes('ORDER BY "id" DESC')
+      ? apps.sort((firstApp, secondApp) => secondApp.id - firstApp.id)
+      : apps
+    const rows = queryText.includes(' OFFSET ')
+      ? sortedApps.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      : queryText.includes(' LIMIT 1')
+        ? sortedApps.slice(0, 1)
+        : sortedApps
 
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
@@ -721,6 +797,24 @@ class FakeSqlExecutor {
     }
 
     return [...this.pages]
+  }
+
+  private filterApps(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.apps]
+    }
+
+    if (queryText.includes('"id" =')) {
+      const id = Number(params.at(-1))
+      return this.apps.filter((app) => app.id === id)
+    }
+
+    if (queryText.includes('"uuid" =')) {
+      const uuid = params.at(-1)
+      return this.apps.filter((app) => app.uuid === uuid)
+    }
+
+    return [...this.apps]
   }
 
   private filterApis(queryText: string, params: unknown[]) {
@@ -924,6 +1018,13 @@ async function createPage(baseUrl: string, input: { name: string, blocks: unknow
 
   expect(response.status).toBe(200)
   return await readMokelayData<PageResponse>(response)
+}
+
+async function createMokelayApp(baseUrl: string, input: { alias: string, description?: string }) {
+  const response = await postJson(baseUrl, 'create_app', input)
+
+  expect(response.status).toBe(200)
+  return await readMokelayData<AppResponse>(response)
 }
 
 describe('mokelay orchestration API', () => {
@@ -2099,6 +2200,59 @@ describe('mokelay orchestration API', () => {
       listBody.pages[0]?.uuid,
       secondPageBody.pages[0]?.uuid,
     ])).toEqual(new Set([firstPage?.uuid, secondPage?.uuid]))
+    expect(secondPageBody.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      hasPreviousPage: true,
+      hasNextPage: false,
+    })
+    expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
+  })
+
+  it('executes the stored app create and list API JSON definitions', async () => {
+    const firstCreate = await createMokelayApp(testServer.baseUrl, {
+      alias: '  Launch Pad  ',
+      description: '  First app  ',
+    })
+    const secondCreate = await createMokelayApp(testServer.baseUrl, {
+      alias: 'Console',
+      description: '',
+    })
+    const firstApp = firstCreate.app
+    const secondApp = secondCreate.app
+
+    expect(firstApp).toMatchObject({
+      id: 1,
+      uuid: expect.stringMatching(/^[0-9a-f]{8}$/),
+      alias: 'Launch Pad',
+      description: 'First app',
+    })
+    expect(secondApp).toMatchObject({
+      id: 2,
+      uuid: expect.stringMatching(/^[0-9a-f]{8}$/),
+      alias: 'Console',
+      description: '',
+    })
+
+    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=1&pageSize=1`)
+    const listBody = await readMokelayData<AppListResponse>(listResponse)
+
+    expect(listResponse.status).toBe(200)
+    expect(listBody.apps).toEqual([secondApp])
+    expect(listBody.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true,
+    })
+
+    const secondPageResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=2&pageSize=1`)
+    const secondPageBody = await readMokelayData<AppListResponse>(secondPageResponse)
+
+    expect(secondPageResponse.status).toBe(200)
+    expect(secondPageBody.apps).toEqual([firstApp])
     expect(secondPageBody.pagination).toMatchObject({
       page: 2,
       pageSize: 1,

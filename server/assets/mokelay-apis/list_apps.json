@@ -1,0 +1,79 @@
+{
+  "uuid": "list_apps",
+  "alias": "App 列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "page",
+      "pageSize"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_apps_block"
+    },
+    {
+      "uuid": "list_apps_block",
+      "alias": "App 分页 Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description"
+        ],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "orderBy": [
+          {
+            "fieldName": "id",
+            "direction": "DESC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "apps": {
+      "template": "{{blocks['list_apps_block'].outputs.datas}}"
+    },
+    "pagination": {
+      "page": {
+        "template": "{{blocks['list_apps_block'].outputs.page}}"
+      },
+      "pageSize": {
+        "template": "{{blocks['list_apps_block'].outputs.pageSize}}"
+      },
+      "total": {
+        "template": "{{blocks['list_apps_block'].outputs.total}}"
+      },
+      "totalPages": {
+        "template": "{{blocks['list_apps_block'].outputs.totalPages}}"
+      },
+      "hasPreviousPage": {
+        "template": "{{blocks['list_apps_block'].outputs.hasPreviousPage}}"
+      },
+      "hasNextPage": {
+        "template": "{{blocks['list_apps_block'].outputs.hasNextPage}}"
+      }
+    }
+  }
+}
