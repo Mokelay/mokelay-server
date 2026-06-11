@@ -1,6 +1,6 @@
 # 编排 Blocks 配置文档
 
-本文档说明当前编排接口支持的标准 Blocks：`list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`、`analyzeDataSource`。
+本文档说明当前编排接口支持的标准 Blocks，以及 `mokelay-server` 注册的 `listMokelayApiJsons` 宿主 Block。
 
 编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
 
@@ -45,7 +45,7 @@
 | --- | --- | --- | --- |
 | `uuid` | `string` | 是 | Block 唯一标识。后续 block 或 response 可通过它读取 outputs。 |
 | `alias` | `string` | 否 | 给人看的说明，不参与执行。 |
-| `functionName` | `string` | 是 | Block 类型。当前支持 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update`、`addSession`、`removeSession`、`readSession`、`saveJsonToR2`、`analyzeDataSource`。 |
+| `functionName` | `string` | 是 | Block 类型。除 core 内置 Block 外，宿主服务可以通过 `blockDefinitions` 注册扩展 Block。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
 
@@ -67,6 +67,7 @@
 | `readSession` | `value` |
 | `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag`、`skipped` |
 | `analyzeDataSource` | `result` |
+| `listMokelayApiJsons` | `apis`、`count` |
 
 ## 模板规则
 
@@ -1178,6 +1179,24 @@ inputs：
 | `BLOCK_AI_CONFIG_MISSING` | 缺少或无效的 AI 服务配置，例如 `OPENAI_API_KEY` 或 `OPENAI_MODEL`。 |
 | `BLOCK_AI_PROVIDER_FAILED` | AI 服务调用失败。 |
 | `BLOCK_AI_OUTPUT_INVALID` | AI 返回结构无效或无法解析。 |
+
+## 内置 API DSL 列表 Block
+
+`listMokelayApiJsons` 由 `mokelay-server` 注册，不属于 core 通用 Block。它枚举 Nitro `assets:server` 中 `mokelay-apis` 目录的一级 `.json` 文件，按文件名排序并返回完整原始 DSL。
+
+每个文件都会先解析 JSON，再按文件名对应的 UUID 调用 `parseApiJson` 校验。任一文件 JSON 损坏、DSL schema 无效或 UUID 不匹配时，整个 Block 失败，不会静默跳过。
+
+```json
+{
+  "uuid": "list_mokelay_api_jsons_block",
+  "functionName": "listMokelayApiJsons",
+  "inputs": {},
+  "outputs": ["apis", "count"],
+  "nextBlock": null
+}
+```
+
+对应公开 DSL 为 `GET /api/mokelay/list_mokelay_api_jsons`，响应 `data` 包含 `apis` 和 `count`。
 
 ## API DSL 发布示例
 
