@@ -64,3 +64,35 @@ describe('GET /api/mokelay/list_mokelay_api_jsons', () => {
     expect(body.data.apis.some((api) => api.uuid === 'list_mokelay_api_jsons')).toBe(true)
   })
 })
+
+describe('GET /api/mokelay/read_mokelay_api_json', () => {
+  it('returns one built-in API DSL by UUID', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_api_json?uuid=list_apis`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        api: { uuid: string, alias: string, method: string }
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.api).toMatchObject({
+      uuid: 'list_apis',
+      alias: 'API 列表接口',
+      method: 'GET',
+    })
+  })
+
+  it('returns not found for an unknown built-in API UUID', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_api_json?uuid=missing_api`)
+    const body = await response.json() as {
+      ok: boolean
+      error: { code: string }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(false)
+    expect(body.error.code).toBe('API_JSON_NOT_FOUND')
+  })
+})

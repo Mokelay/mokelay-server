@@ -23,7 +23,7 @@ function assetFileName(key: string) {
   return fileName
 }
 
-function parseAssetJson(fileName: string, value: unknown) {
+export function parseMokelayApiJsonAsset(fileName: string, value: unknown) {
   const apiJsonUuid = fileName.slice(0, -'.json'.length)
   let apiJson = value
 
@@ -39,13 +39,13 @@ function parseAssetJson(fileName: string, value: unknown) {
   return apiJson
 }
 
-async function nitroAssetStorage() {
+export async function getMokelayApiAssetStorage() {
   const { useStorage } = await import('nitropack/runtime')
   return useStorage('assets:server') as unknown as MokelayApiAssetStorage
 }
 
 export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {
-  const assetStorage = storage ?? await nitroAssetStorage()
+  const assetStorage = storage ?? await getMokelayApiAssetStorage()
   const keys = await assetStorage.getKeys('mokelay-apis')
   const assetsByFileName = new Map<string, string>()
 
@@ -66,7 +66,7 @@ export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {
       throw mokelayError('API_JSON_NOT_FOUND', `API JSON 资产 ${fileName} 不存在。`, 404)
     }
 
-    return parseAssetJson(fileName, value)
+    return parseMokelayApiJsonAsset(fileName, value)
   }))
 
   return {

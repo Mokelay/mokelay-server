@@ -1,0 +1,35 @@
+{
+  "uuid": "read_mokelay_api_json",
+  "alias": "读取内置 API DSL 接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "uuid"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_mokelay_api_json_block"
+    },
+    {
+      "uuid": "read_mokelay_api_json_block",
+      "alias": "读取内置 API DSL Block",
+      "functionName": "readMokelayApiJson",
+      "inputs": {
+        "uuid": {
+          "template": "{{request.query.uuid}}"
+        }
+      },
+      "outputs": [
+        "api"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "api": {
+      "template": "{{blocks['read_mokelay_api_json_block'].outputs.api}}"
+    }
+  }
+}
