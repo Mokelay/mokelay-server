@@ -10,7 +10,7 @@
 
 `saveJsonToR2` 是 R2 JSON block，用于把请求或流程中的 JSON 数据保存到 Cloudflare R2，也用于 API Builder 发布时写入已发布 API DSL。
 
-`analyzeDataSource` 是 AI 数据源分析 block，用于识别用户输入或上传图片中的 JSON 数据或 HTTP API 信息。
+`openAI` 是通用 OpenAI JSON block，业务规则由 API JSON 中的 prompt 定义。
 
 ## 错误响应
 
@@ -66,7 +66,7 @@
 | `removeSession` | 无 |
 | `readSession` | `value` |
 | `saveJsonToR2` | `key`、`directory`、`fileName`、`bucket`、`size`、`etag`、`skipped` |
-| `analyzeDataSource` | `result` |
+| `openAI` | `result` |
 | `listMokelayApiJsons` | `apis`、`count` |
 
 ## 模板规则
@@ -1131,17 +1131,17 @@ inputs：
 | `etag` | `string \| null` | R2 返回的 ETag。 |
 | `skipped` | `boolean` | 是否因 `enabled=false` 跳过上传。 |
 
-## AI 数据源分析 Block
+## 通用 OpenAI JSON Block
 
-`analyzeDataSource` 用于识别 JSON 数据或 HTTP API 信息。它复用 `OPENAI_API_KEY` 和可选 `OPENAI_MODEL` 配置。
+`openAI` 调用 OpenAI Responses API，强制模型返回 JSON object，解析后写入 `outputs.result`。它复用 `OPENAI_API_KEY` 和可选 `OPENAI_MODEL` 配置。
 
 ```json
 {
-  "uuid": "analyze_data_source_block",
-  "functionName": "analyzeDataSource",
+  "uuid": "openai_block",
+  "functionName": "openAI",
   "inputs": {
     "prompt": {
-      "template": "{{request.body.prompt}}"
+      "template": "分析输入并返回 {\"result\": ...} JSON 对象。"
     },
     "userInput": {
       "template": "{{request.body.userInput}}"
@@ -1158,24 +1158,23 @@ inputs：
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `prompt` | `string` | 否 | 补充提示词，不替换默认数据源识别规则。 |
-| `userInput` | `string` | 否 | 用户输入的文本内容；不能超过 100KB。 |
+| `prompt` | `string` | 是 | Developer prompt，不能超过 100KB。Block 会自动追加只返回 JSON object 的约束。 |
+| `userInput` | `unknown` | 否 | 用户输入；非字符串值会通过 `JSON.stringify` 转换。 |
 | `image` | `object` | 否 | 通过 `multipart/form-data` 上传的图片文件。只支持 JPEG、PNG、WebP，大小不能超过 10MB。 |
 
-必须至少提供 `userInput` 或 `image` 之一。JSON body 不支持传 `image` data URL；图片只能通过 multipart 文件字段上传。multipart 请求中普通字段会转成字符串，文件字段会转成 `{ data, mimeType, fileName, size }` 对象，且只读取 API JSON `request.body` 已声明的字段。
+必须至少提供 `userInput` 或 `image` 之一。JSON body 不支持传 `image` data URL；图片只能通过 multipart 文件字段上传。调用参数固定包含 `max_output_tokens: 8192`、`store: false` 和 `text.format.type: "json_object"`。
 
 固定 outputs：
 
 | 输出 | 类型 | 说明 |
 | --- | --- | --- |
-| `result` | `object` | 识别结果。JSON 数据返回 `{ type: "JSON", rawData }`；HTTP API 返回 `{ type: "API", domain, path, method, headerData, bodyData, queryData }`。 |
+| `result` | `object` | 模型返回的 JSON object。Block 不校验业务 schema。 |
 
 错误码：
 
 | 错误码 | 说明 |
 | --- | --- |
 | `BLOCK_AI_INPUT_INVALID` | 输入为空、类型不对或超出大小/格式限制。 |
-| `BLOCK_AI_UNRECOGNIZED` | AI 无法从输入中识别出 JSON 数据或 API 信息。 |
 | `BLOCK_AI_CONFIG_MISSING` | 缺少或无效的 AI 服务配置，例如 `OPENAI_API_KEY` 或 `OPENAI_MODEL`。 |
 | `BLOCK_AI_PROVIDER_FAILED` | AI 服务调用失败。 |
 | `BLOCK_AI_OUTPUT_INVALID` | AI 返回结构无效或无法解析。 |

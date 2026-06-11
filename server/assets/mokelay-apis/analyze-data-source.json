@@ -18,15 +18,15 @@
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "analyze_data_source_block"
+      "nextBlock": "openai_analyze_block"
     },
     {
-      "uuid": "analyze_data_source_block",
-      "alias": "AI 数据源分析 Block",
-      "functionName": "analyzeDataSource",
+      "uuid": "openai_analyze_block",
+      "alias": "通用 OpenAI JSON Block",
+      "functionName": "openAI",
       "inputs": {
         "prompt": {
-          "template": "{{request.body.prompt}}"
+          "template": "你是 Mokelay 的数据源识别器。请判断用户提供的文本或图片是否展示了 JSON 数据或 HTTP API 信息。\n必须只返回一个合法 JSON 对象，不要返回 Markdown、代码块或解释文字。\n如果主要展示 JSON 数据，返回 {\"type\":\"JSON\",\"rawData\":<解析后的 JSON 值>}。\n如果主要展示 HTTP API 信息，返回 {\"type\":\"API\",\"domain\":\"...\",\"path\":\"/...\",\"method\":\"GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS\",\"headerData\":[{\"key\":\"...\",\"mock\":\"...\"}],\"bodyData\":[{\"key\":\"...\",\"dataType\":\"string|number|boolean|object|array|null|unknown\",\"mock\":<值>}],\"queryData\":[{\"key\":\"...\",\"mock\":\"...\"}]}。domain 不保留末尾斜杠，path 以 / 开头且不包含 query string，method 使用大写；缺失的参数数组返回 []。\n如果无法可靠识别，返回 {\"type\":\"UNKNOWN\"}。\n补充要求：{{request.body.prompt}}"
         },
         "userInput": {
           "template": "{{request.body.userInput}}"
@@ -42,6 +42,6 @@
     }
   ],
   "response": {
-    "template": "{{blocks['analyze_data_source_block'].outputs.result}}"
+    "template": "{{blocks['openai_analyze_block'].outputs.result}}"
   }
 }

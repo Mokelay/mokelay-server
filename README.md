@@ -6,7 +6,8 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 
 - `GET|POST /api/mokelay/{API_JSON_UUID}`
 - `GET /api/database/schema`
-- `POST /api/ai/analyze-data-source`
+- `POST /api/mokelay/analyze-data-source`
+- `POST /api/mokelay/ai-translate`
 
 Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
@@ -14,22 +15,32 @@ Pages and API Builder outputs are exposed through Mokelay orchestration JSON def
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 
-`POST /api/ai/analyze-data-source` is a public endpoint for recognizing data sources from an image or text. Send image files as multipart data in the `image` field as JPEG, PNG, or WebP up to 10MB:
+`POST /api/mokelay/analyze-data-source` recognizes data sources from an image or text through the generic OpenAI JSON block. Send image files as multipart data in the `image` field as JPEG, PNG, or WebP up to 10MB:
 
 ```bash
-curl -X POST http://127.0.0.1:8787/api/ai/analyze-data-source \
+curl -X POST http://127.0.0.1:8787/api/mokelay/analyze-data-source \
   -F "image=@./source.png"
 ```
 
-Send text as JSON with a non-empty `text` field up to 100KB:
+Send text as JSON with a non-empty `userInput` field:
 
 ```bash
-curl -X POST http://127.0.0.1:8787/api/ai/analyze-data-source \
+curl -X POST http://127.0.0.1:8787/api/mokelay/analyze-data-source \
   -H "Content-Type: application/json" \
-  -d '{ "text": "GET https://api.mokelay.com/api/mokelay/me?debug=true" }'
+  -d '{ "userInput": "GET https://api.mokelay.com/api/mokelay/me?debug=true" }'
 ```
 
-When the input contains JSON data, the response is `{ "type": "JSON", "rawData": ... }`. When it contains API information, the response is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized input returns `422`.
+When the input contains JSON data, `data` is `{ "type": "JSON", "rawData": ... }`. When it contains API information, `data` is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized input returns `{ "type": "UNKNOWN" }`.
+
+`POST /api/mokelay/ai-translate` translates an ordered string array:
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/mokelay/ai-translate \
+  -H "Content-Type: application/json" \
+  -d '{ "texts": ["Hello", "Welcome, {{name}}"], "sourceLanguage": "English", "targetLanguage": "中文" }'
+```
+
+The response data is `{ "translations": ["你好", "欢迎，{{name}}"] }` and preserves the input order.
 
 ## Local Development
 

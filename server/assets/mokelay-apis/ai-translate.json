@@ -1,0 +1,82 @@
+{
+  "uuid": "ai-translate",
+  "alias": "AI 批量翻译接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "texts",
+        "processors": [
+          "is_not_null",
+          "string_array_check",
+          {
+            "processor": "min",
+            "param": [
+              1
+            ]
+          },
+          {
+            "processor": "max",
+            "param": [
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "key": "sourceLanguage",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              64
+            ]
+          }
+        ]
+      },
+      {
+        "key": "targetLanguage",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              64
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "openai_translate_block"
+    },
+    {
+      "uuid": "openai_translate_block",
+      "alias": "通用 OpenAI JSON Block",
+      "functionName": "openAI",
+      "inputs": {
+        "prompt": {
+          "template": "你是严格的批量翻译服务。\n把用户输入中的 JSON 字符串数组从 {{request.body.sourceLanguage}} 翻译为 {{request.body.targetLanguage}}。\n保持数组长度和顺序一一对应；只翻译自然语言文本，保留变量占位符、URL、代码片段、数字和换行，不添加解释。\n必须只返回一个合法 JSON 对象，格式严格为 {\"translations\":[\"...\"]}。translations 必须是字符串数组，长度必须与输入数组相同。"
+        },
+        "userInput": {
+          "template": "{{request.body.texts}}"
+        }
+      },
+      "outputs": [
+        "result"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "translations": {
+      "template": "{{blocks['openai_translate_block'].outputs.result.translations}}"
+    }
+  }
+}
