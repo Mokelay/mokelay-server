@@ -265,9 +265,12 @@ describe('OpenAI orchestration APIs', () => {
     expect(openAiMocks.responsesCreate).not.toHaveBeenCalled()
   })
 
-  it('translates string arrays and unwraps translations in the API response', async () => {
+  it('translates string arrays into an object keyed by the original text', async () => {
     openAiMocks.responsesCreate.mockResolvedValueOnce(completedResponse({
-      translations: ['你好', '欢迎，{{name}}'],
+      translations: {
+        Hello: '你好',
+        'Welcome, {{name}}': '欢迎，{{name}}',
+      },
     }))
 
     const response = await fetch(apiUrl(testServer.baseUrl, 'ai-translate'), {
@@ -281,13 +284,16 @@ describe('OpenAI orchestration APIs', () => {
     })
 
     expect(await readMokelayData(response)).toEqual({
-      translations: ['你好', '欢迎，{{name}}'],
+      translations: {
+        Hello: '你好',
+        'Welcome, {{name}}': '欢迎，{{name}}',
+      },
     })
     expect(openAiMocks.responsesCreate).toHaveBeenCalledWith(expect.objectContaining({
       input: [
         {
           role: 'developer',
-          content: expect.stringMatching(/从 English 翻译为 中文/),
+          content: expect.stringMatching(/\{"translations":\{"原文":"译文"\}\}/),
         },
         {
           role: 'user',
