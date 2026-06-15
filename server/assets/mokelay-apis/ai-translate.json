@@ -62,7 +62,7 @@
       "functionName": "openAI",
       "inputs": {
         "prompt": {
-          "template": "你是严格的批量翻译服务。\n把用户输入中的 JSON 字符串数组从 {{request.body.sourceLanguage}} 翻译为 {{request.body.targetLanguage}}。\n保持数组长度和顺序一一对应；只翻译自然语言文本，保留变量占位符、URL、代码片段、数字和换行，不添加解释。\n必须只返回一个合法 JSON 对象，格式严格为 {\"translations\":[\"...\"]}。translations 必须是字符串数组，长度必须与输入数组相同。"
+          "template": "你是严格的批量翻译服务。\n把用户输入中的 JSON 字符串数组从 {{request.body.sourceLanguage}} 翻译为 {{request.body.targetLanguage}}。\n只翻译自然语言文本，保留变量占位符、URL、代码片段、数字和换行，不添加解释。\n必须只返回一个合法 JSON 对象，格式严格为 {\"translations\":{\"原文\":\"译文\"}}。translations 必须是对象，使用每条输入原文作为 key，对应译文作为 value；不得遗漏、增加或修改原文 key。"
         },
         "userInput": {
           "template": "{{request.body.texts}}"
