@@ -11,6 +11,7 @@
     "test:unit": "vitest run tests/unit",
     "test:api": "vitest run tests/api",
     "sync:mokelay-apis:r2": "node scripts/sync-mokelay-apis-r2.mjs",
+    "update:server-core": "npm install mokelay-server-core@latest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "deploy:check": "npm run typecheck && npm run test && npm run build"
@@ -19,7 +20,7 @@
     "@aws-sdk/client-s3": "^3.1053.0",
     "dotenv": "^17.4.2",
     "h3": "^1.15.4",
-    "mokelay-server-core": "^0.1.18",
+    "mokelay-server-core": "^0.1.19",
     "nitropack": "^2.12.9"
   },
   "devDependencies": {
