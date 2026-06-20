@@ -27,9 +27,11 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "api": {
-      "template": "{{blocks['read_mokelay_api_json_block'].outputs.api}}"
+  "responses": {
+    "read_mokelay_api_json_block": {
+      "api": {
+        "template": "{{blocks['read_mokelay_api_json_block'].outputs.api}}"
+      }
     }
   }
 }

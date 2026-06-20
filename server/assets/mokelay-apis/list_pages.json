@@ -56,28 +56,30 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "pages": {
-      "template": "{{blocks['list_pages_block'].outputs.datas}}"
-    },
-    "pagination": {
-      "page": {
-        "template": "{{blocks['list_pages_block'].outputs.page}}"
+  "responses": {
+    "list_pages_block": {
+      "pages": {
+        "template": "{{blocks['list_pages_block'].outputs.datas}}"
       },
-      "pageSize": {
-        "template": "{{blocks['list_pages_block'].outputs.pageSize}}"
-      },
-      "total": {
-        "template": "{{blocks['list_pages_block'].outputs.total}}"
-      },
-      "totalPages": {
-        "template": "{{blocks['list_pages_block'].outputs.totalPages}}"
-      },
-      "hasPreviousPage": {
-        "template": "{{blocks['list_pages_block'].outputs.hasPreviousPage}}"
-      },
-      "hasNextPage": {
-        "template": "{{blocks['list_pages_block'].outputs.hasNextPage}}"
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_pages_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_pages_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_pages_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_pages_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_pages_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_pages_block'].outputs.hasNextPage}}"
+        }
       }
     }
   }

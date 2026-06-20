@@ -36,10 +36,12 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "affected": {
-      "template": "{{blocks['delete_api_block'].outputs.affected}}"
-    },
-    "message": "删除成功"
+  "responses": {
+    "delete_api_block": {
+      "affected": {
+        "template": "{{blocks['delete_api_block'].outputs.affected}}"
+      },
+      "message": "删除成功"
+    }
   }
 }

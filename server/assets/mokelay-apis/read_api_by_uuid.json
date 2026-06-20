@@ -46,31 +46,33 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "api": {
-      "uuid": {
-        "template": "{{blocks['read_api_block'].outputs.data.uuid}}"
-      },
-      "name": {
-        "template": "{{blocks['read_api_block'].outputs.data.name}}"
-      },
-      "method": {
-        "template": "{{blocks['read_api_block'].outputs.data.method}}"
-      },
-      "status": {
-        "template": "{{blocks['read_api_block'].outputs.data.status}}"
-      },
-      "apiJson": {
-        "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
-      },
-      "layout": {
-        "template": "{{blocks['read_api_block'].outputs.data.layout}}"
-      },
-      "createdAt": {
-        "template": "{{blocks['read_api_block'].outputs.data.created_at}}"
-      },
-      "updatedAt": {
-        "template": "{{blocks['read_api_block'].outputs.data.updated_at}}"
+  "responses": {
+    "read_api_block": {
+      "api": {
+        "uuid": {
+          "template": "{{blocks['read_api_block'].outputs.data.uuid}}"
+        },
+        "name": {
+          "template": "{{blocks['read_api_block'].outputs.data.name}}"
+        },
+        "method": {
+          "template": "{{blocks['read_api_block'].outputs.data.method}}"
+        },
+        "status": {
+          "template": "{{blocks['read_api_block'].outputs.data.status}}"
+        },
+        "apiJson": {
+          "template": "{{blocks['read_api_block'].outputs.data.api_json}}"
+        },
+        "layout": {
+          "template": "{{blocks['read_api_block'].outputs.data.layout}}"
+        },
+        "createdAt": {
+          "template": "{{blocks['read_api_block'].outputs.data.created_at}}"
+        },
+        "updatedAt": {
+          "template": "{{blocks['read_api_block'].outputs.data.updated_at}}"
+        }
       }
     }
   }

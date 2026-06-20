@@ -37,15 +37,17 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "projects": {
-      "template": "{{blocks['list_apifox_projects_block'].outputs.projects}}"
-    },
-    "count": {
-      "template": "{{blocks['list_apifox_projects_block'].outputs.count}}"
-    },
-    "raw": {
-      "template": "{{blocks['list_apifox_projects_block'].outputs.raw}}"
+  "responses": {
+    "list_apifox_projects_block": {
+      "projects": {
+        "template": "{{blocks['list_apifox_projects_block'].outputs.projects}}"
+      },
+      "count": {
+        "template": "{{blocks['list_apifox_projects_block'].outputs.count}}"
+      },
+      "raw": {
+        "template": "{{blocks['list_apifox_projects_block'].outputs.raw}}"
+      }
     }
   }
 }

@@ -11,7 +11,9 @@
           "is_not_null",
           {
             "processor": "max",
-            "param": [8]
+            "param": [
+              8
+            ]
           },
           {
             "processor": "regex",
@@ -26,7 +28,9 @@
           "is_not_null",
           {
             "processor": "max",
-            "param": [120]
+            "param": [
+              120
+            ]
           }
         ]
       },
@@ -67,7 +71,9 @@
           }
         }
       },
-      "outputs": ["uuid"],
+      "outputs": [
+        "uuid"
+      ],
       "nextBlock": "read_datasource_block"
     },
     {
@@ -77,7 +83,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "datasources",
-        "fields": ["id", "uuid", "alias", "description", "schema_data"],
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description",
+          "schema_data"
+        ],
         "conditions": [
           {
             "group": false,
@@ -89,26 +101,30 @@
           }
         ]
       },
-      "outputs": ["data"],
+      "outputs": [
+        "data"
+      ],
       "nextBlock": null
     }
   ],
-  "response": {
-    "datasource": {
-      "id": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.id}}"
-      },
-      "uuid": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
-      },
-      "alias": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.alias}}"
-      },
-      "description": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.description}}"
-      },
-      "schema_data": {
-        "template": "{{blocks['read_datasource_block'].outputs.data.schema_data}}"
+  "responses": {
+    "read_datasource_block": {
+      "datasource": {
+        "id": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.id}}"
+        },
+        "uuid": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
+        },
+        "alias": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.alias}}"
+        },
+        "description": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.description}}"
+        },
+        "schema_data": {
+          "template": "{{blocks['read_datasource_block'].outputs.data.schema_data}}"
+        }
       }
     }
   }

@@ -20,15 +20,17 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "loggedIn": {
-      "template": "{{blocks['read_user_session'].outputs.value}}",
-      "processors": [
-        "not_null"
-      ]
-    },
-    "user": {
-      "template": "{{blocks['read_user_session'].outputs.value}}"
+  "responses": {
+    "read_user_session": {
+      "loggedIn": {
+        "template": "{{blocks['read_user_session'].outputs.value}}",
+        "processors": [
+          "not_null"
+        ]
+      },
+      "user": {
+        "template": "{{blocks['read_user_session'].outputs.value}}"
+      }
     }
   }
 }

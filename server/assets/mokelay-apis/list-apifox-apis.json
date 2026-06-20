@@ -53,15 +53,17 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "apis": {
-      "template": "{{blocks['list_apifox_apis_block'].outputs.apis}}"
-    },
-    "count": {
-      "template": "{{blocks['list_apifox_apis_block'].outputs.count}}"
-    },
-    "openapi": {
-      "template": "{{blocks['list_apifox_apis_block'].outputs.openapi}}"
+  "responses": {
+    "list_apifox_apis_block": {
+      "apis": {
+        "template": "{{blocks['list_apifox_apis_block'].outputs.apis}}"
+      },
+      "count": {
+        "template": "{{blocks['list_apifox_apis_block'].outputs.count}}"
+      },
+      "openapi": {
+        "template": "{{blocks['list_apifox_apis_block'].outputs.openapi}}"
+      }
     }
   }
 }

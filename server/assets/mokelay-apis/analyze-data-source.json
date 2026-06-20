@@ -41,7 +41,9 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "template": "{{blocks['openai_analyze_block'].outputs.result}}"
+  "responses": {
+    "openai_analyze_block": {
+      "template": "{{blocks['openai_analyze_block'].outputs.result}}"
+    }
   }
 }

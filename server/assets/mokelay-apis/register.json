@@ -171,9 +171,11 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "user": {
-      "template": "{{blocks['read_user_info'].outputs.data}}"
+  "responses": {
+    "set_user_session": {
+      "user": {
+        "template": "{{blocks['read_user_info'].outputs.data}}"
+      }
     }
   }
 }

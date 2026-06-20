@@ -131,19 +131,24 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "user": {
-      "id": {
-        "template": "{{blocks['read_user_info'].outputs.data.id}}"
-      },
-      "name": {
-        "template": "{{blocks['read_user_info'].outputs.data.name}}"
-      },
-      "email": {
-        "template": "{{blocks['read_user_info'].outputs.data.email}}"
-      },
-      "plan": {
-        "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+  "responses": {
+    "password_check_false_node": {
+      "user": null
+    },
+    "set_user_session": {
+      "user": {
+        "id": {
+          "template": "{{blocks['read_user_info'].outputs.data.id}}"
+        },
+        "name": {
+          "template": "{{blocks['read_user_info'].outputs.data.name}}"
+        },
+        "email": {
+          "template": "{{blocks['read_user_info'].outputs.data.email}}"
+        },
+        "plan": {
+          "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+        }
       }
     }
   }

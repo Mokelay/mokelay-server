@@ -27,9 +27,11 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "tables": {
-      "template": "{{blocks['schema_block'].outputs.tables}}"
+  "responses": {
+    "schema_block": {
+      "tables": {
+        "template": "{{blocks['schema_block'].outputs.tables}}"
+      }
     }
   }
 }

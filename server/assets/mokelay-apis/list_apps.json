@@ -51,28 +51,30 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "apps": {
-      "template": "{{blocks['list_apps_block'].outputs.datas}}"
-    },
-    "pagination": {
-      "page": {
-        "template": "{{blocks['list_apps_block'].outputs.page}}"
+  "responses": {
+    "list_apps_block": {
+      "apps": {
+        "template": "{{blocks['list_apps_block'].outputs.datas}}"
       },
-      "pageSize": {
-        "template": "{{blocks['list_apps_block'].outputs.pageSize}}"
-      },
-      "total": {
-        "template": "{{blocks['list_apps_block'].outputs.total}}"
-      },
-      "totalPages": {
-        "template": "{{blocks['list_apps_block'].outputs.totalPages}}"
-      },
-      "hasPreviousPage": {
-        "template": "{{blocks['list_apps_block'].outputs.hasPreviousPage}}"
-      },
-      "hasNextPage": {
-        "template": "{{blocks['list_apps_block'].outputs.hasNextPage}}"
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_apps_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_apps_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_apps_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_apps_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_apps_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_apps_block'].outputs.hasNextPage}}"
+        }
       }
     }
   }

@@ -98,22 +98,24 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "affected": {
-      "template": "{{blocks['update_app_block'].outputs.affected}}"
-    },
-    "app": {
-      "id": {
-        "template": "{{blocks['read_app_block'].outputs.data.id}}"
+  "responses": {
+    "read_app_block": {
+      "affected": {
+        "template": "{{blocks['update_app_block'].outputs.affected}}"
       },
-      "uuid": {
-        "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
-      },
-      "alias": {
-        "template": "{{blocks['read_app_block'].outputs.data.alias}}"
-      },
-      "description": {
-        "template": "{{blocks['read_app_block'].outputs.data.description}}"
+      "app": {
+        "id": {
+          "template": "{{blocks['read_app_block'].outputs.data.id}}"
+        },
+        "uuid": {
+          "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
+        },
+        "alias": {
+          "template": "{{blocks['read_app_block'].outputs.data.alias}}"
+        },
+        "description": {
+          "template": "{{blocks['read_app_block'].outputs.data.description}}"
+        }
       }
     }
   }

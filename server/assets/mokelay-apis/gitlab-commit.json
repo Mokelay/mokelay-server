@@ -87,39 +87,41 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "provider": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.provider}}"
-    },
-    "repo": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.repo}}"
-    },
-    "projectId": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.projectId}}"
-    },
-    "branch": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.branch}}"
-    },
-    "commitSha": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.commitSha}}"
-    },
-    "commitUrl": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.commitUrl}}"
-    },
-    "treeSha": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.treeSha}}"
-    },
-    "parentSha": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.parentSha}}"
-    },
-    "fileCount": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.fileCount}}"
-    },
-    "upsertedCount": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.upsertedCount}}"
-    },
-    "deletedCount": {
-      "template": "{{blocks['gitlab_commit_block'].outputs.deletedCount}}"
+  "responses": {
+    "gitlab_commit_block": {
+      "provider": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.provider}}"
+      },
+      "repo": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.repo}}"
+      },
+      "projectId": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.projectId}}"
+      },
+      "branch": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.branch}}"
+      },
+      "commitSha": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.commitSha}}"
+      },
+      "commitUrl": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.commitUrl}}"
+      },
+      "treeSha": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.treeSha}}"
+      },
+      "parentSha": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.parentSha}}"
+      },
+      "fileCount": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.fileCount}}"
+      },
+      "upsertedCount": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.upsertedCount}}"
+      },
+      "deletedCount": {
+        "template": "{{blocks['gitlab_commit_block'].outputs.deletedCount}}"
+      }
     }
   }
 }

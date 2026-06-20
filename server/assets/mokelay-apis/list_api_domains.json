@@ -31,9 +31,11 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "domains": {
-      "template": "{{blocks['list_api_domains_block'].outputs.datas}}"
+  "responses": {
+    "list_api_domains_block": {
+      "domains": {
+        "template": "{{blocks['list_api_domains_block'].outputs.datas}}"
+      }
     }
   }
 }

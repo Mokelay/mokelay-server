@@ -57,28 +57,30 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "apis": {
-      "template": "{{blocks['list_apis_block'].outputs.datas}}"
-    },
-    "pagination": {
-      "page": {
-        "template": "{{blocks['list_apis_block'].outputs.page}}"
+  "responses": {
+    "list_apis_block": {
+      "apis": {
+        "template": "{{blocks['list_apis_block'].outputs.datas}}"
       },
-      "pageSize": {
-        "template": "{{blocks['list_apis_block'].outputs.pageSize}}"
-      },
-      "total": {
-        "template": "{{blocks['list_apis_block'].outputs.total}}"
-      },
-      "totalPages": {
-        "template": "{{blocks['list_apis_block'].outputs.totalPages}}"
-      },
-      "hasPreviousPage": {
-        "template": "{{blocks['list_apis_block'].outputs.hasPreviousPage}}"
-      },
-      "hasNextPage": {
-        "template": "{{blocks['list_apis_block'].outputs.hasNextPage}}"
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_apis_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_apis_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_apis_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_apis_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_apis_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_apis_block'].outputs.hasNextPage}}"
+        }
       }
     }
   }

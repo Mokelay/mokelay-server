@@ -2,7 +2,7 @@
 
 本文档说明当前编排接口支持的标准 Blocks，以及 `mokelay-server` 注册的 `listMokelayApiJsons` 宿主 Block。
 
-编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON，并按 `blocks` 数组顺序执行。任一 block 执行失败，后续 block 不再执行，接口返回错误。
+编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走；任一 block 执行失败，后续节点不再执行，接口返回错误。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
@@ -25,7 +25,7 @@
 }
 ```
 
-未分类的内部异常会返回 `INTERNAL_ERROR` 和通用错误消息。成功且未配置 `response` 的 API JSON 仍返回 HTTP `204` 空内容。
+未分类的内部异常会返回 `INTERNAL_ERROR` 和通用错误消息。成功且未配置响应的 API JSON 返回 `{ "ok": true, "data": null }`。
 
 ## 通用 Block 结构
 
@@ -71,7 +71,7 @@
 
 ## 模板规则
 
-`inputs` 和 API `response` 中都可以使用模板。
+`inputs`、API `response` 和 `responses` 中都可以使用模板。
 
 ```json
 {
@@ -108,6 +108,49 @@
   }
 }
 ```
+
+## Response 配置
+
+旧版单响应继续支持顶层 `response`：
+
+```json
+{
+  "response": {
+    "data": {
+      "template": "{{blocks['read_record'].outputs.data}}"
+    }
+  }
+}
+```
+
+配置了 controller 后，同一个 API 可能有多个 `nextBlock: null` 终点。可使用顶层 `responses` 按终点 UUID 独立配置响应：
+
+```json
+{
+  "responses": {
+    "success_block": {
+      "user": {
+        "template": "{{blocks['read_user'].outputs.data}}"
+      }
+    },
+    "password_false_node": {
+      "user": null
+    }
+  }
+}
+```
+
+终点 UUID 规则：
+
+- `starter.nextBlock` 为 `null` 时，终点是 `starter`。
+- 普通 block 的 `nextBlock` 为 `null` 时，终点是该 block 的 `uuid`。
+- controller node 的 `nextBlock` 为 `null` 时，终点是该 node 的 `uuid`。
+
+响应选择规则：
+
+- 命中终点后优先使用 `responses[终点 UUID]`。
+- 如果该终点未配置且存在顶层 `response`，回退使用 `response`。
+- 如果配置了 `responses` 且没有顶层 `response`，必须覆盖所有终点，否则返回 `API_JSON_INVALID_RESPONSE`。
 
 ## Datasource 配置
 

@@ -102,19 +102,21 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "app": {
-      "id": {
-        "template": "{{blocks['read_app_block'].outputs.data.id}}"
-      },
-      "uuid": {
-        "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
-      },
-      "alias": {
-        "template": "{{blocks['read_app_block'].outputs.data.alias}}"
-      },
-      "description": {
-        "template": "{{blocks['read_app_block'].outputs.data.description}}"
+  "responses": {
+    "read_app_block": {
+      "app": {
+        "id": {
+          "template": "{{blocks['read_app_block'].outputs.data.id}}"
+        },
+        "uuid": {
+          "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
+        },
+        "alias": {
+          "template": "{{blocks['read_app_block'].outputs.data.alias}}"
+        },
+        "description": {
+          "template": "{{blocks['read_app_block'].outputs.data.description}}"
+        }
       }
     }
   }

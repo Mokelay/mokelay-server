@@ -74,9 +74,11 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "translations": {
-      "template": "{{blocks['openai_translate_block'].outputs.result.translations}}"
+  "responses": {
+    "openai_translate_block": {
+      "translations": {
+        "template": "{{blocks['openai_translate_block'].outputs.result.translations}}"
+      }
     }
   }
 }

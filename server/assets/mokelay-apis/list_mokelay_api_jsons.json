@@ -19,12 +19,14 @@
       "nextBlock": null
     }
   ],
-  "response": {
-    "apis": {
-      "template": "{{blocks['list_mokelay_api_jsons_block'].outputs.apis}}"
-    },
-    "count": {
-      "template": "{{blocks['list_mokelay_api_jsons_block'].outputs.count}}"
+  "responses": {
+    "list_mokelay_api_jsons_block": {
+      "apis": {
+        "template": "{{blocks['list_mokelay_api_jsons_block'].outputs.apis}}"
+      },
+      "count": {
+        "template": "{{blocks['list_mokelay_api_jsons_block'].outputs.count}}"
+      }
     }
   }
 }

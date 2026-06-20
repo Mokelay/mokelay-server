@@ -3,7 +3,9 @@
   "alias": "同步数据源 Schema 接口",
   "method": "POST",
   "request": {
-    "query": ["uuid"]
+    "query": [
+      "uuid"
+    ]
   },
   "blocks": [
     {
@@ -17,7 +19,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "datasources",
-        "fields": ["id", "uuid", "alias", "description", "schema_data"],
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description",
+          "schema_data"
+        ],
         "conditions": [
           {
             "group": false,
@@ -32,7 +40,9 @@
       "outputs": [
         {
           "key": "data",
-          "processors": ["is_not_null"]
+          "processors": [
+            "is_not_null"
+          ]
         }
       ],
       "nextBlock": "schema_block"
@@ -46,7 +56,9 @@
           "template": "{{blocks['read_datasource_block'].outputs.data.uuid}}"
         }
       },
-      "outputs": ["tables"],
+      "outputs": [
+        "tables"
+      ],
       "nextBlock": "update_datasource_schema_block"
     },
     {
@@ -72,7 +84,9 @@
           }
         ]
       },
-      "outputs": ["affected"],
+      "outputs": [
+        "affected"
+      ],
       "nextBlock": "read_synced_datasource_block"
     },
     {
@@ -82,7 +96,13 @@
       "inputs": {
         "datasource": "Mokelay",
         "table": "datasources",
-        "fields": ["id", "uuid", "alias", "description", "schema_data"],
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description",
+          "schema_data"
+        ],
         "conditions": [
           {
             "group": false,
@@ -94,29 +114,33 @@
           }
         ]
       },
-      "outputs": ["data"],
+      "outputs": [
+        "data"
+      ],
       "nextBlock": null
     }
   ],
-  "response": {
-    "affected": {
-      "template": "{{blocks['update_datasource_schema_block'].outputs.affected}}"
-    },
-    "datasource": {
-      "id": {
-        "template": "{{blocks['read_synced_datasource_block'].outputs.data.id}}"
+  "responses": {
+    "read_synced_datasource_block": {
+      "affected": {
+        "template": "{{blocks['update_datasource_schema_block'].outputs.affected}}"
       },
-      "uuid": {
-        "template": "{{blocks['read_synced_datasource_block'].outputs.data.uuid}}"
-      },
-      "alias": {
-        "template": "{{blocks['read_synced_datasource_block'].outputs.data.alias}}"
-      },
-      "description": {
-        "template": "{{blocks['read_synced_datasource_block'].outputs.data.description}}"
-      },
-      "schema_data": {
-        "template": "{{blocks['read_synced_datasource_block'].outputs.data.schema_data}}"
+      "datasource": {
+        "id": {
+          "template": "{{blocks['read_synced_datasource_block'].outputs.data.id}}"
+        },
+        "uuid": {
+          "template": "{{blocks['read_synced_datasource_block'].outputs.data.uuid}}"
+        },
+        "alias": {
+          "template": "{{blocks['read_synced_datasource_block'].outputs.data.alias}}"
+        },
+        "description": {
+          "template": "{{blocks['read_synced_datasource_block'].outputs.data.description}}"
+        },
+        "schema_data": {
+          "template": "{{blocks['read_synced_datasource_block'].outputs.data.schema_data}}"
+        }
       }
     }
   }
