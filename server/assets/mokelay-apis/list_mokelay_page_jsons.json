@@ -1,0 +1,32 @@
+{
+  "uuid": "list_mokelay_page_jsons",
+  "alias": "内置页面 DSL 列表接口",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_mokelay_page_jsons_block"
+    },
+    {
+      "uuid": "list_mokelay_page_jsons_block",
+      "alias": "读取内置页面 DSL 列表 Block",
+      "functionName": "listMokelayPageJsons",
+      "inputs": {},
+      "outputs": [
+        "pages",
+        "count"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "list_mokelay_page_jsons_block": {
+      "pages": {
+        "template": "{{blocks['list_mokelay_page_jsons_block'].outputs.pages}}"
+      },
+      "count": {
+        "template": "{{blocks['list_mokelay_page_jsons_block'].outputs.count}}"
+      }
+    }
+  }
+}

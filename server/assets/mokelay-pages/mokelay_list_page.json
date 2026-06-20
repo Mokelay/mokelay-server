@@ -1,0 +1,156 @@
+{
+  "uuid": "mokelay_list_page",
+  "createdAt": "2026-06-20T12:42:39.437Z",
+  "updatedAt": "2026-06-20T12:42:39.437Z",
+  "name": "页面列表",
+  "blocks": [
+    {
+      "id": "mokelay-list-page-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "uuid",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "页面名称",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "name"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "创建时间",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-created-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{created_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "created_at"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "更新时间",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-updated-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{updated_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "updated_at"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_pages",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.pages[]",
+              "type": "array",
+              "label": "页面列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.pages[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}
