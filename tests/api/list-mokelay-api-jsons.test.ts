@@ -146,6 +146,24 @@ describe('GET /api/mokelay/read_mokelay_page_json', () => {
     expect(body.data.page.blocks.length).toBeGreaterThan(0)
   })
 
+  it('returns the built-in create page DSL by UUID', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_page_json?uuid=mokelay_create_page`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        page: { uuid: string, name: string, blocks: Array<{ type: string }> }
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.page).toMatchObject({
+      uuid: 'mokelay_create_page',
+      name: '创建页面',
+    })
+    expect(body.data.page.blocks.map((block) => block.type)).toEqual(['MForm', 'MButton'])
+  })
+
   it('returns not found for an unknown built-in page UUID', async () => {
     const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_page_json?uuid=missing_page`)
     const body = await response.json() as {

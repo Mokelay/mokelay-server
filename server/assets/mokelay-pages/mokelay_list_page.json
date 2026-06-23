@@ -1,9 +1,55 @@
 {
   "uuid": "mokelay_list_page",
   "createdAt": "2026-06-20T12:42:39.437Z",
-  "updatedAt": "2026-06-20T12:42:39.437Z",
+  "updatedAt": "2026-06-23T00:00:00.000Z",
   "name": "页面列表",
   "blocks": [
+    {
+      "id": "mokelay-list-page-create-button",
+      "type": "MButton",
+      "data": {
+        "label": "创建页面",
+        "variant": "primary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_list_page_open_create_dialog",
+              "action": "open_dialog",
+              "alias": "打开创建页面弹窗",
+              "inputs": {
+                "title": "创建页面",
+                "pageUUID": "mokelay_create_page",
+                "pageSource": "system"
+              },
+              "outputs": [
+                "close_result"
+              ],
+              "nextAction": "mokelay_list_page_refresh_table"
+            },
+            {
+              "uuid": "mokelay_list_page_refresh_table",
+              "action": "call_block_method",
+              "alias": "刷新页面列表",
+              "inputs": {
+                "blockId": "mokelay-list-page-table",
+                "method": "refresh"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "mokelay-list-page-table",
       "type": "MAdvanceTable",

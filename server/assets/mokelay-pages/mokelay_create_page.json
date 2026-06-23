@@ -1,0 +1,156 @@
+{
+  "uuid": "mokelay_create_page",
+  "createdAt": "2026-06-23T00:00:00.000Z",
+  "updatedAt": "2026-06-23T00:00:00.000Z",
+  "name": "创建页面",
+  "blocks": [
+    {
+      "id": "mokelay-create-page-form",
+      "type": "MForm",
+      "data": {
+        "items": [
+          {
+            "labelName": "页面名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-create-page-name-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入页面名称",
+                "value": ""
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-create-page-save-button",
+      "type": "MButton",
+      "data": {
+        "label": "保存页面",
+        "variant": "primary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_create_page_confirm",
+              "action": "confirm",
+              "alias": "确认创建页面",
+              "inputs": {
+                "title": "确认创建页面",
+                "content": "确定要创建该页面吗？"
+              },
+              "outputs": [
+                "result"
+              ],
+              "nextAction": "mokelay_create_page_confirm_route"
+            },
+            {
+              "uuid": "mokelay_create_page_confirm_route",
+              "action": "if_controller",
+              "type": "controller",
+              "alias": "确认结果",
+              "inputs": {
+                "value": {
+                  "template": "{{actions['mokelay_create_page_confirm'].outputs.result}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "mokelay_create_page_confirm_true",
+                  "alias": "确认",
+                  "value": true,
+                  "nextAction": "mokelay_create_page_execute_ds"
+                },
+                {
+                  "uuid": "mokelay_create_page_confirm_false",
+                  "alias": "取消",
+                  "value": false,
+                  "nextAction": null
+                }
+              ]
+            },
+            {
+              "uuid": "mokelay_create_page_execute_ds",
+              "action": "execute_ds",
+              "alias": "创建页面",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/create_page",
+                  "method": "POST",
+                  "headerData": [],
+                  "bodyData": [
+                    {
+                      "key": "name",
+                      "dataType": "string",
+                      "value": {
+                        "mode": "variable",
+                        "blockId": "mokelay-create-page-form",
+                        "blockType": "MForm",
+                        "variable": "name",
+                        "processors": [
+                          "trim"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "blocks",
+                      "dataType": "array",
+                      "value": []
+                    }
+                  ],
+                  "queryData": [],
+                  "schemaSelections": [
+                    {
+                      "path": "data.page",
+                      "type": "object",
+                      "label": "创建页面"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "创建页面",
+                      "variable": "createdPage",
+                      "matchFieldPath": "data.page"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "createdPage"
+              ],
+              "nextAction": "mokelay_create_page_close_page"
+            },
+            {
+              "uuid": "mokelay_create_page_close_page",
+              "action": "call_block_method",
+              "alias": "关闭创建页面",
+              "inputs": {
+                "blockId": "mokelay_create_page",
+                "method": "close"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
