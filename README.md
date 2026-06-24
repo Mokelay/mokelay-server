@@ -7,6 +7,7 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 - `GET|POST /api/mokelay/{API_JSON_UUID}`
 - `GET /api/database/schema`
 - `POST /api/mokelay/analyze-data-source`
+- `POST /api/mokelay/ai-generate-dsl`
 - `POST /api/mokelay/ai-translate`
 
 Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
@@ -31,6 +32,14 @@ curl -X POST http://127.0.0.1:8787/api/mokelay/analyze-data-source \
 ```
 
 When the input contains JSON data, `data` is `{ "type": "JSON", "rawData": ... }`. When it contains API information, `data` is `{ "type": "API", "domain": "...", "path": "...", "method": "...", "headerData": [], "bodyData": [], "queryData": [] }`. Unrecognized input returns `{ "type": "UNKNOWN" }`.
+
+`POST /api/mokelay/ai-generate-dsl` generates Mokelay page DSL, API DSL, and capability upgrade specifications from a requirement document. See `docs/ai-dsl-generation.md` for the response contract.
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/mokelay/ai-generate-dsl \
+  -H "Content-Type: application/json" \
+  -d '{ "requirementDocument": "客户管理：需要客户列表、创建客户、删除客户，删除前需要确认。" }'
+```
 
 `POST /api/mokelay/ai-translate` translates an ordered string array:
 

@@ -327,10 +327,147 @@ describe('OpenAI orchestration APIs', () => {
     expect(openAiMocks.responsesCreate).not.toHaveBeenCalled()
   })
 
-  it('returns output errors for invalid model JSON and missing translation fields', async () => {
+  it('generates page and API DSL from a requirement document', async () => {
+    const generatedDsl = {
+      version: 1,
+      status: 'partial',
+      summary: '生成客户列表页和删除接口，批量导出需要新增 Action。',
+      pages: [
+        {
+          uuid: 'customer_list_page',
+          name: '客户列表',
+          blocks: [
+            {
+              id: 'customer-list-title',
+              type: 'MHeading',
+              data: { text: '客户列表', level: '1', align: 'left' },
+            },
+          ],
+          apiDependencies: ['list_customers', 'delete_customer'],
+          notes: [],
+        },
+      ],
+      apis: [
+        {
+          uuid: 'list_customers',
+          alias: '客户列表接口',
+          method: 'GET',
+          request: { header: [], query: ['page', 'pageSize'], body: [] },
+          blocks: [
+            { uuid: 'starter', nextBlock: 'page_customers' },
+            {
+              uuid: 'page_customers',
+              functionName: 'page',
+              inputs: { datasource: 'Mokelay', table: 'customers' },
+              outputs: ['datas', 'total'],
+              nextBlock: null,
+            },
+          ],
+          response: {
+            datas: { template: "{{blocks['page_customers'].outputs.datas}}" },
+            total: { template: "{{blocks['page_customers'].outputs.total}}" },
+          },
+        },
+      ],
+      upgradePlan: {
+        processors: [],
+        blocks: [],
+        actions: [
+          {
+            action: 'export_file',
+            reason: '需求要求从列表导出文件，现有 Action 没有文件下载语义。',
+            inputsSchema: { dsConfig: 'object', fileName: 'string' },
+            outputs: ['fileUrl'],
+            behavior: '执行数据源并触发文件下载。',
+            dslExample: { uuid: 'export_customers', action: 'export_file', inputs: {} },
+          },
+        ],
+        controls: [],
+        components: [],
+      },
+      traceability: [
+        {
+          requirement: '客户列表',
+          status: 'generated',
+          pageUuids: ['customer_list_page'],
+          apiUuids: ['list_customers'],
+          upgradeRefs: [],
+        },
+        {
+          requirement: '导出客户',
+          status: 'requires_upgrade',
+          pageUuids: [],
+          apiUuids: [],
+          upgradeRefs: ['actions.export_file'],
+        },
+      ],
+      assumptions: [],
+      warnings: [],
+    }
+    openAiMocks.responsesCreate.mockResolvedValueOnce(completedResponse(generatedDsl))
+
+    const response = await fetch(apiUrl(testServer.baseUrl, 'ai-generate-dsl'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        requirementDocument: '  需要生成客户列表页，支持分页查询、删除客户和导出客户。  ',
+        projectContext: { app: 'crm' },
+        dslContext: { blocks: ['MAdvanceTable'], actions: ['execute_ds'] },
+        generationPreferences: { language: 'zh-CN' },
+      }),
+    })
+
+    expect(await readMokelayData(response)).toEqual(generatedDsl)
+    expect(openAiMocks.responsesCreate).toHaveBeenCalledWith(expect.objectContaining({
+      input: [
+        {
+          role: 'developer',
+          content: expect.stringContaining('不能生成任何定制化前端代码'),
+        },
+        {
+          role: 'user',
+          content: [{
+            type: 'input_text',
+            text: JSON.stringify({
+              requirementDocument: '需要生成客户列表页，支持分页查询、删除客户和导出客户。',
+              projectContext: { app: 'crm' },
+              dslContext: { blocks: ['MAdvanceTable'], actions: ['execute_ds'] },
+              generationPreferences: { language: 'zh-CN' },
+            }),
+          }],
+        },
+      ],
+    }))
+    const prompt = openAiMocks.responsesCreate.mock.calls[0]?.[0]?.input[0]?.content
+    expect(prompt).toContain('"upgradePlan"')
+    expect(prompt).toContain('status 必须为 partial')
+  })
+
+  it('validates DSL generation requirement documents before calling OpenAI', async () => {
+    const cases = [
+      {},
+      { requirementDocument: '   ' },
+      { requirementDocument: '太短' },
+    ]
+
+    for (const body of cases) {
+      const response = await fetch(apiUrl(testServer.baseUrl, 'ai-generate-dsl'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      await expectMokelayError(response, 'PROCESSOR_VALIDATION_FAILED')
+    }
+
+    expect(openAiMocks.responsesCreate).not.toHaveBeenCalled()
+  })
+
+  it('returns output errors for invalid model JSON and missing generated fields', async () => {
     openAiMocks.responsesCreate
       .mockResolvedValueOnce({ status: 'completed', output_text: 'not-json', output: [] })
       .mockResolvedValueOnce(completedResponse({ wrong: [] }))
+      .mockResolvedValueOnce(completedResponse({ version: 1 }))
 
     const invalidJsonResponse = await fetch(apiUrl(testServer.baseUrl, 'analyze-data-source'), {
       method: 'POST',
@@ -342,9 +479,15 @@ describe('OpenAI orchestration APIs', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ texts: ['Hello'], sourceLanguage: 'English', targetLanguage: '中文' }),
     })
+    const incompleteDslResponse = await fetch(apiUrl(testServer.baseUrl, 'ai-generate-dsl'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ requirementDocument: '需要生成客户列表页，支持分页查询和删除客户。' }),
+    })
 
     await expectMokelayError(invalidJsonResponse, 'BLOCK_AI_OUTPUT_INVALID')
     await expectMokelayError(missingFieldResponse, 'TEMPLATE_VARIABLE_NOT_FOUND')
+    await expectMokelayError(incompleteDslResponse, 'TEMPLATE_VARIABLE_NOT_FOUND')
   })
 
   it('does not expose uploaded image bytes in debug traces', async () => {

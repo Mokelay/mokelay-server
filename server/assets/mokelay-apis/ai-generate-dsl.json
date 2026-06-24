@@ -1,0 +1,114 @@
+{
+  "uuid": "ai-generate-dsl",
+  "alias": "AI 页面与接口 DSL 生成接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "requirementDocument",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "min",
+            "param": [
+              10
+            ]
+          },
+          {
+            "processor": "max",
+            "param": [
+              50000
+            ]
+          }
+        ]
+      },
+      {
+        "key": "projectContext"
+      },
+      {
+        "key": "dslContext"
+      },
+      {
+        "key": "generationPreferences"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "openai_generate_dsl_block"
+    },
+    {
+      "uuid": "openai_generate_dsl_block",
+      "alias": "基于需求文档生成页面 DSL 和接口 DSL",
+      "functionName": "openAI",
+      "inputs": {
+        "prompt": "你是 Mokelay 的 AI DSL 架构师。根据用户输入的需求文档生成 Mokelay 页面 DSL 和对应服务端 API DSL。\n\n硬性规则：\n1. 不能生成任何定制化前端代码、后端代码、脚本、函数源码或伪代码；可交付物只能是 DSL JSON 或能力升级规格。\n2. 能用现有 DSL 表达的需求必须直接生成 DSL；不能为了方便而要求开发定制代码。\n3. 如果需求无法被现有 Processor、Block、Action、Control 或组件表达，不要伪造可运行能力；把缺口写入 upgradePlan，对应给出可实现该能力的 DSL 规格、输入输出、行为和示例 DSL。\n4. 所有 uuid、block id、变量名、API 路径都要稳定、可读、只使用字母、数字、下划线或连字符。API uuid 必须和路径末尾一致。\n5. 返回必须是一个合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外的内容。\n\n已知服务端 API DSL：ApiJson = {uuid, alias, method, request, blocks, response?, responses?}。blocks 必须包含 {uuid:\"starter\", nextBlock}; 普通 Block 形如 {uuid, alias?, functionName, inputs?, outputs?, nextBlock}; Control/Controller 形如 {uuid, alias?, functionName:\"if_controller\"|\"switch_controller\"|新 control 名, type:\"controller\", inputs?, nodes:[{uuid, alias?, type?, value?, nextBlock}]}; response/responses 中用 {\"template\":\"{{...}}\"} 引用 request、blocks、now。现有服务端 blocks 包括 list、page、count、read、create、update、upsert、delete、assertUnique、addSession、readSession、removeSession、saveJsonToR2、openAI、githubCommit、gitlabCommit、listApifoxProjects、listApifoxApis、listMokelayApiJsons、readMokelayApiJson、listMokelayPageJsons、readMokelayPageJson。现有服务端 processors 包括 trim、is_not_null、is_null、not_null、email_check、number_check、eq、equals、default_value、env_value、api_json_when_published、min、max、regex、string_array_check、hash_make、hash_check。\n\n已知客户端页面 DSL：页面对象形如 {uuid, name, blocks}，blocks 是 EditorJS block 数组：{id, type, data, events?}。可用 block type 包括 paragraph、table、MHeading、MRichText、MTextField、MEmailField、MPhoneField、MTextareaField、MSelectField、MRadioGroupField、MCheckboxGroupField、MImageChoiceField、MRatingField、MLinearScaleField、MMatrixField、MFileUploadField、MForm、MFormItem、MButton、MAdvanceTable、MChart、MImage、MEmbed、MLink、MTag、MDividerLine、MDatasourceEditor、MPage、MEditorSelector、MAdvanceInput、MFieldsEditor、MThankYouPage、MResultPage、MActionEditor。MForm.data.items 使用 {labelName, variableName, fieldDataType?, layout:\"Vertical\"|\"Horizontal\", editor:{id,type,data}, events?}。MButton.data 使用 {label, variant:\"primary\"|\"secondary\"|\"ghost\", align:\"left\"|\"center\"|\"right\", action:{type:\"submit\", ...}}。MAdvanceTable.data 可包含 columns 和 ds；columns[n].columnContent 可放页面 blocks。block.events 使用 [{event, actions}]，actions 使用客户端 Action DSL。\n\n已知客户端 Action DSL：execute_ds、confirm、open_dialog、jump_url、call_block_method；Control Action 包括 if_controller、switch_controller，结构使用 {uuid, action, type:\"controller\", inputs, nodes}。Action 模板可引用 {{sourceBlock.data...}}、{{blocks['blockId']...}}、{{actions['actionUuid'].outputs...}}。已知客户端 processors 包括 trim、merge_data、filter、date_time_format。\n\n必须返回如下结构，字段名不能改变：\n{\n  \"version\": 1,\n  \"status\": \"complete|partial\",\n  \"summary\": \"一句话说明生成结果\",\n  \"pages\": [\n    {\"uuid\":\"page_uuid\",\"name\":\"页面名称\",\"blocks\":[],\"apiDependencies\":[\"api_uuid\"],\"notes\":[]}\n  ],\n  \"apis\": [\n    {\"uuid\":\"api_uuid\",\"alias\":\"接口名称\",\"method\":\"GET|POST\",\"request\":{\"header\":[],\"query\":[],\"body\":[]},\"blocks\":[],\"response\":null}\n  ],\n  \"upgradePlan\": {\n    \"processors\": [\n      {\"name\":\"processor_name\",\"layer\":\"server|client\",\"reason\":\"为什么需要\",\"inputTypes\":[],\"paramsSchema\":{},\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"blocks\": [\n      {\"functionName\":\"block_name\",\"layer\":\"server\",\"reason\":\"为什么需要\",\"inputsSchema\":{},\"outputs\":[],\"errors\":[],\"dslExample\":{}}\n    ],\n    \"actions\": [\n      {\"action\":\"action_name\",\"reason\":\"为什么需要\",\"inputsSchema\":{},\"outputs\":[],\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"controls\": [\n      {\"functionName\":\"control_name\",\"layer\":\"server|client\",\"reason\":\"为什么需要\",\"nodesSchema\":{},\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"components\": [\n      {\"type\":\"ComponentType\",\"reason\":\"为什么需要\",\"propsSchema\":{},\"events\":[],\"methods\":[],\"dataFields\":[],\"dslExample\":{\"id\":\"example\",\"type\":\"ComponentType\",\"data\":{}}}\n    ]\n  },\n  \"traceability\": [\n    {\"requirement\":\"需求点\",\"status\":\"generated|requires_upgrade\",\"pageUuids\":[],\"apiUuids\":[],\"upgradeRefs\":[]}\n  ],\n  \"assumptions\": [],\n  \"warnings\": []\n}\n\n生成策略：优先生成可直接保存或发布的页面和 API DSL；列表页优先使用 MAdvanceTable + API ds；表单页优先使用 MForm + MButton click actions + execute_ds；删除、发布等危险操作必须用 confirm + if_controller；页面跳转用 jump_url；刷新列表用 call_block_method refresh。API DSL 必须有 starter，终点 block 必须能被 response 或 responses 覆盖。所有数组字段即使为空也要返回 []。如果 upgradePlan 任一数组非空，status 必须为 partial；否则为 complete。",
+        "userInput": {
+          "requirementDocument": {
+            "template": "{{request.body.requirementDocument}}"
+          },
+          "projectContext": {
+            "template": "{{request.body.projectContext}}"
+          },
+          "dslContext": {
+            "template": "{{request.body.dslContext}}"
+          },
+          "generationPreferences": {
+            "template": "{{request.body.generationPreferences}}"
+          }
+        }
+      },
+      "outputs": [
+        "result"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "openai_generate_dsl_block": {
+      "version": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.version}}"
+      },
+      "status": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.status}}"
+      },
+      "summary": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.summary}}"
+      },
+      "pages": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.pages}}"
+      },
+      "apis": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.apis}}"
+      },
+      "upgradePlan": {
+        "processors": {
+          "template": "{{blocks['openai_generate_dsl_block'].outputs.result.upgradePlan.processors}}"
+        },
+        "blocks": {
+          "template": "{{blocks['openai_generate_dsl_block'].outputs.result.upgradePlan.blocks}}"
+        },
+        "actions": {
+          "template": "{{blocks['openai_generate_dsl_block'].outputs.result.upgradePlan.actions}}"
+        },
+        "controls": {
+          "template": "{{blocks['openai_generate_dsl_block'].outputs.result.upgradePlan.controls}}"
+        },
+        "components": {
+          "template": "{{blocks['openai_generate_dsl_block'].outputs.result.upgradePlan.components}}"
+        }
+      },
+      "traceability": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.traceability}}"
+      },
+      "assumptions": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.assumptions}}"
+      },
+      "warnings": {
+        "template": "{{blocks['openai_generate_dsl_block'].outputs.result.warnings}}"
+      }
+    }
+  }
+}

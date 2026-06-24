@@ -121,6 +121,149 @@
             ],
             "fieldDataType": "string",
             "fieldVariable": "updated_at"
+          },
+          {
+            "fixed": "right",
+            "width": 168,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-open-button",
+                "type": "MButton",
+                "data": {
+                  "label": "打开",
+                  "variant": "secondary",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_list_page_open_page",
+                        "action": "jump_url",
+                        "alias": "打开页面",
+                        "inputs": {
+                          "openNew": false,
+                          "url": {
+                            "template": "/#/pages/{{sourceBlock.data.action.uuid}}"
+                          }
+                        },
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "mokelay-list-page-delete-button",
+                "type": "MButton",
+                "data": {
+                  "label": "删除",
+                  "variant": "ghost",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "name": "{{name}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_list_page_delete_confirm",
+                        "action": "confirm",
+                        "alias": "确认删除页面",
+                        "inputs": {
+                          "title": "确认删除页面",
+                          "content": {
+                            "template": "确定要删除页面「{{sourceBlock.data.action.name}}」吗？"
+                          }
+                        },
+                        "outputs": [
+                          "result"
+                        ],
+                        "nextAction": "mokelay_list_page_delete_confirm_route"
+                      },
+                      {
+                        "uuid": "mokelay_list_page_delete_confirm_route",
+                        "action": "if_controller",
+                        "type": "controller",
+                        "alias": "确认结果",
+                        "inputs": {
+                          "value": {
+                            "template": "{{actions['mokelay_list_page_delete_confirm'].outputs.result}}"
+                          }
+                        },
+                        "nodes": [
+                          {
+                            "uuid": "mokelay_list_page_delete_confirm_true",
+                            "alias": "确认",
+                            "value": true,
+                            "nextAction": "mokelay_list_page_delete_execute_ds"
+                          },
+                          {
+                            "uuid": "mokelay_list_page_delete_confirm_false",
+                            "alias": "取消",
+                            "value": false,
+                            "nextAction": null
+                          }
+                        ]
+                      },
+                      {
+                        "uuid": "mokelay_list_page_delete_execute_ds",
+                        "action": "execute_ds",
+                        "alias": "删除页面",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/delete_page_by_uuid",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": {
+                                  "template": "{{sourceBlock.data.action.uuid}}"
+                                }
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "mokelay_list_page_delete_refresh_table"
+                      },
+                      {
+                        "uuid": "mokelay_list_page_delete_refresh_table",
+                        "action": "call_block_method",
+                        "alias": "刷新页面列表",
+                        "inputs": {
+                          "blockId": "mokelay-list-page-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
           }
         ],
         "ds": {
