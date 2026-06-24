@@ -1152,7 +1152,7 @@ async function createUser(baseUrl: string, input: { name: string, email: string 
   return await readMokelayData<CreateUserResponse>(response)
 }
 
-async function createPage(baseUrl: string, input: { name: string, blocks: unknown[] }) {
+async function createPage(baseUrl: string, input: { uuid?: string, name: string, blocks: unknown[] }) {
   const response = await postJson(baseUrl, 'create_page', input)
 
   expect(response.status).toBe(200)
@@ -2353,6 +2353,27 @@ describe('mokelay orchestration API', () => {
       hasNextPage: false,
     })
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
+  })
+
+  it('creates a page with a caller-provided UUID when create_page receives uuid', async () => {
+    const pageUuid = '550e8400-e29b-41d4-a716-446655440000'
+    const created = await createPage(testServer.baseUrl, {
+      uuid: pageUuid,
+      name: 'AI Generated Page',
+      blocks: [{ type: 'MHeading', data: { text: 'AI Generated Page' } }],
+    })
+
+    expect(created.page).toMatchObject({
+      uuid: pageUuid,
+      name: 'AI Generated Page',
+      blocks: [{ type: 'MHeading', data: { text: 'AI Generated Page' } }],
+    })
+
+    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${pageUuid}`)
+    const readBody = await readMokelayData<PageResponse>(readResponse)
+
+    expect(readResponse.status).toBe(200)
+    expect(readBody.page).toEqual(created.page)
   })
 
   it('executes the stored app create and list API JSON definitions', async () => {

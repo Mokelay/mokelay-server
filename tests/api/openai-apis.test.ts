@@ -328,13 +328,14 @@ describe('OpenAI orchestration APIs', () => {
   })
 
   it('generates page and API DSL from a requirement document', async () => {
+    const generatedPageUuid = '550e8400-e29b-41d4-a716-446655440000'
     const generatedDsl = {
       version: 1,
       status: 'partial',
       summary: '生成客户列表页和删除接口，批量导出需要新增 Action。',
       pages: [
         {
-          uuid: 'customer_list_page',
+          uuid: generatedPageUuid,
           name: '客户列表',
           blocks: [
             {
@@ -389,7 +390,7 @@ describe('OpenAI orchestration APIs', () => {
         {
           requirement: '客户列表',
           status: 'generated',
-          pageUuids: ['customer_list_page'],
+          pageUuids: [generatedPageUuid],
           apiUuids: ['list_customers'],
           upgradeRefs: [],
         },
@@ -440,6 +441,7 @@ describe('OpenAI orchestration APIs', () => {
     }))
     const prompt = openAiMocks.responsesCreate.mock.calls[0]?.[0]?.input[0]?.content
     expect(prompt).toContain('"upgradePlan"')
+    expect(prompt).toContain('页面 uuid 必须是合法 RFC UUID')
     expect(prompt).toContain('status 必须为 partial')
   })
 

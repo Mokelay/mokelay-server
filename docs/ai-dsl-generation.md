@@ -70,8 +70,8 @@
 | --- | --- |
 | `version` | 输出契约版本，当前为 `1`。 |
 | `status` | `complete` 表示全部可由现有 DSL 表达；`partial` 表示至少有一项需要能力升级。 |
-| `pages` | 页面 DSL 数组，每项至少包含 `uuid`、`name`、`blocks`、`apiDependencies`、`notes`。 |
-| `apis` | 服务端 API DSL 数组，每项是完整 `ApiJson`，可保存到 API Builder 或 `mokelay-apis/*.json`。 |
+| `pages` | 页面 DSL 数组，每项至少包含 `uuid`、`name`、`blocks`、`apiDependencies`、`notes`；`uuid` 必须是合法 RFC UUID，可直接保存到 `pages.uuid`。 |
+| `apis` | 服务端 API DSL 数组，每项是完整 `ApiJson`，可保存到 API Builder 或 `mokelay-apis/*.json`；API `uuid` 仍使用可读字符串并与路径末尾一致。 |
 | `upgradePlan` | 无法直接表达的能力升级规格，按 `processors`、`blocks`、`actions`、`controls`、`components` 分类。 |
 | `traceability` | 需求点到生成结果或升级项的映射。 |
 | `assumptions` | 生成时作出的假设。 |
