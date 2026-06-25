@@ -30,7 +30,8 @@ export const apps = pgTable('apps', {
 })
 
 export const layouts = pgTable('layouts', {
-  uuid: varchar('uuid', { length: 128 }).primaryKey(),
+  id: serial('id').primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
   name: varchar('name', { length: 120 }).notNull(),
   layoutJson: jsonb('layout_json').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

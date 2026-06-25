@@ -92,12 +92,14 @@ DROP TABLE IF EXISTS `layouts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `layouts` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '布局自增 ID',
   `uuid` varchar(128) NOT NULL COMMENT '布局唯一标识',
   `name` varchar(120) NOT NULL COMMENT '布局名称',
   `layout_json` json NOT NULL COMMENT '布局 DSL JSON',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
-  PRIMARY KEY (`uuid`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_layouts_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='布局定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;

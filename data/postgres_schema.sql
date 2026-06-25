@@ -187,12 +187,33 @@ ALTER SEQUENCE public.datasources_id_seq OWNED BY public.datasources.id;
 --
 
 CREATE TABLE public.layouts (
+    id integer NOT NULL,
     uuid character varying(128) NOT NULL,
     name character varying(120) NOT NULL,
     layout_json jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+
+--
+-- Name: layouts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.layouts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: layouts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.layouts_id_seq OWNED BY public.layouts.id;
 
 
 --
@@ -244,6 +265,13 @@ ALTER TABLE ONLY public.apps ALTER COLUMN id SET DEFAULT nextval('public.apps_id
 --
 
 ALTER TABLE ONLY public.datasources ALTER COLUMN id SET DEFAULT nextval('public.datasources_id_seq'::regclass);
+
+
+--
+-- Name: layouts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.layouts ALTER COLUMN id SET DEFAULT nextval('public.layouts_id_seq'::regclass);
 
 
 --
@@ -307,7 +335,15 @@ ALTER TABLE ONLY public.apps
 --
 
 ALTER TABLE ONLY public.layouts
-    ADD CONSTRAINT layouts_pkey PRIMARY KEY (uuid);
+    ADD CONSTRAINT layouts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: layouts layouts_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.layouts
+    ADD CONSTRAINT layouts_uuid_unique UNIQUE (uuid);
 
 
 --
