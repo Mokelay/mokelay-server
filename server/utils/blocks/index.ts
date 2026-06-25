@@ -3,6 +3,7 @@ import { executeListMokelayApiJsonsBlock } from './listMokelayApiJsons'
 import { executeListMokelayPageJsonsBlock } from './listMokelayPageJsons'
 import { executeReadMokelayApiJsonBlock } from './readMokelayApiJson'
 import { executeReadMokelayPageJsonBlock } from './readMokelayPageJson'
+import { executeResolveLayoutBundleBlock } from './resolveLayoutBundle'
 
 export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> = {
   listMokelayApiJsons: {
@@ -20,5 +21,10 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
   readMokelayPageJson: {
     executor: executeReadMokelayPageJsonBlock,
     allowedOutputs: ['page'],
+  },
+  resolveLayoutBundle: {
+    executor: executeResolveLayoutBundleBlock,
+    allowedOutputs: ['page', 'layout'],
+    requiresDatasource: true,
   },
 }

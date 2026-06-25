@@ -1,0 +1,55 @@
+{
+  "uuid": "render_page_bundle",
+  "alias": "页面渲染 Bundle 接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "uuid",
+      {
+        "key": "source",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": "user"
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "resolve_layout_bundle_block"
+    },
+    {
+      "uuid": "resolve_layout_bundle_block",
+      "alias": "解析页面布局 Bundle",
+      "functionName": "resolveLayoutBundle",
+      "inputs": {
+        "datasource": "Mokelay",
+        "uuid": {
+          "template": "{{request.query.uuid}}"
+        },
+        "source": {
+          "template": "{{request.query.source}}"
+        }
+      },
+      "outputs": [
+        "page",
+        "layout"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "resolve_layout_bundle_block": {
+      "page": {
+        "template": "{{blocks['resolve_layout_bundle_block'].outputs.page}}"
+      },
+      "layout": {
+        "template": "{{blocks['resolve_layout_bundle_block'].outputs.layout}}"
+      }
+    }
+  }
+}

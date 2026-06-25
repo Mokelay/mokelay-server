@@ -1,0 +1,118 @@
+{
+  "uuid": "create_layout",
+  "alias": "创建布局接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "uuid",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              128
+            ]
+          }
+        ]
+      },
+      {
+        "key": "name",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              120
+            ]
+          }
+        ]
+      },
+      "layoutJson"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "create_layout_block"
+    },
+    {
+      "uuid": "create_layout_block",
+      "alias": "创建布局 Block",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "layouts",
+        "idField": "uuid",
+        "fields": {
+          "uuid": {
+            "template": "{{request.body.uuid}}"
+          },
+          "name": {
+            "template": "{{request.body.name}}"
+          },
+          "layout_json": {
+            "template": "{{request.body.layoutJson}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_layout_block"
+    },
+    {
+      "uuid": "read_layout_block",
+      "alias": "读取布局 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "layouts",
+        "fields": [
+          "uuid",
+          "name",
+          "layout_json",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['create_layout_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_layout_block": {
+      "layout": {
+        "uuid": {
+          "template": "{{blocks['read_layout_block'].outputs.data.uuid}}"
+        },
+        "name": {
+          "template": "{{blocks['read_layout_block'].outputs.data.name}}"
+        },
+        "layoutJson": {
+          "template": "{{blocks['read_layout_block'].outputs.data.layout_json}}"
+        },
+        "createdAt": {
+          "template": "{{blocks['read_layout_block'].outputs.data.created_at}}"
+        },
+        "updatedAt": {
+          "template": "{{blocks['read_layout_block'].outputs.data.updated_at}}"
+        }
+      }
+    }
+  }
+}

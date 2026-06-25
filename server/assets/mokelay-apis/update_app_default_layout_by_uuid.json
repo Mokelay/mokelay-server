@@ -1,0 +1,110 @@
+{
+  "uuid": "update_app_default_layout_by_uuid",
+  "alias": "更新 App 默认布局接口",
+  "method": "POST",
+  "request": {
+    "query": [
+      "uuid"
+    ],
+    "body": [
+      {
+        "key": "defaultLayoutUuid",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": null
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "update_app_layout_block"
+    },
+    {
+      "uuid": "update_app_layout_block",
+      "alias": "更新 App 默认布局 Block",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "fields": {
+          "default_layout_uuid": {
+            "template": "{{request.body.defaultLayoutUuid}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": "read_app_block"
+    },
+    {
+      "uuid": "read_app_block",
+      "alias": "读取 App Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "fields": [
+          "id",
+          "uuid",
+          "alias",
+          "description",
+          "default_layout_uuid"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_app_block": {
+      "affected": {
+        "template": "{{blocks['update_app_layout_block'].outputs.affected}}"
+      },
+      "app": {
+        "id": {
+          "template": "{{blocks['read_app_block'].outputs.data.id}}"
+        },
+        "uuid": {
+          "template": "{{blocks['read_app_block'].outputs.data.uuid}}"
+        },
+        "alias": {
+          "template": "{{blocks['read_app_block'].outputs.data.alias}}"
+        },
+        "description": {
+          "template": "{{blocks['read_app_block'].outputs.data.description}}"
+        },
+        "defaultLayoutUuid": {
+          "template": "{{blocks['read_app_block'].outputs.data.default_layout_uuid}}"
+        }
+      }
+    }
+  }
+}

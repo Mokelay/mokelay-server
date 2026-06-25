@@ -1,0 +1,47 @@
+{
+  "uuid": "delete_layout_by_uuid",
+  "alias": "删除布局接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      "uuid"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "delete_layout_block"
+    },
+    {
+      "uuid": "delete_layout_block",
+      "alias": "删除布局 Block",
+      "functionName": "delete",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "layouts",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "delete_layout_block": {
+      "affected": {
+        "template": "{{blocks['delete_layout_block'].outputs.affected}}"
+      },
+      "message": "Layout deleted."
+    }
+  }
+}

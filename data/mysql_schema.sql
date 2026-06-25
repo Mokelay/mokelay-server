@@ -70,6 +70,7 @@ CREATE TABLE `apps` (
   `uuid` varchar(8) NOT NULL COMMENT 'App 唯一ID',
   `alias` varchar(120) NOT NULL COMMENT 'App 名称',
   `description` text NOT NULL COMMENT 'App 描述',
+  `default_layout_uuid` varchar(128) DEFAULT NULL COMMENT '默认布局 UUID',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_apps_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='App 定义表';
@@ -87,6 +88,18 @@ CREATE TABLE `datasources` (
   UNIQUE KEY `uk_datasources_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='数据源定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `layouts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `layouts` (
+  `uuid` varchar(128) NOT NULL COMMENT '布局唯一标识',
+  `name` varchar(120) NOT NULL COMMENT '布局名称',
+  `layout_json` json NOT NULL COMMENT '布局 DSL JSON',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='布局定义表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -95,6 +108,8 @@ CREATE TABLE `pages` (
   `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '页面唯一标识',
   `name` varchar(120) NOT NULL COMMENT '页面名称',
   `blocks` json NOT NULL COMMENT '页面 Block 配置 JSON',
+  `app_uuid` varchar(8) DEFAULT NULL COMMENT '所属 App UUID',
+  `layout_uuid` varchar(128) DEFAULT NULL COMMENT '页面布局 UUID',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),

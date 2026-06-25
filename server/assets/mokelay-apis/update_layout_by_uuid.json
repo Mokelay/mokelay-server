@@ -1,34 +1,46 @@
 {
-  "uuid": "update_page_blocks_by_uuid",
-  "alias": "更新页面区块接口",
+  "uuid": "update_layout_by_uuid",
+  "alias": "更新布局接口",
   "method": "POST",
   "request": {
     "query": [
       "uuid"
     ],
     "body": [
-      "name",
-      "blocks"
+      {
+        "key": "name",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              120
+            ]
+          }
+        ]
+      },
+      "layoutJson"
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "update_page_block"
+      "nextBlock": "update_layout_block"
     },
     {
-      "uuid": "update_page_block",
-      "alias": "更新页面Block",
+      "uuid": "update_layout_block",
+      "alias": "更新布局 Block",
       "functionName": "update",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "pages",
+        "table": "layouts",
         "fields": {
           "name": {
             "template": "{{request.body.name}}"
           },
-          "blocks": {
-            "template": "{{request.body.blocks}}"
+          "layout_json": {
+            "template": "{{request.body.layoutJson}}"
           },
           "updated_at": {
             "template": "{{now}}"
@@ -48,21 +60,19 @@
       "outputs": [
         "affected"
       ],
-      "nextBlock": "read_page_block"
+      "nextBlock": "read_layout_block"
     },
     {
-      "uuid": "read_page_block",
-      "alias": "读取页面Block",
+      "uuid": "read_layout_block",
+      "alias": "读取布局 Block",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "pages",
+        "table": "layouts",
         "fields": [
           "uuid",
           "name",
-          "blocks",
-          "app_uuid",
-          "layout_uuid",
+          "layout_json",
           "created_at",
           "updated_at"
         ],
@@ -84,31 +94,25 @@
     }
   ],
   "responses": {
-    "read_page_block": {
+    "read_layout_block": {
       "affected": {
-        "template": "{{blocks['update_page_block'].outputs.affected}}"
+        "template": "{{blocks['update_layout_block'].outputs.affected}}"
       },
-      "page": {
+      "layout": {
         "uuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.uuid}}"
+          "template": "{{blocks['read_layout_block'].outputs.data.uuid}}"
         },
         "name": {
-          "template": "{{blocks['read_page_block'].outputs.data.name}}"
+          "template": "{{blocks['read_layout_block'].outputs.data.name}}"
         },
-        "blocks": {
-          "template": "{{blocks['read_page_block'].outputs.data.blocks}}"
-        },
-        "appUuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.app_uuid}}"
-        },
-        "layoutUuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.layout_uuid}}"
+        "layoutJson": {
+          "template": "{{blocks['read_layout_block'].outputs.data.layout_json}}"
         },
         "createdAt": {
-          "template": "{{blocks['read_page_block'].outputs.data.created_at}}"
+          "template": "{{blocks['read_layout_block'].outputs.data.created_at}}"
         },
         "updatedAt": {
-          "template": "{{blocks['read_page_block'].outputs.data.updated_at}}"
+          "template": "{{blocks['read_layout_block'].outputs.data.updated_at}}"
         }
       }
     }

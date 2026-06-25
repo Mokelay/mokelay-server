@@ -15,6 +15,8 @@ export const pages = pgTable('pages', {
   uuid: uuid('uuid').primaryKey().defaultRandom(),
   name: varchar('name', { length: 120 }).notNull(),
   blocks: jsonb('blocks').$type<unknown[]>().notNull().default([]),
+  appUuid: varchar('app_uuid', { length: 8 }),
+  layoutUuid: varchar('layout_uuid', { length: 128 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -24,6 +26,15 @@ export const apps = pgTable('apps', {
   uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
+  defaultLayoutUuid: varchar('default_layout_uuid', { length: 128 }),
+})
+
+export const layouts = pgTable('layouts', {
+  uuid: varchar('uuid', { length: 128 }).primaryKey(),
+  name: varchar('name', { length: 120 }).notNull(),
+  layoutJson: jsonb('layout_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const datasources = pgTable('datasources', {
@@ -67,6 +78,8 @@ export type PageRecord = typeof pages.$inferSelect
 export type NewPageRecord = typeof pages.$inferInsert
 export type AppRecord = typeof apps.$inferSelect
 export type NewAppRecord = typeof apps.$inferInsert
+export type LayoutRecord = typeof layouts.$inferSelect
+export type NewLayoutRecord = typeof layouts.$inferInsert
 export type DatasourceRecord = typeof datasources.$inferSelect
 export type NewDatasourceRecord = typeof datasources.$inferInsert
 export type ApiDomainRecord = typeof apiDomains.$inferSelect

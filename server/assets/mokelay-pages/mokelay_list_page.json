@@ -3,6 +3,7 @@
   "createdAt": "2026-06-20T12:42:39.437Z",
   "updatedAt": "2026-06-23T00:00:00.000Z",
   "name": "页面列表",
+  "layoutUuid": "mokelay_layout",
   "blocks": [
     {
       "id": "mokelay-list-page-create-button",

@@ -124,7 +124,8 @@ CREATE TABLE public.apps (
     id integer NOT NULL,
     uuid character varying(8) NOT NULL,
     alias character varying(120) NOT NULL,
-    description text DEFAULT ''::text NOT NULL
+    description text DEFAULT ''::text NOT NULL,
+    default_layout_uuid character varying(128)
 );
 
 
@@ -182,6 +183,19 @@ ALTER SEQUENCE public.datasources_id_seq OWNED BY public.datasources.id;
 
 
 --
+-- Name: layouts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.layouts (
+    uuid character varying(128) NOT NULL,
+    name character varying(120) NOT NULL,
+    layout_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: pages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -189,6 +203,8 @@ CREATE TABLE public.pages (
     uuid uuid DEFAULT gen_random_uuid() NOT NULL,
     name character varying(120) NOT NULL,
     blocks jsonb DEFAULT '[]'::jsonb NOT NULL,
+    app_uuid character varying(8),
+    layout_uuid character varying(128),
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -284,6 +300,14 @@ ALTER TABLE ONLY public.apps
 
 ALTER TABLE ONLY public.apps
     ADD CONSTRAINT apps_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: layouts layouts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.layouts
+    ADD CONSTRAINT layouts_pkey PRIMARY KEY (uuid);
 
 
 --

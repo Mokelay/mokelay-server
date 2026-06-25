@@ -1,20 +1,76 @@
 {
-  "uuid": "read_page_by_uuid",
-  "alias": "读取页面接口",
-  "method": "GET",
+  "uuid": "update_page_layout_by_uuid",
+  "alias": "更新页面布局绑定接口",
+  "method": "POST",
   "request": {
     "query": [
       "uuid"
+    ],
+    "body": [
+      {
+        "key": "appUuid",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": null
+          }
+        ]
+      },
+      {
+        "key": "layoutUuid",
+        "processors": [
+          "trim",
+          {
+            "processor": "default_value",
+            "param": null
+          }
+        ]
+      }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "update_page_layout_block"
+    },
+    {
+      "uuid": "update_page_layout_block",
+      "alias": "更新页面布局绑定 Block",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "pages",
+        "fields": {
+          "app_uuid": {
+            "template": "{{request.body.appUuid}}"
+          },
+          "layout_uuid": {
+            "template": "{{request.body.layoutUuid}}"
+          },
+          "updated_at": {
+            "template": "{{now}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
       "nextBlock": "read_page_block"
     },
     {
       "uuid": "read_page_block",
-      "alias": "读取页面Block",
+      "alias": "读取页面 Block",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
@@ -47,6 +103,9 @@
   ],
   "responses": {
     "read_page_block": {
+      "affected": {
+        "template": "{{blocks['update_page_layout_block'].outputs.affected}}"
+      },
       "page": {
         "uuid": {
           "template": "{{blocks['read_page_block'].outputs.data.uuid}}"
