@@ -4,6 +4,10 @@ import { executeListMokelayPageJsonsBlock } from './listMokelayPageJsons'
 import { executeReadMokelayApiJsonBlock } from './readMokelayApiJson'
 import { executeReadMokelayPageJsonBlock } from './readMokelayPageJson'
 import { executeResolveLayoutBundleBlock } from './resolveLayoutBundle'
+import {
+  executeReadImageFromR2Block,
+  executeSaveImageToR2Block,
+} from './r2Image'
 
 export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> = {
   listMokelayApiJsons: {
@@ -26,5 +30,13 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
     executor: executeResolveLayoutBundleBlock,
     allowedOutputs: ['page', 'layout'],
     requiresDatasource: true,
+  },
+  saveImageToR2: {
+    executor: executeSaveImageToR2Block,
+    allowedOutputs: ['key', 'directory', 'fileName', 'bucket', 'size', 'mimeType', 'url', 'dataUrl', 'etag'],
+  },
+  readImageFromR2: {
+    executor: executeReadImageFromR2Block,
+    allowedOutputs: ['key', 'directory', 'fileName', 'bucket', 'size', 'mimeType', 'url', 'dataUrl', 'etag'],
   },
 }

@@ -1,0 +1,74 @@
+{
+  "uuid": "read_image_from_r2",
+  "alias": "从 R2 读取图片",
+  "method": "GET",
+  "request": {
+    "query": [
+      "key"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_image_from_r2_block"
+    },
+    {
+      "uuid": "read_image_from_r2_block",
+      "alias": "从 R2 读取图片",
+      "functionName": "readImageFromR2",
+      "inputs": {
+        "key": {
+          "template": "{{request.query.key}}"
+        }
+      },
+      "outputs": [
+        "key",
+        "directory",
+        "fileName",
+        "bucket",
+        "size",
+        "mimeType",
+        "url",
+        "dataUrl",
+        "etag"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_image_from_r2_block": {
+      "url": {
+        "template": "{{blocks['read_image_from_r2_block'].outputs.url}}"
+      },
+      "image": {
+        "key": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.key}}"
+        },
+        "directory": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.directory}}"
+        },
+        "fileName": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.fileName}}"
+        },
+        "bucket": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.bucket}}"
+        },
+        "size": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.size}}"
+        },
+        "mimeType": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.mimeType}}"
+        },
+        "url": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.url}}"
+        },
+        "dataUrl": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.dataUrl}}"
+        },
+        "etag": {
+          "template": "{{blocks['read_image_from_r2_block'].outputs.etag}}"
+        }
+      }
+    }
+  }
+}

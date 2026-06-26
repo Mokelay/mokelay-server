@@ -1,0 +1,84 @@
+{
+  "uuid": "upload_image_to_r2",
+  "alias": "上传图片到 R2",
+  "method": "POST",
+  "request": {
+    "body": [
+      "image",
+      {
+        "key": "fileName"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "save_image_to_r2_block"
+    },
+    {
+      "uuid": "save_image_to_r2_block",
+      "alias": "保存图片到 R2",
+      "functionName": "saveImageToR2",
+      "inputs": {
+        "directory": "mokelay-images/uploads",
+        "fileName": {
+          "template": "{{request.body.image.fileName}}"
+        },
+        "image": {
+          "template": "{{request.body.image}}"
+        },
+        "maxSizeBytes": 10485760
+      },
+      "outputs": [
+        "key",
+        "directory",
+        "fileName",
+        "bucket",
+        "size",
+        "mimeType",
+        "url",
+        "dataUrl",
+        "etag"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "save_image_to_r2_block": {
+      "url": {
+        "template": "{{blocks['save_image_to_r2_block'].outputs.url}}"
+      },
+      "successCount": 1,
+      "failedCount": 0,
+      "image": {
+        "key": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.key}}"
+        },
+        "directory": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.directory}}"
+        },
+        "fileName": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.fileName}}"
+        },
+        "bucket": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.bucket}}"
+        },
+        "size": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.size}}"
+        },
+        "mimeType": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.mimeType}}"
+        },
+        "url": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.url}}"
+        },
+        "dataUrl": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.dataUrl}}"
+        },
+        "etag": {
+          "template": "{{blocks['save_image_to_r2_block'].outputs.etag}}"
+        }
+      }
+    }
+  }
+}

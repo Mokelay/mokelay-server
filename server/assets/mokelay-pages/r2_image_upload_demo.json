@@ -1,0 +1,201 @@
+{
+  "uuid": "r2_image_upload_demo",
+  "createdAt": "2026-06-26T00:00:00.000Z",
+  "updatedAt": "2026-06-26T00:00:00.000Z",
+  "name": "R2 图片上传示例",
+  "blocks": [
+    {
+      "id": "r2-image-upload-title",
+      "type": "MHeading",
+      "data": {
+        "level": 2,
+        "text": "R2 图片上传示例"
+      },
+      "events": []
+    },
+    {
+      "id": "r2-image-upload-import",
+      "type": "MUploadImport",
+      "data": {
+        "mode": "image",
+        "accept": "image/png,image/jpeg,image/webp,image/gif",
+        "multiple": true,
+        "maxCount": 10,
+        "maxSizeMB": 10,
+        "drag": true,
+        "autoUpload": false,
+        "parsePreview": true,
+        "uploadAction": [
+          {
+            "uuid": "r2_image_upload_file",
+            "action": "upload_file",
+            "alias": "上传图片到 R2",
+            "inputs": {
+              "files": {
+                "template": "{{event.files}}"
+              },
+              "mode": "direct",
+              "accept": [
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/gif"
+              ],
+              "maxSize": 10485760,
+              "datasource": {
+                "type": "API",
+                "domain": "mokelay",
+                "path": "/api/mokelay/upload_image_to_r2",
+                "method": "POST",
+                "headerData": [],
+                "bodyData": [
+                  {
+                    "key": "image",
+                    "dataType": "file",
+                    "value": {
+                      "name": "",
+                      "size": 0,
+                      "type": ""
+                    }
+                  }
+                ],
+                "queryData": [],
+                "schemaSelections": [
+                  {
+                    "path": "data.url",
+                    "type": "string",
+                    "label": "图片 URL"
+                  },
+                  {
+                    "path": "data.image",
+                    "type": "object",
+                    "label": "图片信息"
+                  }
+                ],
+                "matchingExternalFields": [
+                  {
+                    "label": "图片 URL",
+                    "variable": "url",
+                    "matchFieldPath": "data.url"
+                  },
+                  {
+                    "label": "图片信息",
+                    "variable": "image",
+                    "matchFieldPath": "data.image"
+                  }
+                ]
+              }
+            },
+            "outputs": [
+              "files",
+              "urls",
+              "success",
+              "rawResponse"
+            ],
+            "nextAction": null
+          }
+        ],
+        "value": []
+      },
+      "events": []
+    },
+    {
+      "id": "r2-image-download-button",
+      "type": "MButton",
+      "data": {
+        "label": "读取并下载最后上传的图片",
+        "variant": "secondary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "r2_image_read_ds",
+              "action": "execute_ds",
+              "alias": "读取 R2 图片",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/read_image_from_r2",
+                  "method": "GET",
+                  "headerData": [],
+                  "bodyData": [],
+                  "queryData": [
+                    {
+                      "key": "key",
+                      "value": {
+                        "template": "{{blocks['r2-image-upload-import'].files[0].response.data.image.key}}"
+                      }
+                    }
+                  ],
+                  "schemaSelections": [
+                    {
+                      "path": "data.url",
+                      "type": "string",
+                      "label": "下载 URL"
+                    },
+                    {
+                      "path": "data.image",
+                      "type": "object",
+                      "label": "图片信息"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "下载 URL",
+                      "variable": "downloadUrl",
+                      "matchFieldPath": "data.url"
+                    },
+                    {
+                      "label": "图片信息",
+                      "variable": "image",
+                      "matchFieldPath": "data.image"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "downloadUrl",
+                "image"
+              ],
+              "nextAction": "r2_image_download_blob"
+            },
+            {
+              "uuid": "r2_image_download_blob",
+              "action": "download_blob",
+              "alias": "下载图片",
+              "inputs": {
+                "url": {
+                  "template": "{{actions['r2_image_read_ds'].outputs.downloadUrl}}"
+                },
+                "fileName": {
+                  "template": "{{actions['r2_image_read_ds'].outputs.image.fileName}}"
+                }
+              },
+              "outputs": [
+                "downloaded",
+                "fileName"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apiDependencies": [
+    "upload_image_to_r2",
+    "read_image_from_r2"
+  ],
+  "notes": [
+    "MUploadImport 通过 upload_file action 调用 upload_image_to_r2。",
+    "下载按钮通过 execute_ds 读取 R2 图片 JSON，再通过 download_blob 下载返回的 URL。"
+  ]
+}
