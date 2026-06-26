@@ -1,0 +1,59 @@
+{
+  "uuid": "batch_delete_pages",
+  "alias": "批量删除页面接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "uuids",
+        "processors": [
+          "is_not_null",
+          "string_array_check",
+          {
+            "processor": "min",
+            "param": [
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "batch_delete_pages_block"
+    },
+    {
+      "uuid": "batch_delete_pages_block",
+      "alias": "批量删除页面 Block",
+      "functionName": "delete",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "pages",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "IN",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuids}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "batch_delete_pages_block": {
+      "affected": {
+        "template": "{{blocks['batch_delete_pages_block'].outputs.affected}}"
+      },
+      "message": "批量删除成功"
+    }
+  }
+}
