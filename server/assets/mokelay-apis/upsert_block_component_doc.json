@@ -1,0 +1,157 @@
+{
+  "uuid": "upsert_block_component_doc",
+  "alias": "保存 Block 组件文档接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      "uuid",
+      "block_type",
+      "display_name",
+      "category",
+      "source_kind",
+      "source_file",
+      "description",
+      "status",
+      "toolbox",
+      "initial_props",
+      "property_schema",
+      "event_schema",
+      "method_schema",
+      "data_fields_schema",
+      "examples",
+      "source_refs",
+      "raw_meta"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "upsert_block_doc_block"
+    },
+    {
+      "uuid": "upsert_block_doc_block",
+      "alias": "保存 Block 文档 Block",
+      "functionName": "upsert",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "block_component_docs",
+        "idField": "uuid",
+        "fields": {
+          "uuid": {
+            "template": "{{request.body.uuid}}"
+          },
+          "block_type": {
+            "template": "{{request.body.block_type}}"
+          },
+          "display_name": {
+            "template": "{{request.body.display_name}}"
+          },
+          "category": {
+            "template": "{{request.body.category}}"
+          },
+          "source_kind": {
+            "template": "{{request.body.source_kind}}"
+          },
+          "source_file": {
+            "template": "{{request.body.source_file}}"
+          },
+          "description": {
+            "template": "{{request.body.description}}"
+          },
+          "status": {
+            "template": "{{request.body.status}}"
+          },
+          "toolbox": {
+            "template": "{{request.body.toolbox}}"
+          },
+          "initial_props": {
+            "template": "{{request.body.initial_props}}"
+          },
+          "property_schema": {
+            "template": "{{request.body.property_schema}}"
+          },
+          "event_schema": {
+            "template": "{{request.body.event_schema}}"
+          },
+          "method_schema": {
+            "template": "{{request.body.method_schema}}"
+          },
+          "data_fields_schema": {
+            "template": "{{request.body.data_fields_schema}}"
+          },
+          "examples": {
+            "template": "{{request.body.examples}}"
+          },
+          "source_refs": {
+            "template": "{{request.body.source_refs}}"
+          },
+          "raw_meta": {
+            "template": "{{request.body.raw_meta}}"
+          },
+          "updated_at": {
+            "template": "{{now}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_saved_block_doc_block"
+    },
+    {
+      "uuid": "read_saved_block_doc_block",
+      "alias": "读取已保存 Block 文档 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "block_component_docs",
+        "fields": [
+          "id",
+          "uuid",
+          "block_type",
+          "display_name",
+          "category",
+          "source_kind",
+          "source_file",
+          "description",
+          "status",
+          "toolbox",
+          "initial_props",
+          "property_schema",
+          "event_schema",
+          "method_schema",
+          "data_fields_schema",
+          "examples",
+          "source_refs",
+          "raw_meta",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['upsert_block_doc_block'].outputs.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_saved_block_doc_block": {
+      "uuid": {
+        "template": "{{blocks['upsert_block_doc_block'].outputs.uuid}}"
+      },
+      "doc": {
+        "template": "{{blocks['read_saved_block_doc_block'].outputs.data}}"
+      }
+    }
+  }
+}

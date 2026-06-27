@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { jsonb, pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigserial, jsonb, pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -73,6 +73,29 @@ export const apisSnapshot = pgTable('apis_snapshot', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const blockComponentDocs = pgTable('block_component_docs', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  blockType: varchar('block_type', { length: 128 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 120 }).notNull(),
+  category: varchar('category', { length: 64 }).notNull().default('custom'),
+  sourceKind: varchar('source_kind', { length: 64 }).notNull().default('mokelay-editor'),
+  sourceFile: text('source_file').notNull().default(''),
+  description: text('description').notNull().default(''),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  toolbox: jsonb('toolbox').$type<Record<string, unknown>>().notNull().default({}),
+  initialProps: jsonb('initial_props').$type<Record<string, unknown>>().notNull().default({}),
+  propertySchema: jsonb('property_schema').$type<unknown[]>().notNull().default([]),
+  eventSchema: jsonb('event_schema').$type<unknown[]>().notNull().default([]),
+  methodSchema: jsonb('method_schema').$type<unknown[]>().notNull().default([]),
+  dataFieldsSchema: jsonb('data_fields_schema').$type<unknown[]>().notNull().default([]),
+  examples: jsonb('examples').$type<unknown[]>().notNull().default([]),
+  sourceRefs: jsonb('source_refs').$type<unknown[]>().notNull().default([]),
+  rawMeta: jsonb('raw_meta').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export type UserRecord = typeof users.$inferSelect
 export type NewUserRecord = typeof users.$inferInsert
 export type PageRecord = typeof pages.$inferSelect
@@ -89,3 +112,5 @@ export type ApiRecord = typeof apis.$inferSelect
 export type NewApiRecord = typeof apis.$inferInsert
 export type ApiSnapshotRecord = typeof apisSnapshot.$inferSelect
 export type NewApiSnapshotRecord = typeof apisSnapshot.$inferInsert
+export type BlockComponentDocRecord = typeof blockComponentDocs.$inferSelect
+export type NewBlockComponentDocRecord = typeof blockComponentDocs.$inferInsert

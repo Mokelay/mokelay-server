@@ -150,6 +150,53 @@ ALTER SEQUENCE public.apps_id_seq OWNED BY public.apps.id;
 
 
 --
+-- Name: block_component_docs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.block_component_docs (
+    id bigint NOT NULL,
+    uuid character varying(128) NOT NULL,
+    block_type character varying(128) NOT NULL,
+    display_name character varying(120) NOT NULL,
+    category character varying(64) DEFAULT 'custom'::character varying NOT NULL,
+    source_kind character varying(64) DEFAULT 'mokelay-editor'::character varying NOT NULL,
+    source_file text DEFAULT ''::text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    status character varying(32) DEFAULT 'active'::character varying NOT NULL,
+    toolbox jsonb DEFAULT '{}'::jsonb NOT NULL,
+    initial_props jsonb DEFAULT '{}'::jsonb NOT NULL,
+    property_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    event_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    method_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    data_fields_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    examples jsonb DEFAULT '[]'::jsonb NOT NULL,
+    source_refs jsonb DEFAULT '[]'::jsonb NOT NULL,
+    raw_meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: block_component_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.block_component_docs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: block_component_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.block_component_docs_id_seq OWNED BY public.block_component_docs.id;
+
+
+--
 -- Name: datasources; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -261,6 +308,13 @@ ALTER TABLE ONLY public.apps ALTER COLUMN id SET DEFAULT nextval('public.apps_id
 
 
 --
+-- Name: block_component_docs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.block_component_docs ALTER COLUMN id SET DEFAULT nextval('public.block_component_docs_id_seq'::regclass);
+
+
+--
 -- Name: datasources id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -328,6 +382,30 @@ ALTER TABLE ONLY public.apps
 
 ALTER TABLE ONLY public.apps
     ADD CONSTRAINT apps_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: block_component_docs block_component_docs_block_type_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.block_component_docs
+    ADD CONSTRAINT block_component_docs_block_type_unique UNIQUE (block_type);
+
+
+--
+-- Name: block_component_docs block_component_docs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.block_component_docs
+    ADD CONSTRAINT block_component_docs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: block_component_docs block_component_docs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.block_component_docs
+    ADD CONSTRAINT block_component_docs_uuid_unique UNIQUE (uuid);
 
 
 --

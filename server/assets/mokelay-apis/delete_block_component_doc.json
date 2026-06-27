@@ -1,0 +1,47 @@
+{
+  "uuid": "delete_block_component_doc",
+  "alias": "删除 Block 组件文档接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      "uuid"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "delete_block_doc_block"
+    },
+    {
+      "uuid": "delete_block_doc_block",
+      "alias": "删除 Block 文档 Block",
+      "functionName": "delete",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "block_component_docs",
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "delete_block_doc_block": {
+      "affected": {
+        "template": "{{blocks['delete_block_doc_block'].outputs.affected}}"
+      },
+      "message": "Block component doc deleted."
+    }
+  }
+}

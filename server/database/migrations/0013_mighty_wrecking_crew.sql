@@ -1,0 +1,22 @@
+CREATE TABLE "block_component_docs" (
+	"uuid" varchar(128) PRIMARY KEY NOT NULL,
+	"block_type" varchar(128) NOT NULL,
+	"display_name" varchar(120) NOT NULL,
+	"category" varchar(64) DEFAULT 'custom' NOT NULL,
+	"source_kind" varchar(64) DEFAULT 'mokelay-editor' NOT NULL,
+	"source_file" text DEFAULT '' NOT NULL,
+	"description" text DEFAULT '' NOT NULL,
+	"status" varchar(32) DEFAULT 'active' NOT NULL,
+	"toolbox" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"initial_props" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"property_schema" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"event_schema" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"method_schema" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"data_fields_schema" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"examples" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"source_refs" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"raw_meta" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "block_component_docs_block_type_unique" UNIQUE("block_type")
+);

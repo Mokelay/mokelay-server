@@ -1,0 +1,331 @@
+{
+  "uuid": "block_component_docs",
+  "name": "Block 组件文档管理",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "block-docs-title",
+      "type": "MHeading",
+      "data": {
+        "text": "Block 组件文档管理",
+        "level": "1",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-docs-intro",
+      "type": "MRichText",
+      "data": {
+        "content": "这里展示 mokelay-editor 当前代码中已注册 block 的完整文档数据。数据由导入脚本从真实源码抽取后写入数据库，包含基础信息、属性、事件、方法、可读数据字段、示例 DSL 和源码引用。"
+      }
+    },
+    {
+      "id": "block-docs-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "columnName": "Block Type",
+            "fieldVariable": "block_type",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "block-docs-col-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{block_type}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "名称",
+            "fieldVariable": "display_name",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-col-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{display_name}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "分类",
+            "fieldVariable": "category",
+            "fieldDataType": "string",
+            "width": 150,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-col-category",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{category}} / {{source_kind}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "说明",
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 420,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-col-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "源码",
+            "fieldVariable": "source_file",
+            "fieldDataType": "string",
+            "width": 280,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-col-source",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{source_file}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "属性",
+            "fieldVariable": "property_schema",
+            "fieldDataType": "array",
+            "width": 96,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-open-properties",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_open_property_detail",
+                        "action": "open_dialog",
+                        "alias": "打开属性详情页面",
+                        "inputs": {
+                          "title": "{{display_name}} · 属性信息",
+                          "pageUUID": "block_component_doc_properties",
+                          "pageSource": "system",
+                          "context": {
+                            "block_type": "{{block_type}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{property_schema}}",
+                            "count": "{{raw_meta.counts.properties}}",
+                            "emptyText": "暂无属性信息"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "事件",
+            "fieldVariable": "event_schema",
+            "fieldDataType": "array",
+            "width": 96,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-open-events",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_open_event_detail",
+                        "action": "open_dialog",
+                        "alias": "打开事件详情页面",
+                        "inputs": {
+                          "title": "{{display_name}} · 事件信息",
+                          "pageUUID": "block_component_doc_events",
+                          "pageSource": "system",
+                          "context": {
+                            "block_type": "{{block_type}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{event_schema}}",
+                            "count": "{{raw_meta.counts.events}}",
+                            "emptyText": "暂无事件信息"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "方法",
+            "fieldVariable": "method_schema",
+            "fieldDataType": "array",
+            "width": 96,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "block-docs-open-methods",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_open_method_detail",
+                        "action": "open_dialog",
+                        "alias": "打开方法详情页面",
+                        "inputs": {
+                          "title": "{{display_name}} · 方法信息",
+                          "pageUUID": "block_component_doc_methods",
+                          "pageSource": "system",
+                          "context": {
+                            "block_type": "{{block_type}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{method_schema}}",
+                            "count": "{{raw_meta.counts.methods}}",
+                            "emptyText": "暂无方法信息"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_block_component_docs",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.docs[]",
+              "label": "docs",
+              "type": "array"
+            },
+            {
+              "path": "data.pagination.page",
+              "label": "page",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "label": "pageSize",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.total",
+              "label": "total",
+              "type": "number"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "数据",
+              "variable": "data",
+              "type": "array",
+              "matchFieldPath": "data.docs[]"
+            },
+            {
+              "label": "页码",
+              "variable": "page",
+              "type": "number",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页数量",
+              "variable": "pageSize",
+              "type": "number",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "type": "number",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

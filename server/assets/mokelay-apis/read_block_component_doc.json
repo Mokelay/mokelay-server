@@ -1,0 +1,68 @@
+{
+  "uuid": "read_block_component_doc",
+  "alias": "读取 Block 组件文档接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "uuid"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_block_doc_block"
+    },
+    {
+      "uuid": "read_block_doc_block",
+      "alias": "读取 Block 文档 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "block_component_docs",
+        "fields": [
+          "id",
+          "uuid",
+          "block_type",
+          "display_name",
+          "category",
+          "source_kind",
+          "source_file",
+          "description",
+          "status",
+          "toolbox",
+          "initial_props",
+          "property_schema",
+          "event_schema",
+          "method_schema",
+          "data_fields_schema",
+          "examples",
+          "source_refs",
+          "raw_meta",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_block_doc_block": {
+      "doc": {
+        "template": "{{blocks['read_block_doc_block'].outputs.data}}"
+      }
+    }
+  }
+}
