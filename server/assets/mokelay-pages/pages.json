@@ -1,0 +1,30 @@
+{
+  "uuid": "pages",
+  "createdAt": "2026-06-28T00:00:00.000Z",
+  "updatedAt": "2026-06-28T00:00:00.000Z",
+  "name": "页面管理",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-pages-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "user-create",
+        "tabs": [
+          {
+            "id": "user-create",
+            "name": "用户创建",
+            "pageUUID": "mokelay_list_page",
+            "pageSource": "system"
+          },
+          {
+            "id": "system-built-in",
+            "name": "系统内置",
+            "pageUUID": "mokelay_system_page",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "uuid": "mokelay_system_page",
+  "createdAt": "2026-06-28T00:00:00.000Z",
+  "updatedAt": "2026-06-28T00:00:00.000Z",
+  "name": "系统内置页面",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-system-page-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": false,
+        "columns": [
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "uuid",
+            "columnContent": [
+              {
+                "id": "mokelay-system-page-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "页面名称",
+            "columnContent": [
+              {
+                "id": "mokelay-system-page-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "name"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "创建时间",
+            "columnContent": [
+              {
+                "id": "mokelay-system-page-created-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{createdAt}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "createdAt"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "更新时间",
+            "columnContent": [
+              {
+                "id": "mokelay-system-page-updated-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{updatedAt}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "updatedAt"
+          },
+          {
+            "fixed": "right",
+            "width": 96,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "mokelay-system-page-open-button",
+                "type": "MButton",
+                "data": {
+                  "label": "打开",
+                  "variant": "secondary",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_system_page_open_page",
+                        "action": "jump_url",
+                        "alias": "打开内置页面",
+                        "inputs": {
+                          "openNew": false,
+                          "url": {
+                            "template": "/#/pages/{{sourceBlock.data.action.uuid}}?source=system"
+                          }
+                        },
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_mokelay_page_jsons",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [],
+          "schemaSelections": [
+            {
+              "path": "data.pages[]",
+              "type": "array",
+              "label": "内置页面列表"
+            },
+            {
+              "path": "data.count",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.pages[]"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.count"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}
