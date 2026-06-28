@@ -912,12 +912,31 @@ class FakeSqlExecutor {
       return [...this.pages]
     }
 
-    if (queryText.includes('"uuid" =')) {
-      const uuid = params.at(-1)
-      return this.pages.filter((page) => page.uuid === uuid)
+    const whereText = queryText.split(' WHERE ')[1] ?? ''
+    let result = [...this.pages]
+    let paramIndex = 0
+
+    if (whereText.includes('"uuid" =')) {
+      const uuid = params[paramIndex++]
+      result = result.filter((page) => page.uuid === uuid)
     }
 
-    return [...this.pages]
+    if (whereText.includes('"name" =')) {
+      const name = params[paramIndex++]
+      result = result.filter((page) => page.name === name)
+    }
+
+    if (whereText.includes('"created_at" >=')) {
+      const createdAtBegin = String(params[paramIndex++] ?? '')
+      result = result.filter((page) => page.created_at >= createdAtBegin)
+    }
+
+    if (whereText.includes('"created_at" <=')) {
+      const createdAtEnd = String(params[paramIndex++] ?? '')
+      result = result.filter((page) => page.created_at <= createdAtEnd)
+    }
+
+    return result
   }
 
   private filterApps(queryText: string, params: unknown[]) {
@@ -2352,6 +2371,64 @@ describe('mokelay orchestration API', () => {
       hasPreviousPage: true,
       hasNextPage: false,
     })
+
+    const firstPageRow = fakeSqlExecutor.pages.find((page) => page.uuid === firstPage?.uuid)
+    const secondPageRow = fakeSqlExecutor.pages.find((page) => page.uuid === secondPage?.uuid)
+
+    expect(firstPageRow).toBeDefined()
+    expect(secondPageRow).toBeDefined()
+
+    if (firstPageRow) {
+      firstPageRow.created_at = '2026-05-01T00:00:00.000Z'
+    }
+
+    if (secondPageRow) {
+      secondPageRow.created_at = '2026-05-10T00:00:00.000Z'
+    }
+
+    const emptySearchResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=&name=&created_at_begin=&created_at_end=`,
+    )
+    const emptySearchBody = await readMokelayData<PageListResponse>(emptySearchResponse)
+
+    expect(emptySearchResponse.status).toBe(200)
+    expect(emptySearchBody.pagination.total).toBe(2)
+
+    const uuidSearchResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=${secondPage?.uuid}`,
+    )
+    const uuidSearchBody = await readMokelayData<PageListResponse>(uuidSearchResponse)
+
+    expect(uuidSearchBody.pagination.total).toBe(1)
+    expect(uuidSearchBody.pages[0]?.uuid).toBe(secondPage?.uuid)
+
+    const nameSearchResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&name=${encodeURIComponent('First Page Updated')}`,
+    )
+    const nameSearchBody = await readMokelayData<PageListResponse>(nameSearchResponse)
+
+    expect(nameSearchBody.pagination.total).toBe(1)
+    expect(nameSearchBody.pages[0]?.uuid).toBe(firstPage?.uuid)
+
+    const rangeSearchResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10`
+        + '&created_at_begin=2026-05-05T00%3A00%3A00.000Z'
+        + '&created_at_end=2026-05-31T23%3A59%3A59.999Z',
+    )
+    const rangeSearchBody = await readMokelayData<PageListResponse>(rangeSearchResponse)
+
+    expect(rangeSearchBody.pagination.total).toBe(1)
+    expect(rangeSearchBody.pages[0]?.uuid).toBe(secondPage?.uuid)
+
+    const combinedSearchResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10`
+        + `&name=${encodeURIComponent('Second Page')}`
+        + '&created_at_begin=2026-05-05T00%3A00%3A00.000Z',
+    )
+    const combinedSearchBody = await readMokelayData<PageListResponse>(combinedSearchResponse)
+
+    expect(combinedSearchBody.pagination.total).toBe(1)
+    expect(combinedSearchBody.pages[0]?.uuid).toBe(secondPage?.uuid)
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 

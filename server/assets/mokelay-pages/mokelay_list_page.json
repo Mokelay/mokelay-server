@@ -6,50 +6,150 @@
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
-      "id": "mokelay-list-page-create-button",
-      "type": "MButton",
+      "id": "mokelay-list-page-search-form",
+      "type": "MForm",
       "data": {
-        "label": "创建页面",
-        "variant": "primary",
-        "align": "left",
-        "action": {
-          "type": "submit"
-        }
-      },
-      "events": [
-        {
-          "event": "click",
-          "actions": [
+        "layout": "Horizontal",
+        "items": [
+          {
+            "labelName": "uuid",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-list-page-search-uuid-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入 uuid",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "页面名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-list-page-search-name-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入页面名称",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "创建时间范围",
+            "variableName": "created_at_range",
+            "fieldDataType": "object",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-list-page-search-created-at-range",
+              "type": "MDateRangeField",
+              "data": {
+                "value": {
+                  "start": "",
+                  "end": ""
+                }
+              }
+            },
+            "events": []
+          }
+        ],
+        "actionBar": {
+          "align": "left",
+          "size": "medium",
+          "mode": "inline",
+          "buttons": [
             {
-              "uuid": "mokelay_list_page_open_create_dialog",
-              "action": "open_dialog",
-              "alias": "打开创建页面弹窗",
-              "inputs": {
-                "title": "创建页面",
-                "pageUUID": "mokelay_create_page",
-                "pageSource": "system"
-              },
-              "outputs": [
-                "close_result"
-              ],
-              "nextAction": "mokelay_list_page_refresh_table"
+              "id": "search",
+              "label": "搜索",
+              "variant": "secondary",
+              "align": "left",
+              "events": [
+                {
+                  "event": "click",
+                  "actions": [
+                    {
+                      "uuid": "mokelay_list_page_search_get_form_data",
+                      "action": "call_block_method",
+                      "alias": "获取页面搜索条件",
+                      "inputs": {
+                        "blockId": "mokelay-list-page-search-form",
+                        "method": "getData"
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": "mokelay_list_page_search_table"
+                    },
+                    {
+                      "uuid": "mokelay_list_page_search_table",
+                      "action": "call_block_method",
+                      "alias": "搜索页面列表",
+                      "inputs": {
+                        "blockId": "mokelay-list-page-table",
+                        "method": "search",
+                        "args": {
+                          "template": "{{actions['mokelay_list_page_search_get_form_data'].outputs.returnData}}"
+                        }
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    }
+                  ]
+                }
+              ]
             },
             {
-              "uuid": "mokelay_list_page_refresh_table",
-              "action": "call_block_method",
-              "alias": "刷新页面列表",
-              "inputs": {
-                "blockId": "mokelay-list-page-table",
-                "method": "refresh"
-              },
-              "outputs": [
-                "returnData"
-              ],
-              "nextAction": null
+              "id": "create",
+              "label": "创建页面",
+              "variant": "primary",
+              "align": "left",
+              "events": [
+                {
+                  "event": "click",
+                  "actions": [
+                    {
+                      "uuid": "mokelay_list_page_open_create_dialog",
+                      "action": "open_dialog",
+                      "alias": "打开创建页面弹窗",
+                      "inputs": {
+                        "title": "创建页面",
+                        "pageUUID": "mokelay_create_page",
+                        "pageSource": "system"
+                      },
+                      "outputs": [
+                        "close_result"
+                      ],
+                      "nextAction": "mokelay_list_page_refresh_table"
+                    },
+                    {
+                      "uuid": "mokelay_list_page_refresh_table",
+                      "action": "call_block_method",
+                      "alias": "刷新页面列表",
+                      "inputs": {
+                        "blockId": "mokelay-list-page-table",
+                        "method": "refresh"
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
-      ]
+      },
+      "events": []
     },
     {
       "id": "mokelay-list-page-action-toolbar",
@@ -429,6 +529,48 @@
                 "blockId": "mokelay-list-page-table",
                 "blockType": "MAdvanceTable",
                 "variable": "pageSize"
+              }
+            },
+            {
+              "key": "uuid",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.uuid",
+                "processors": [
+                  "trim"
+                ]
+              }
+            },
+            {
+              "key": "name",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.name",
+                "processors": [
+                  "trim"
+                ]
+              }
+            },
+            {
+              "key": "created_at_begin",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.created_at_range.start"
+              }
+            },
+            {
+              "key": "created_at_end",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.created_at_range.end"
               }
             }
           ],

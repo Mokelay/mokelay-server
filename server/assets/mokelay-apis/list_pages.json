@@ -5,7 +5,31 @@
   "request": {
     "query": [
       "page",
-      "pageSize"
+      "pageSize",
+      {
+        "key": "uuid",
+        "processors": [
+          "trim"
+        ]
+      },
+      {
+        "key": "name",
+        "processors": [
+          "trim"
+        ]
+      },
+      {
+        "key": "created_at_begin",
+        "processors": [
+          "trim"
+        ]
+      },
+      {
+        "key": "created_at_end",
+        "processors": [
+          "trim"
+        ]
+      }
     ]
   },
   "blocks": [
@@ -33,6 +57,44 @@
         "pageSize": {
           "template": "{{request.query.pageSize}}"
         },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            },
+            "optional": true
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "name",
+            "fieldValue": {
+              "template": "{{request.query.name}}"
+            },
+            "optional": true
+          },
+          {
+            "group": false,
+            "conditionType": "GE",
+            "fieldName": "created_at",
+            "fieldValue": {
+              "template": "{{request.query.created_at_begin}}"
+            },
+            "optional": true
+          },
+          {
+            "group": false,
+            "conditionType": "LE",
+            "fieldName": "created_at",
+            "fieldValue": {
+              "template": "{{request.query.created_at_end}}"
+            },
+            "optional": true
+          }
+        ],
         "orderBy": [
           {
             "fieldName": "updated_at",
