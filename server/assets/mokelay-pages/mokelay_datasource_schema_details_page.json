@@ -1,0 +1,53 @@
+{
+  "uuid": "mokelay_datasource_schema_details_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "Schema 详情",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-datasource-schema-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "Schema 详情",
+        "level": 2,
+        "align": "left"
+      }
+    },
+    {
+      "id": "mokelay-datasource-schema-list",
+      "type": "MRecordList",
+      "data": {
+        "items": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.schemaData"
+        },
+        "displayName": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.alias"
+        },
+        "blockType": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.uuid"
+        },
+        "emptyText": "暂无 Schema 数据，请先同步 Schema。",
+        "showCount": true,
+        "fieldOrder": [
+          "name",
+          "columns"
+        ],
+        "fieldLabels": {
+          "name": "表名",
+          "columns": "字段"
+        },
+        "titleFields": [
+          "name"
+        ]
+      },
+      "events": []
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "uuid": "mokelay_datasource_create_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "创建数据源",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-datasource-create-form",
+      "type": "MForm",
+      "data": {
+        "items": [
+          {
+            "labelName": "数据源 UUID",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-datasource-create-uuid-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "例如：pg_main",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "名称",
+            "variableName": "alias",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-datasource-create-alias-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入数据源名称",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "描述",
+            "variableName": "description",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-datasource-create-description-input",
+              "type": "MTextareaField",
+              "data": {
+                "placeholder": "请输入描述",
+                "value": "",
+                "rows": 4
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-datasource-create-save-button",
+      "type": "MButton",
+      "data": {
+        "label": "保存数据源",
+        "variant": "primary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_datasource_create_get_form_data",
+              "action": "call_block_method",
+              "alias": "获取数据源表单数据",
+              "inputs": {
+                "blockId": "mokelay-datasource-create-form",
+                "method": "getData"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_datasource_create_execute_ds"
+            },
+            {
+              "uuid": "mokelay_datasource_create_execute_ds",
+              "action": "execute_ds",
+              "alias": "创建数据源",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/create_datasource",
+                  "method": "POST",
+                  "headerData": [],
+                  "bodyData": [
+                    {
+                      "key": "uuid",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.uuid}}",
+                        "processors": ["trim"]
+                      }
+                    },
+                    {
+                      "key": "alias",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.alias}}",
+                        "processors": ["trim"]
+                      }
+                    },
+                    {
+                      "key": "description",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.description}}",
+                        "processors": ["trim"]
+                      }
+                    }
+                  ],
+                  "queryData": [],
+                  "schemaSelections": [
+                    {
+                      "path": "data.datasource",
+                      "type": "object",
+                      "label": "创建数据源"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "创建数据源",
+                      "variable": "createdDatasource",
+                      "matchFieldPath": "data.datasource"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "createdDatasource"
+              ],
+              "nextAction": "mokelay_datasource_create_close_page"
+            },
+            {
+              "uuid": "mokelay_datasource_create_close_page",
+              "action": "call_block_method",
+              "alias": "关闭创建数据源弹窗",
+              "inputs": {
+                "blockId": "mokelay_datasource_create_page",
+                "method": "close"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

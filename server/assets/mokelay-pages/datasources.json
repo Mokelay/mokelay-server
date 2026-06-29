@@ -1,0 +1,414 @@
+{
+  "uuid": "datasources",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "数据源管理",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-datasources-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "数据源管理",
+        "level": 2,
+        "align": "left"
+      }
+    },
+    {
+      "id": "mokelay-datasources-toolbar",
+      "type": "MActionToolbar",
+      "data": {
+        "align": "right",
+        "size": "small",
+        "mode": "inline",
+        "buttons": [
+          {
+            "id": "create",
+            "label": "创建数据源",
+            "variant": "primary",
+            "events": [
+              {
+                "event": "click",
+                "actions": [
+                  {
+                    "uuid": "mokelay_datasources_open_create_dialog",
+                    "action": "open_dialog",
+                    "alias": "创建数据源",
+                    "inputs": {
+                      "title": "创建数据源",
+                      "pageUUID": "mokelay_datasource_create_page",
+                      "pageSource": "system",
+                      "context": {}
+                    },
+                    "outputs": [
+                      "close_result"
+                    ],
+                    "nextAction": "mokelay_datasources_refresh_after_create"
+                  },
+                  {
+                    "uuid": "mokelay_datasources_refresh_after_create",
+                    "action": "call_block_method",
+                    "alias": "刷新数据源列表",
+                    "inputs": {
+                      "blockId": "mokelay-datasources-table",
+                      "method": "refresh"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-datasources-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 80,
+            "columnName": "ID",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{id}}"
+                }
+              }
+            ],
+            "fieldDataType": "number",
+            "fieldVariable": "id"
+          },
+          {
+            "fixed": null,
+            "width": 160,
+            "columnName": "UUID",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": 180,
+            "columnName": "名称",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-alias",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{alias}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "alias"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "描述",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "description"
+          },
+          {
+            "fixed": null,
+            "width": 140,
+            "columnName": "Schema",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-schema",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{schema_data.length}} 张表"
+                }
+              }
+            ],
+            "fieldDataType": "array",
+            "fieldVariable": "schema_data"
+          },
+          {
+            "fixed": "right",
+            "width": 260,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "mokelay-datasources-edit-button",
+                "type": "MButton",
+                "data": {
+                  "label": "编辑",
+                  "variant": "secondary",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "alias": "{{alias}}",
+                    "description": "{{description}}",
+                    "schemaData": "{{schema_data}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_datasources_open_edit_dialog",
+                        "action": "open_dialog",
+                        "alias": "编辑数据源",
+                        "inputs": {
+                          "title": "编辑数据源",
+                          "pageUUID": "mokelay_datasource_edit_page",
+                          "pageSource": "system",
+                          "context": {
+                            "uuid": {
+                              "template": "{{sourceBlock.data.action.uuid}}"
+                            },
+                            "alias": {
+                              "template": "{{sourceBlock.data.action.alias}}"
+                            },
+                            "description": {
+                              "template": "{{sourceBlock.data.action.description}}"
+                            },
+                            "schemaData": {
+                              "template": "{{sourceBlock.data.action.schemaData}}"
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": "mokelay_datasources_refresh_after_edit"
+                      },
+                      {
+                        "uuid": "mokelay_datasources_refresh_after_edit",
+                        "action": "call_block_method",
+                        "alias": "刷新数据源列表",
+                        "inputs": {
+                          "blockId": "mokelay-datasources-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "mokelay-datasources-schema-button",
+                "type": "MButton",
+                "data": {
+                  "label": "详情",
+                  "variant": "ghost",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "alias": "{{alias}}",
+                    "schemaData": "{{schema_data}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_datasources_open_schema_dialog",
+                        "action": "open_dialog",
+                        "alias": "查看 Schema",
+                        "inputs": {
+                          "title": "Schema 详情",
+                          "pageUUID": "mokelay_datasource_schema_details_page",
+                          "pageSource": "system",
+                          "context": {
+                            "uuid": {
+                              "template": "{{sourceBlock.data.action.uuid}}"
+                            },
+                            "alias": {
+                              "template": "{{sourceBlock.data.action.alias}}"
+                            },
+                            "schemaData": {
+                              "template": "{{sourceBlock.data.action.schemaData}}"
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "mokelay-datasources-sync-button",
+                "type": "MButton",
+                "data": {
+                  "label": "同步",
+                  "variant": "text",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_datasources_sync_schema",
+                        "action": "execute_ds",
+                        "alias": "同步数据源 Schema",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/sync_datasource_schema",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [],
+                            "queryData": [
+                              {
+                                "key": "uuid",
+                                "value": {
+                                  "template": "{{sourceBlock.data.action.uuid}}"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "mokelay_datasources_refresh_after_sync"
+                      },
+                      {
+                        "uuid": "mokelay_datasources_refresh_after_sync",
+                        "action": "call_block_method",
+                        "alias": "刷新数据源列表",
+                        "inputs": {
+                          "blockId": "mokelay-datasources-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_datasources",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-datasources-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-datasources-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.datasources[]",
+              "type": "array",
+              "label": "数据源列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.datasources[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}
