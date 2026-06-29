@@ -1,0 +1,87 @@
+{
+  "uuid": "mokelay_layout_system_editor_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "查看内置布局",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay_layout_system_editor_page-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "查看内置布局",
+        "level": 2,
+        "align": "left"
+      }
+    },
+    {
+      "id": "mokelay-layout-edit-form",
+      "type": "MForm",
+      "data": {
+        "values": {
+          "name": {
+            "mode": "variable",
+            "source": "MPage",
+            "variable": "context.name"
+          }
+        },
+        "items": [
+          {
+            "labelName": "布局名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-layout-edit-name-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入布局名称",
+                "value": ""
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-layout-json-editor",
+      "type": "MJsonEditor",
+      "data": {
+        "label": "内置布局 JSON（本地预览，不会保存）",
+        "rows": 22,
+        "value": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.layoutJson"
+        },
+        "recordUuid": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.uuid"
+        },
+        "recordName": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.name"
+        }
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay_layout_system_editor_page-preview",
+      "type": "MLayoutPreview",
+      "data": {
+        "title": "布局预览",
+        "layout": {
+          "mode": "variable",
+          "blockId": "mokelay-layout-json-editor",
+          "blockType": "MJsonEditor",
+          "variable": "layoutJson"
+        }
+      },
+      "events": []
+    }
+  ]
+}

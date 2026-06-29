@@ -1,0 +1,210 @@
+{
+  "uuid": "mokelay_layout_user_editor_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "编辑布局",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay_layout_user_editor_page-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "编辑布局",
+        "level": 2,
+        "align": "left"
+      }
+    },
+    {
+      "id": "mokelay-layout-edit-form",
+      "type": "MForm",
+      "data": {
+        "values": {
+          "name": {
+            "mode": "variable",
+            "source": "MPage",
+            "variable": "context.name"
+          }
+        },
+        "items": [
+          {
+            "labelName": "布局名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-layout-edit-name-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入布局名称",
+                "value": ""
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-layout-edit-save-button",
+      "type": "MButton",
+      "data": {
+        "label": "保存布局",
+        "variant": "primary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_layout_edit_get_form_data",
+              "action": "call_block_method",
+              "alias": "获取布局名称",
+              "inputs": {
+                "blockId": "mokelay-layout-edit-form",
+                "method": "getData"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_layout_edit_get_layout_json"
+            },
+            {
+              "uuid": "mokelay_layout_edit_get_layout_json",
+              "action": "call_block_method",
+              "alias": "读取布局 JSON",
+              "inputs": {
+                "blockId": "mokelay-layout-json-editor",
+                "method": "getLayoutJson",
+                "patch": {
+                  "uuid": {
+                    "template": "{{blocks['mokelay-layout-json-editor'].recordUuid}}"
+                  },
+                  "name": {
+                    "template": "{{actions['mokelay_layout_edit_get_form_data'].outputs.returnData.name}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_layout_edit_execute_ds"
+            },
+            {
+              "uuid": "mokelay_layout_edit_execute_ds",
+              "action": "execute_ds",
+              "alias": "更新布局",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/update_layout_by_uuid",
+                  "method": "POST",
+                  "headerData": [],
+                  "bodyData": [
+                    {
+                      "key": "name",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_layout_edit_get_form_data'].outputs.returnData.name}}"
+                      }
+                    },
+                    {
+                      "key": "layoutJson",
+                      "dataType": "object",
+                      "value": {
+                        "template": "{{actions['mokelay_layout_edit_get_layout_json'].outputs.returnData}}"
+                      }
+                    }
+                  ],
+                  "queryData": [
+                    {
+                      "key": "uuid",
+                      "value": {
+                        "template": "{{blocks['mokelay-layout-json-editor'].recordUuid}}"
+                      }
+                    }
+                  ],
+                  "schemaSelections": [
+                    {
+                      "path": "data.layout",
+                      "type": "object",
+                      "label": "更新布局"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "更新布局",
+                      "variable": "updatedLayout",
+                      "matchFieldPath": "data.layout"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "updatedLayout"
+              ],
+              "nextAction": "mokelay_layout_edit_close_page"
+            },
+            {
+              "uuid": "mokelay_layout_edit_close_page",
+              "action": "call_block_method",
+              "alias": "关闭布局编辑弹窗",
+              "inputs": {
+                "blockId": "mokelay_layout_user_editor_page",
+                "method": "close"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mokelay-layout-json-editor",
+      "type": "MJsonEditor",
+      "data": {
+        "label": "布局 DSL JSON",
+        "rows": 22,
+        "value": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.layoutJson"
+        },
+        "recordUuid": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.uuid"
+        },
+        "recordName": {
+          "mode": "variable",
+          "source": "MPage",
+          "variable": "context.name"
+        }
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay_layout_user_editor_page-preview",
+      "type": "MLayoutPreview",
+      "data": {
+        "title": "布局预览",
+        "layout": {
+          "mode": "variable",
+          "blockId": "mokelay-layout-json-editor",
+          "blockType": "MJsonEditor",
+          "variable": "layoutJson"
+        }
+      },
+      "events": []
+    }
+  ]
+}

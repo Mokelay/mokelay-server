@@ -1,0 +1,180 @@
+{
+  "uuid": "mokelay_layout_create_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "创建布局",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-layout-create-form",
+      "type": "MForm",
+      "data": {
+        "items": [
+          {
+            "labelName": "布局 UUID",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-layout-create-uuid-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入布局 UUID",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "布局名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-layout-create-name-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入布局名称",
+                "value": ""
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-layout-create-save-button",
+      "type": "MButton",
+      "data": {
+        "label": "保存布局",
+        "variant": "primary",
+        "align": "left",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_layout_create_get_form_data",
+              "action": "call_block_method",
+              "alias": "获取布局表单数据",
+              "inputs": {
+                "blockId": "mokelay-layout-create-form",
+                "method": "getData"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_layout_create_execute_ds"
+            },
+            {
+              "uuid": "mokelay_layout_create_execute_ds",
+              "action": "execute_ds",
+              "alias": "创建布局",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/create_layout",
+                  "method": "POST",
+                  "headerData": [],
+                  "bodyData": [
+                    {
+                      "key": "uuid",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_layout_create_get_form_data'].outputs.returnData.uuid}}"
+                      }
+                    },
+                    {
+                      "key": "name",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_layout_create_get_form_data'].outputs.returnData.name}}"
+                      }
+                    },
+                    {
+                      "key": "layoutJson",
+                      "dataType": "object",
+                      "value": {
+                        "schemaVersion": 1,
+                        "uuid": {
+                          "template": "{{actions['mokelay_layout_create_get_form_data'].outputs.returnData.uuid}}"
+                        },
+                        "name": {
+                          "template": "{{actions['mokelay_layout_create_get_form_data'].outputs.returnData.name}}"
+                        },
+                        "resources": {
+                          "mainMenu": {
+                            "type": "static",
+                            "items": [
+                              {
+                                "label": "首页",
+                                "href": "/"
+                              }
+                            ]
+                          }
+                        },
+                        "auth": {
+                          "enabled": false,
+                          "endpoint": "/api/mokelay/me"
+                        },
+                        "blocks": [
+                          {
+                            "id": "page-content",
+                            "type": "MPageSlot",
+                            "data": {
+                              "name": "default"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "queryData": [],
+                  "schemaSelections": [
+                    {
+                      "path": "data.layout",
+                      "type": "object",
+                      "label": "创建布局"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "创建布局",
+                      "variable": "createdLayout",
+                      "matchFieldPath": "data.layout"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "createdLayout"
+              ],
+              "nextAction": "mokelay_layout_create_close_page"
+            },
+            {
+              "uuid": "mokelay_layout_create_close_page",
+              "action": "call_block_method",
+              "alias": "关闭创建布局弹窗",
+              "inputs": {
+                "blockId": "mokelay_layout_create_page",
+                "method": "close"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

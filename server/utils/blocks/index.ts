@@ -1,7 +1,9 @@
 import type { BlockDefinition } from 'mokelay-server-core/utils/orchestration-schema'
 import { executeListMokelayApiJsonsBlock } from './listMokelayApiJsons'
+import { executeListMokelayLayoutJsonsBlock } from './listMokelayLayoutJsons'
 import { executeListMokelayPageJsonsBlock } from './listMokelayPageJsons'
 import { executeReadMokelayApiJsonBlock } from './readMokelayApiJson'
+import { executeReadMokelayLayoutJsonBlock } from './readMokelayLayoutJson'
 import { executeReadMokelayPageJsonBlock } from './readMokelayPageJson'
 import { executeResolveLayoutBundleBlock } from './resolveLayoutBundle'
 import {
@@ -25,6 +27,14 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
   readMokelayPageJson: {
     executor: executeReadMokelayPageJsonBlock,
     allowedOutputs: ['page'],
+  },
+  listMokelayLayoutJsons: {
+    executor: executeListMokelayLayoutJsonsBlock,
+    allowedOutputs: ['layouts', 'count'],
+  },
+  readMokelayLayoutJson: {
+    executor: executeReadMokelayLayoutJsonBlock,
+    allowedOutputs: ['layout'],
   },
   resolveLayoutBundle: {
     executor: executeResolveLayoutBundleBlock,

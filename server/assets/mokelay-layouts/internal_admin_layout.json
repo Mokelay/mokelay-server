@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "auth": {
+    "enabled": false
+  },
+  "name": "内部管理后台布局",
+  "uuid": "internal_admin_layout",
+  "blocks": [
+    {
+      "id": "admin-shell",
+      "data": {
+        "tabs": [
+          {
+            "href": "#/admin",
+            "label": "首页",
+            "active": true,
+            "closable": true
+          }
+        ],
+        "header": {
+          "user": {
+            "name": "管理员"
+          },
+          "tools": [
+            {
+              "id": "fullscreen",
+              "href": "#",
+              "icon": "fullscreen",
+              "label": "全屏"
+            },
+            {
+              "id": "type-scale",
+              "href": "#",
+              "icon": "type",
+              "label": "文字"
+            },
+            {
+              "id": "translate",
+              "href": "#",
+              "icon": "translate",
+              "label": "翻译"
+            }
+          ],
+          "breadcrumb": [
+            "首页"
+          ],
+          "tutorialUrl": "#/admin/permission-guide",
+          "tutorialLabel": "权限申请教程"
+        },
+        "environmentLabel": "测试环境",
+        "favoriteMenuTitle": "收藏菜单",
+        "searchPlaceholder": "搜索菜单..."
+      },
+      "type": "MInternalAdminShell",
+      "slots": {
+        "default": [
+          {
+            "id": "page-slot",
+            "data": {
+              "name": "default"
+            },
+            "type": "MPageSlot"
+          }
+        ]
+      }
+    }
+  ],
+  "resources": {
+    "quickMenu": {
+      "type": "static",
+      "items": [
+        {
+          "href": "#/admin/customers",
+          "count": 101,
+          "label": "客户管理"
+        },
+        {
+          "href": "#/admin",
+          "count": 44,
+          "label": "首页"
+        },
+        {
+          "href": "#/admin/faqs",
+          "count": 43,
+          "label": "常见问题"
+        },
+        {
+          "href": "#/admin/campaigns",
+          "count": 32,
+          "label": "新活动配置"
+        },
+        {
+          "href": "#/admin/mokelay-pages",
+          "count": 29,
+          "label": "Mokelay页面配置集锦"
+        },
+        {
+          "href": "#/admin/banner-new",
+          "count": 28,
+          "label": "Banner(新)"
+        },
+        {
+          "href": "#/admin/fund-alerts",
+          "count": 24,
+          "label": "资金调拨告警配置"
+        },
+        {
+          "href": "#/admin/customer-alerts",
+          "count": 22,
+          "label": "客户告警"
+        },
+        {
+          "href": "#/admin/identity-review",
+          "count": 18,
+          "label": "身份认证审核"
+        }
+      ]
+    },
+    "sidebarMenu": {
+      "type": "static",
+      "items": [
+        {
+          "href": "#/admin",
+          "icon": "home",
+          "label": "首页",
+          "active": true,
+          "favorite": true
+        },
+        {
+          "href": "#/admin/low-code",
+          "icon": "settings",
+          "label": "低代码菜单",
+          "children": [
+            {
+              "href": "#/admin/pages",
+              "icon": "file",
+              "label": "页面配置"
+            },
+            {
+              "href": "#/admin/components",
+              "icon": "settings",
+              "label": "组件配置"
+            }
+          ],
+          "expanded": false
+        },
+        {
+          "href": "#/admin/users",
+          "icon": "users",
+          "label": "用户管理",
+          "children": [
+            {
+              "href": "#/admin/customers",
+              "icon": "users",
+              "label": "客户管理"
+            },
+            {
+              "href": "#/admin/identity-review",
+              "icon": "file",
+              "label": "身份认证审核"
+            }
+          ],
+          "expanded": false
+        },
+        {
+          "href": "#/admin/nps",
+          "icon": "file",
+          "label": "NPS反馈"
+        },
+        {
+          "href": "#/admin/assets",
+          "icon": "asset",
+          "label": "资产管理"
+        },
+        {
+          "href": "#/admin/prizes",
+          "icon": "gift",
+          "label": "奖品管理"
+        },
+        {
+          "href": "#/admin/cards",
+          "icon": "card",
+          "label": "卡券管理"
+        },
+        {
+          "href": "#/admin/operations",
+          "icon": "settings",
+          "label": "运营管理",
+          "children": [
+            {
+              "href": "#/admin/channel-verify",
+              "icon": "file",
+              "label": "官方渠道验证管理",
+              "favorite": true
+            },
+            {
+              "href": "#/admin/banner-new",
+              "icon": "image",
+              "label": "Banner(新)",
+              "favorite": true
+            },
+            {
+              "href": "#/admin/banner",
+              "icon": "image",
+              "label": "Banner管理",
+              "favorite": true
+            },
+            {
+              "href": "#/admin/campaigns",
+              "icon": "file",
+              "label": "新活动配置",
+              "favorite": true
+            }
+          ],
+          "expanded": true
+        }
+      ]
+    },
+    "favoriteMenu": {
+      "type": "static",
+      "items": [
+        {
+          "href": "#/admin/campaigns",
+          "icon": "file",
+          "label": "新活动配置"
+        },
+        {
+          "href": "#/admin/dashboard",
+          "icon": "star",
+          "label": "dashboard"
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-06-25T10:47:58.506Z",
+  "updatedAt": "2026-06-25T10:47:58.506Z"
+}

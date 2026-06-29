@@ -1,0 +1,175 @@
+{
+  "uuid": "mokelay_layouts_system_page",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "系统内置布局",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-layouts-system-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "系统内置布局",
+        "level": 2,
+        "align": "left"
+      }
+    },
+    {
+      "id": "mokelay-layouts-system-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": false,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "UUID",
+            "columnContent": [
+              {
+                "id": "mokelay-layouts-system-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "名称",
+            "columnContent": [
+              {
+                "id": "mokelay-layouts-system-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "name"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "更新时间",
+            "columnContent": [
+              {
+                "id": "mokelay-layouts-system-updated-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{updatedAt}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "updatedAt"
+          },
+          {
+            "fixed": "right",
+            "width": 112,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "mokelay-layouts-system-open-button",
+                "type": "MButton",
+                "data": {
+                  "label": "打开",
+                  "variant": "secondary",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "name": "{{name}}",
+                    "layoutJson": "{{layoutJson}}",
+                    "createdAt": "{{createdAt}}",
+                    "updatedAt": "{{updatedAt}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_layouts_system_open_preview_dialog",
+                        "action": "open_dialog",
+                        "alias": "查看内置布局",
+                        "inputs": {
+                          "title": "查看内置布局",
+                          "pageUUID": "mokelay_layout_system_editor_page",
+                          "pageSource": "system",
+                          "context": {
+                            "uuid": {
+                              "template": "{{sourceBlock.data.action.uuid}}"
+                            },
+                            "name": {
+                              "template": "{{sourceBlock.data.action.name}}"
+                            },
+                            "layoutJson": {
+                              "template": "{{sourceBlock.data.action.layoutJson}}"
+                            },
+                            "createdAt": {
+                              "template": "{{sourceBlock.data.action.createdAt}}"
+                            },
+                            "updatedAt": {
+                              "template": "{{sourceBlock.data.action.updatedAt}}"
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_mokelay_layout_jsons",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [],
+          "schemaSelections": [
+            {
+              "path": "data.layouts[]",
+              "type": "array",
+              "label": "内置布局列表"
+            },
+            {
+              "path": "data.count",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.layouts[]"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.count"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}

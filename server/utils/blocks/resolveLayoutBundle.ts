@@ -7,6 +7,7 @@ import {
 } from 'mokelay-server-core/utils/blocks/shared'
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import { readMokelayPageJson } from './readMokelayPageJson'
+import { readMokelayLayoutJson } from './readMokelayLayoutJson'
 
 type LayoutBundleRow = Record<string, unknown>
 
@@ -72,6 +73,35 @@ function normalizeLayout(
   }
 }
 
+function normalizeAssetLayout(record: {
+  uuid?: unknown
+  name?: unknown
+  layoutJson?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
+}) {
+  const uuid = readString(record.uuid)
+
+  if (!uuid) {
+    return null
+  }
+
+  const layoutJson = normalizeLayoutJson(record.layoutJson)
+  const name = readString(record.name) ?? readString(layoutJson.name) ?? ''
+  const blocks = Array.isArray(layoutJson.blocks) ? layoutJson.blocks : []
+  const schemaVersion = typeof layoutJson.schemaVersion === 'number' ? layoutJson.schemaVersion : 1
+
+  return {
+    ...layoutJson,
+    schemaVersion,
+    uuid,
+    name,
+    blocks,
+    createdAt: readString(record.createdAt) ?? readString(layoutJson.createdAt),
+    updatedAt: readString(record.updatedAt) ?? readString(layoutJson.updatedAt),
+  }
+}
+
 function normalizePage(row: LayoutBundleRow) {
   const uuid = readString(row.page_uuid)
 
@@ -130,9 +160,17 @@ async function resolveSystemPageBundle(pageUuid: string, executeSql: SqlExecutor
   const page = await readMokelayPageJson(pageUuid)
   const layoutsTable = identifierSql('layouts', 'table', 'BLOCK_INVALID_TABLE')
   const layoutUuid = readPageLayoutUuid(page)
-  const layout = await readLayoutByUuid(layoutUuid, 'page_layout', layoutsTable, executeSql)
+  const layout = await readSystemLayoutByUuid(layoutUuid, layoutsTable, executeSql)
 
   return { page, layout }
+}
+
+function readErrorCode(error: unknown) {
+  if (typeof error !== 'object' || error === null) return undefined
+  const data = 'data' in error ? error.data : undefined
+  if (typeof data !== 'object' || data === null) return undefined
+  const code = 'code' in data ? data.code : undefined
+  return typeof code === 'string' ? code : undefined
 }
 
 function readPageLayoutUuid(page: unknown) {
@@ -179,6 +217,25 @@ async function readLayoutByUuid(
   `)
 
   return normalizeLayout(result.rows[0] ?? {}, prefix)
+}
+
+async function readSystemLayoutByUuid(
+  layoutUuid: string | null,
+  layoutsTable: ReturnType<typeof identifierSql>,
+  executeSql: SqlExecutor,
+) {
+  if (!layoutUuid) return null
+
+  try {
+    const assetLayout = await readMokelayLayoutJson(layoutUuid)
+    return normalizeAssetLayout(assetLayout)
+  } catch (error) {
+    if (readErrorCode(error) !== 'API_JSON_NOT_FOUND') {
+      throw error
+    }
+  }
+
+  return await readLayoutByUuid(layoutUuid, 'page_layout', layoutsTable, executeSql)
 }
 
 export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, executeSql, databaseType }) => {

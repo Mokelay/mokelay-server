@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "auth": {
+    "enabled": false
+  },
+  "name": "Web顶部布局",
+  "uuid": "web_layout",
+  "blocks": [
+    {
+      "id": "top-nav",
+      "data": {
+        "brand": {
+          "href": "#",
+          "text": "Mokelay",
+          "showMark": false
+        },
+        "items": {
+          "template": "{{resources.mainMenu.items}}"
+        },
+        "actions": [
+          {
+            "id": "search",
+            "data": {
+              "icon": "search",
+              "shape": "icon",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "deposit",
+            "data": {
+              "label": "充值",
+              "variant": "web-primary"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "assets",
+            "data": {
+              "url": "#",
+              "text": "資產",
+              "variant": "ghost"
+            },
+            "type": "MLink"
+          },
+          {
+            "id": "notification",
+            "data": {
+              "icon": "bell",
+              "badge": "9",
+              "shape": "icon",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "account",
+            "data": {
+              "icon": "user",
+              "shape": "icon",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "download",
+            "data": {
+              "icon": "download",
+              "shape": "icon",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "language",
+            "data": {
+              "icon": "globe",
+              "shape": "icon",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "avatar",
+            "data": {
+              "icon": "gradient-avatar",
+              "shape": "avatar",
+              "variant": "ghost"
+            },
+            "type": "MButton"
+          }
+        ]
+      },
+      "type": "MWebTopNav"
+    },
+    {
+      "id": "page-slot",
+      "data": {
+        "name": "default"
+      },
+      "type": "MPageSlot"
+    }
+  ],
+  "resources": {
+    "mainMenu": {
+      "type": "static",
+      "items": [
+        {
+          "href": "#",
+          "caret": true,
+          "label": "買幣"
+        },
+        {
+          "href": "#",
+          "label": "行情"
+        },
+        {
+          "href": "#",
+          "caret": true,
+          "label": "現貨交易"
+        },
+        {
+          "href": "#",
+          "badge": "🔥",
+          "caret": true,
+          "label": "合約交易",
+          "highlight": true
+        },
+        {
+          "href": "#",
+          "caret": true,
+          "label": "策略交易"
+        },
+        {
+          "href": "#",
+          "caret": true,
+          "label": "跟單"
+        },
+        {
+          "href": "#",
+          "caret": true,
+          "label": "理財"
+        },
+        {
+          "href": "#",
+          "label": "福利中心"
+        },
+        {
+          "href": "#",
+          "caret": true,
+          "label": "更多"
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-06-25T14:05:36.753Z",
+  "updatedAt": "2026-06-25T22:03:12.426Z"
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "auth": {
+    "enabled": false,
+    "endpoint": "/api/mokelay/me"
+  },
+  "name": "Mokelay编辑器布局",
+  "uuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "editor-top-nav",
+      "data": {
+        "brand": {
+          "href": "#/",
+          "text": "Mokelay Editor",
+          "showMark": false
+        },
+        "items": {
+          "template": "{{resources.mainMenu.items}}"
+        },
+        "actions": [
+          {
+            "id": "save",
+            "data": {
+              "label": "保存",
+              "variant": "teal"
+            },
+            "type": "MButton"
+          },
+          {
+            "id": "preview",
+            "data": {
+              "label": "预览",
+              "variant": "success"
+            },
+            "type": "MButton"
+          }
+        ],
+        "homeAction": {
+          "id": "home",
+          "data": {
+            "url": "#/",
+            "text": "首页"
+          },
+          "type": "MLink"
+        },
+        "userActions": [],
+        "guestActions": [],
+        "utilityControls": [
+          {
+            "id": "theme",
+            "type": "select",
+            "label": "主题",
+            "value": "light",
+            "options": [
+              {
+                "label": "浅色",
+                "value": "light"
+              },
+              {
+                "label": "深色",
+                "value": "dark"
+              }
+            ]
+          },
+          {
+            "id": "locale",
+            "type": "select",
+            "label": "语言",
+            "value": "zh",
+            "options": [
+              {
+                "label": "中文",
+                "value": "zh"
+              },
+              {
+                "label": "English",
+                "value": "en"
+              }
+            ]
+          }
+        ]
+      },
+      "type": "MEditorTopNav"
+    },
+    {
+      "id": "page-content",
+      "data": {
+        "name": "default",
+        "surface": "panel"
+      },
+      "type": "MPageSlot"
+    }
+  ],
+  "resources": {
+    "mainMenu": {
+      "type": "static",
+      "items": [
+        {
+          "href": "#/",
+          "label": "Apps",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/datasources",
+          "label": "数据源",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/pages",
+          "label": "页面列表",
+          "active": true,
+          "children": []
+        },
+        {
+          "href": "#/layouts",
+          "label": "布局",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/ai-chat",
+          "label": "AI Chat",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/apis",
+          "label": "API Builder",
+          "active": false,
+          "children": []
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-06-25T02:19:35.061Z",
+  "updatedAt": "2026-06-28T11:43:03.159Z"
+}

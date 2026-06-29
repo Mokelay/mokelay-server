@@ -3,6 +3,41 @@ import type { SQL } from 'drizzle-orm'
 import type { SqlExecutionResult } from 'mokelay-server-core/utils/db'
 import { executeResolveLayoutBundleBlock } from '../../server/utils/blocks/resolveLayoutBundle'
 
+vi.mock('nitropack/runtime', () => ({
+  useStorage: () => ({
+    getKeys: async () => [],
+    getItem: async (key: string) => {
+      if (key === 'mokelay-pages/system_page.json') {
+        return JSON.stringify({
+          uuid: 'system_page',
+          name: 'System Page',
+          layoutUuid: 'asset-layout',
+          blocks: [{ type: 'paragraph', data: { text: 'System page body.' } }],
+        })
+      }
+
+      if (key === 'mokelay-layouts/asset-layout.json') {
+        return JSON.stringify({
+          uuid: 'asset-layout',
+          name: 'Asset Layout',
+          schemaVersion: 1,
+          blocks: [
+            {
+              id: 'asset-slot',
+              type: 'MPageSlot',
+              data: {
+                name: 'default',
+              },
+            },
+          ],
+        })
+      }
+
+      return undefined
+    },
+  }),
+}))
+
 function executeBlockWithRows(rows: Record<string, unknown>[]) {
   const executeSql = vi.fn(async (_query: SQL) => {
     const row = rows.shift()
@@ -112,5 +147,34 @@ describe('executeResolveLayoutBundleBlock', () => {
       },
     })
     expect(executeSql).toHaveBeenCalledTimes(3)
+  })
+
+  it('uses built-in layout assets for system pages before querying layouts', async () => {
+    const executeSql = vi.fn(async (_query: SQL) => ({
+      databaseType: 'postgres' as const,
+      rows: [],
+    })) as unknown as <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => Promise<SqlExecutionResult<T>>
+
+    await expect(executeResolveLayoutBundleBlock({
+      event: undefined as never,
+      block: undefined as never,
+      inputs: {
+        uuid: 'system_page',
+        source: 'system',
+      },
+      executeSql,
+      databaseType: 'postgres',
+    })).resolves.toMatchObject({
+      page: {
+        uuid: 'system_page',
+        name: 'System Page',
+      },
+      layout: {
+        uuid: 'asset-layout',
+        name: 'Asset Layout',
+        blocks: [{ id: 'asset-slot' }],
+      },
+    })
+    expect(executeSql).not.toHaveBeenCalled()
   })
 })

@@ -8,19 +8,29 @@ import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 
 const apiJsonDir = resolve(process.cwd(), 'server/assets/mokelay-apis')
 const pageJsonDir = resolve(process.cwd(), 'server/assets/mokelay-pages')
+const layoutJsonDir = resolve(process.cwd(), 'server/assets/mokelay-layouts')
 
 vi.mock('nitropack/runtime', () => ({
   useStorage: () => ({
     getKeys: async (base?: string) => {
-      const dir = base === 'mokelay-pages' ? pageJsonDir : apiJsonDir
+      const dir = base === 'mokelay-pages'
+        ? pageJsonDir
+        : base === 'mokelay-layouts'
+          ? layoutJsonDir
+          : apiJsonDir
       return (await readdir(dir))
         .filter((fileName) => fileName.endsWith('.json'))
-        .map((fileName) => `${base === 'mokelay-pages' ? 'mokelay-pages' : 'mokelay-apis'}:${fileName}`)
+        .map((fileName) => `${base === 'mokelay-pages' ? 'mokelay-pages' : base === 'mokelay-layouts' ? 'mokelay-layouts' : 'mokelay-apis'}:${fileName}`)
     },
     getItem: async (key: string) => {
       if (key.startsWith('mokelay-pages')) {
         const fileName = key.replace(/^mokelay-pages[:/]/, '')
         return await readFile(resolve(pageJsonDir, fileName), 'utf8')
+      }
+
+      if (key.startsWith('mokelay-layouts')) {
+        const fileName = key.replace(/^mokelay-layouts[:/]/, '')
+        return await readFile(resolve(layoutJsonDir, fileName), 'utf8')
       }
 
       const fileName = key.replace(/^mokelay-apis[:/]/, '')
@@ -166,6 +176,60 @@ describe('GET /api/mokelay/read_mokelay_page_json', () => {
 
   it('returns not found for an unknown built-in page UUID', async () => {
     const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_page_json?uuid=missing_page`)
+    const body = await response.json() as {
+      ok: boolean
+      error: { code: string }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(false)
+    expect(body.error.code).toBe('API_JSON_NOT_FOUND')
+  })
+})
+
+describe('GET /api/mokelay/list_mokelay_layout_jsons', () => {
+  it('returns every built-in layout DSL in file-name order', async () => {
+    const expectedFileNames = (await readdir(layoutJsonDir))
+      .filter((fileName) => fileName.endsWith('.json'))
+      .sort()
+    const response = await fetch(`${baseUrl}/api/mokelay/list_mokelay_layout_jsons`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        layouts: Array<{ uuid: string, layoutJson: { uuid: string } }>
+        count: number
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.count).toBe(expectedFileNames.length)
+    expect(body.data.layouts.map((layout) => `${layout.uuid}.json`)).toEqual(expectedFileNames)
+    expect(body.data.layouts.every((layout) => layout.layoutJson.uuid === layout.uuid)).toBe(true)
+  })
+})
+
+describe('GET /api/mokelay/read_mokelay_layout_json', () => {
+  it('returns one built-in layout DSL by UUID', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_layout_json?uuid=mokelay_layout`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        layout: { uuid: string, name: string, layoutJson: { blocks: unknown[] } }
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.layout).toMatchObject({
+      uuid: 'mokelay_layout',
+      name: 'Mokelay编辑器布局',
+    })
+    expect(body.data.layout.layoutJson.blocks.length).toBeGreaterThan(0)
+  })
+
+  it('returns not found for an unknown built-in layout UUID', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_layout_json?uuid=missing_layout`)
     const body = await response.json() as {
       ok: boolean
       error: { code: string }

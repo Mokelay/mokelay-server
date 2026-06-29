@@ -1,0 +1,30 @@
+{
+  "uuid": "layouts",
+  "createdAt": "2026-06-29T00:00:00.000Z",
+  "updatedAt": "2026-06-29T00:00:00.000Z",
+  "name": "布局管理",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-layouts-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "user-create",
+        "tabs": [
+          {
+            "id": "user-create",
+            "name": "用户创建",
+            "pageUUID": "mokelay_layouts_user_page",
+            "pageSource": "system"
+          },
+          {
+            "id": "system-built-in",
+            "name": "系统内置",
+            "pageUUID": "mokelay_layouts_system_page",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}

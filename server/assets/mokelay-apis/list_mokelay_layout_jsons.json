@@ -1,0 +1,32 @@
+{
+  "uuid": "list_mokelay_layout_jsons",
+  "alias": "内置布局 DSL 列表接口",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_mokelay_layout_jsons_block"
+    },
+    {
+      "uuid": "list_mokelay_layout_jsons_block",
+      "alias": "读取内置布局 DSL 列表 Block",
+      "functionName": "listMokelayLayoutJsons",
+      "inputs": {},
+      "outputs": [
+        "layouts",
+        "count"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "list_mokelay_layout_jsons_block": {
+      "layouts": {
+        "template": "{{blocks['list_mokelay_layout_jsons_block'].outputs.layouts}}"
+      },
+      "count": {
+        "template": "{{blocks['list_mokelay_layout_jsons_block'].outputs.count}}"
+      }
+    }
+  }
+}
