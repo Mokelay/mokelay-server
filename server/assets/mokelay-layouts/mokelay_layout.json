@@ -114,15 +114,21 @@
           "active": true,
           "children": []
         },
-        {
-          "href": "#/layouts",
-          "label": "布局",
-          "active": false,
-          "children": []
-        },
-        {
-          "href": "#/ai-chat",
-          "label": "AI Chat",
+      {
+        "href": "#/layouts",
+        "label": "布局",
+        "active": false,
+        "children": []
+      },
+      {
+        "href": "#/block_component_docs",
+        "label": "文档",
+        "active": false,
+        "children": []
+      },
+      {
+        "href": "#/ai-chat",
+        "label": "AI Chat",
           "active": false,
           "children": []
         },
