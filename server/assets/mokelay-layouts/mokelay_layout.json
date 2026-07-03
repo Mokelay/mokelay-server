@@ -18,24 +18,6 @@
         "items": {
           "template": "{{resources.mainMenu.items}}"
         },
-        "actions": [
-          {
-            "id": "save",
-            "data": {
-              "label": "保存",
-              "variant": "teal"
-            },
-            "type": "MButton"
-          },
-          {
-            "id": "preview",
-            "data": {
-              "label": "预览",
-              "variant": "success"
-            },
-            "type": "MButton"
-          }
-        ],
         "homeAction": {
           "id": "home",
           "data": {
@@ -51,7 +33,10 @@
             "id": "theme",
             "type": "select",
             "label": "主题",
-            "value": "light",
+            "binding": {
+              "source": "globalSetting",
+              "key": "theme"
+            },
             "options": [
               {
                 "label": "浅色",
@@ -64,10 +49,13 @@
             ]
           },
           {
-            "id": "locale",
+            "id": "language",
             "type": "select",
             "label": "语言",
-            "value": "zh",
+            "binding": {
+              "source": "globalSetting",
+              "key": "language"
+            },
             "options": [
               {
                 "label": "中文",
