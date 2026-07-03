@@ -1,0 +1,289 @@
+{
+  "uuid": "home",
+  "createdAt": "2026-07-03T00:00:00.000Z",
+  "updatedAt": "2026-07-03T00:00:00.000Z",
+  "name": "应用管理",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "home-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "应用管理",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "home-intro",
+      "type": "MRichText",
+      "data": {
+        "content": "集中维护 Mokelay 应用空间。应用用于承载页面、布局和运行时配置，后续能力会继续沉到 JSON DSL 中。"
+      }
+    },
+    {
+      "id": "create-app-button",
+      "type": "MButton",
+      "data": {
+        "label": "创建 App",
+        "variant": "primary",
+        "align": "right",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "home_open_create_app_dialog",
+              "action": "open_dialog",
+              "alias": "创建 App",
+              "inputs": {
+                "title": "创建 App",
+                "pageUUID": "mokelay_app_create_page",
+                "pageSource": "system",
+                "context": {}
+              },
+              "outputs": [
+                "close_result"
+              ],
+              "nextAction": "home_refresh_apps_after_create"
+            },
+            {
+              "uuid": "home_refresh_apps_after_create",
+              "action": "call_block_method",
+              "alias": "刷新应用列表",
+              "inputs": {
+                "blockId": "home-apps-table",
+                "method": "refresh"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home-apps-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 80,
+            "columnName": "ID",
+            "columnContent": [
+              {
+                "id": "home-app-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{id}}"
+                }
+              }
+            ],
+            "fieldDataType": "number",
+            "fieldVariable": "id"
+          },
+          {
+            "fixed": null,
+            "width": 160,
+            "columnName": "UUID",
+            "columnContent": [
+              {
+                "id": "home-app-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "名称",
+            "columnContent": [
+              {
+                "id": "home-app-alias",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{alias}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "alias"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "描述",
+            "columnContent": [
+              {
+                "id": "home-app-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "description"
+          },
+          {
+            "fixed": "right",
+            "width": 120,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "edit-app-button-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "编辑",
+                  "variant": "secondary",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "alias": "{{alias}}",
+                    "description": "{{description}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "home_open_edit_app_dialog",
+                        "action": "open_dialog",
+                        "alias": "编辑 App",
+                        "inputs": {
+                          "title": "编辑 App",
+                          "pageUUID": "mokelay_app_edit_page",
+                          "pageSource": "system",
+                          "context": {
+                            "uuid": {
+                              "template": "{{sourceBlock.data.action.uuid}}"
+                            },
+                            "alias": {
+                              "template": "{{sourceBlock.data.action.alias}}"
+                            },
+                            "description": {
+                              "template": "{{sourceBlock.data.action.description}}"
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": "home_refresh_apps_after_edit"
+                      },
+                      {
+                        "uuid": "home_refresh_apps_after_edit",
+                        "action": "call_block_method",
+                        "alias": "刷新应用列表",
+                        "inputs": {
+                          "blockId": "home-apps-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_apps",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "home-apps-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "home-apps-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.apps[]",
+              "type": "array",
+              "label": "应用列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.apps[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}

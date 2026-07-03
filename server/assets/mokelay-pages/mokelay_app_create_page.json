@@ -1,0 +1,185 @@
+{
+  "uuid": "mokelay_app_create_page",
+  "createdAt": "2026-07-03T00:00:00.000Z",
+  "updatedAt": "2026-07-03T00:00:00.000Z",
+  "name": "创建 App",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-app-create-form",
+      "type": "MForm",
+      "data": {
+        "items": [
+          {
+            "labelName": "App UUID",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "app-uuid",
+              "type": "MInput",
+              "data": {
+                "placeholder": "最多 8 个字符，例如 mobile",
+                "value": "",
+                "required": true,
+                "maxLength": 8
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "名称",
+            "variableName": "alias",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "create-app-alias",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入 App 名称",
+                "value": "",
+                "required": true,
+                "maxLength": 120
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "描述",
+            "variableName": "description",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "create-app-description",
+              "type": "MTextareaField",
+              "data": {
+                "placeholder": "请输入 App 描述",
+                "value": "",
+                "rows": 4
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "create-app-submit",
+      "type": "MButton",
+      "data": {
+        "label": "保存 App",
+        "variant": "primary",
+        "align": "right",
+        "action": {
+          "type": "submit"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "mokelay_app_create_get_form_data",
+              "action": "call_block_method",
+              "alias": "获取 App 表单数据",
+              "inputs": {
+                "blockId": "mokelay-app-create-form",
+                "method": "getData"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_app_create_execute_ds"
+            },
+            {
+              "uuid": "mokelay_app_create_execute_ds",
+              "action": "execute_ds",
+              "alias": "创建 App",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/mokelay/create_app",
+                  "method": "POST",
+                  "headerData": [],
+                  "bodyData": [
+                    {
+                      "key": "uuid",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_app_create_get_form_data'].outputs.returnData.uuid}}",
+                        "processors": [
+                          "trim"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "alias",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_app_create_get_form_data'].outputs.returnData.alias}}",
+                        "processors": [
+                          "trim"
+                        ]
+                      }
+                    },
+                    {
+                      "key": "description",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_app_create_get_form_data'].outputs.returnData.description}}",
+                        "processors": [
+                          "trim"
+                        ]
+                      }
+                    }
+                  ],
+                  "queryData": [],
+                  "schemaSelections": [
+                    {
+                      "path": "data.app",
+                      "type": "object",
+                      "label": "创建 App"
+                    }
+                  ],
+                  "matchingExternalFields": [
+                    {
+                      "label": "创建 App",
+                      "variable": "createdApp",
+                      "matchFieldPath": "data.app"
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse",
+                "createdApp"
+              ],
+              "nextAction": "mokelay_app_create_close_dialog"
+            },
+            {
+              "uuid": "mokelay_app_create_close_dialog",
+              "action": "close_dialog",
+              "alias": "关闭创建 App 弹窗",
+              "inputs": {
+                "reason": "success",
+                "result": {
+                  "app": {
+                    "template": "{{actions['mokelay_app_create_execute_ds'].outputs.createdApp}}"
+                  }
+                }
+              },
+              "outputs": [
+                "closed",
+                "reason",
+                "result"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
