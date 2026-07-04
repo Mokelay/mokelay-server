@@ -1,6 +1,7 @@
 {
   "uuid": "block_component_doc_events",
   "name": "Block 事件详情",
+  "layoutUuid": "mokelay_layout",
   "dataSources": [
     {
       "key": "doc",

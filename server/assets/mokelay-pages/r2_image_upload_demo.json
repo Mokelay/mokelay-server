@@ -3,6 +3,7 @@
   "createdAt": "2026-06-26T00:00:00.000Z",
   "updatedAt": "2026-06-26T00:00:00.000Z",
   "name": "R2 图片上传示例",
+  "layoutUuid": "mokelay_layout",
   "blocks": [
     {
       "id": "r2-image-upload-title",

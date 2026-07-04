@@ -1,6 +1,7 @@
 {
   "uuid": "block_component_doc_properties",
   "name": "Block 属性详情",
+  "layoutUuid": "mokelay_layout",
   "dataSources": [
     {
       "key": "doc",

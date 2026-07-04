@@ -1,6 +1,7 @@
 {
   "uuid": "block_component_doc_methods",
   "name": "Block 方法详情",
+  "layoutUuid": "mokelay_layout",
   "dataSources": [
     {
       "key": "doc",
