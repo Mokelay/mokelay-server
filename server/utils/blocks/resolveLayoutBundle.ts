@@ -238,6 +238,40 @@ async function readSystemLayoutByUuid(
   return await readLayoutByUuid(layoutUuid, 'page_layout', layoutsTable, executeSql)
 }
 
+/**
+ * @serverBlockDoc
+ * {
+ *   "version": 1,
+ *   "functionName": "resolveLayoutBundle",
+ *   "displayName": "解析页面布局包",
+ *   "category": "asset",
+ *   "description": "按页面 uuid 和来源解析页面 JSON 及其布局 JSON，系统页面优先读资产，用户页面读数据库并回退 app 默认布局。",
+ *   "inputs": [
+ *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，对应 ${datasource}_DATABASE_URL。" },
+ *     { "key": "uuid", "type": "string", "required": true, "description": "页面 uuid。" },
+ *     { "key": "source", "type": "user|system", "required": false, "defaultValue": "user", "description": "页面来源；system 读取系统页面资产，其他值按用户页面处理。" }
+ *   ],
+ *   "outputs": [
+ *     { "key": "page", "type": "PageBundle|null", "description": "标准化后的页面数据；未命中用户页面时为 null。" },
+ *     { "key": "layout", "type": "LayoutBundle|null", "description": "页面布局；无匹配布局时为 null。" }
+ *   ],
+ *   "errors": [
+ *     { "code": "REQUEST_PARAMETER_MISSING", "description": "uuid 不是非空字符串。" },
+ *     { "code": "BLOCK_DATABASE_TYPE_MISSING", "description": "执行器未获得数据库类型。" },
+ *     { "code": "API_JSON_NOT_FOUND", "description": "system 页面资产不存在。" },
+ *     { "code": "BLOCK_INVALID_TABLE", "description": "内部表名标识符校验失败。" },
+ *     { "code": "BLOCK_INVALID_FIELDS", "description": "内部字段标识符校验失败。" }
+ *   ],
+ *   "config": [],
+ *   "runtime": [
+ *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "需要 datasource，读取 pages/apps/layouts 表并在 system layout 缺失时回退数据库。" },
+ *     { "key": "assetFallback", "type": "string", "value": "mokelay-pages/mokelay-layouts", "description": "system source 会读取系统页面与布局资产。" }
+ *   ],
+ *   "examples": [
+ *     { "title": "解析系统页面 bundle", "block": { "uuid": "resolve_layout_bundle_block", "functionName": "resolveLayoutBundle", "inputs": { "datasource": "Mokelay", "uuid": { "template": "{{request.query.uuid}}" }, "source": "system" }, "outputs": ["page", "layout"], "nextBlock": null } }
+ *   ]
+ * }
+ */
 export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, executeSql, databaseType }) => {
   requireDatabaseType(databaseType)
 

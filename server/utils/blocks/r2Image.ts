@@ -163,6 +163,55 @@ function normalizePositiveInteger(value: unknown, fallback: number) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
+/**
+ * @serverBlockDoc
+ * {
+ *   "version": 1,
+ *   "functionName": "saveImageToR2",
+ *   "displayName": "保存图片到 R2",
+ *   "category": "storage",
+ *   "description": "校验 multipart 上传图片并保存到 Cloudflare R2，返回公开 URL 或 data URL。",
+ *   "inputs": [
+ *     { "key": "image", "type": "UploadedImage", "required": true, "description": "multipart/form-data 上传图片，支持 JPEG、PNG、WebP、GIF。" },
+ *     { "key": "directory", "type": "string", "required": false, "description": "R2 目录；默认使用 MOKELAY_IMAGES_R2_PREFIX 或 mokelay-images。" },
+ *     { "key": "fileName", "type": "string", "required": false, "description": "期望文件名；未传时使用上传文件名。" },
+ *     { "key": "maxSizeBytes", "type": "number|string", "required": false, "defaultValue": 10485760, "description": "最大图片字节数，默认 10MB。" }
+ *   ],
+ *   "outputs": [
+ *     { "key": "key", "type": "string", "description": "R2 object key。" },
+ *     { "key": "directory", "type": "string", "description": "保存目录。" },
+ *     { "key": "fileName", "type": "string", "description": "最终文件名，包含唯一后缀。" },
+ *     { "key": "bucket", "type": "string", "description": "R2 bucket。" },
+ *     { "key": "size", "type": "number", "description": "图片字节数。" },
+ *     { "key": "mimeType", "type": "string", "description": "图片 MIME 类型。" },
+ *     { "key": "url", "type": "string", "description": "公开 URL；未配置公开域名时为 data URL。" },
+ *     { "key": "dataUrl", "type": "string", "description": "图片 data URL。" },
+ *     { "key": "etag", "type": "string|null", "description": "R2 返回的 ETag。" }
+ *   ],
+ *   "errors": [
+ *     { "code": "BLOCK_R2_CONFIG_MISSING", "description": "Cloudflare R2 图片配置缺失。" },
+ *     { "code": "BLOCK_AI_INPUT_INVALID", "description": "image 缺失、类型不支持或超过大小限制。" },
+ *     { "code": "BLOCK_R2_DIRECTORY_INVALID", "description": "directory 不是合法 R2 目录。" },
+ *     { "code": "BLOCK_R2_FILE_NAME_INVALID", "description": "fileName 不是合法 R2 文件名。" },
+ *     { "code": "BLOCK_R2_SAVE_FAILED", "description": "上传到 R2 失败。" }
+ *   ],
+ *   "config": [
+ *     { "key": "CLOUDFLARE_R2_ACCOUNT_ID", "type": "string", "required": false, "description": "R2 账号 ID；也可用 CLOUDFLARE_R2_ENDPOINT 替代 endpoint。" },
+ *     { "key": "CLOUDFLARE_R2_ENDPOINT", "type": "string", "required": false, "description": "自定义 R2 endpoint。" },
+ *     { "key": "CLOUDFLARE_R2_ACCESS_KEY_ID", "type": "string", "required": true, "description": "R2 access key id。" },
+ *     { "key": "CLOUDFLARE_R2_SECRET_ACCESS_KEY", "type": "string", "required": true, "description": "R2 secret access key。" },
+ *     { "key": "MOKELAY_IMAGES_R2_BUCKET", "type": "string", "required": false, "description": "图片 bucket；未配置时回退 MOKELAY_APIS_R2_BUCKET。" },
+ *     { "key": "MOKELAY_IMAGES_PUBLIC_BASE_URL", "type": "string", "required": false, "description": "图片公开访问 base URL。" }
+ *   ],
+ *   "runtime": [
+ *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "sideEffect", "type": "string", "value": "r2-put-object", "description": "会向 Cloudflare R2 写入图片对象。" }
+ *   ],
+ *   "examples": [
+ *     { "title": "上传图片", "block": { "uuid": "save_image_to_r2_block", "functionName": "saveImageToR2", "inputs": { "image": { "template": "{{request.body.image}}" }, "directory": "mokelay-images" }, "outputs": ["key", "directory", "fileName", "bucket", "size", "mimeType", "url", "dataUrl", "etag"], "nextBlock": null } }
+ *   ]
+ * }
+ */
 export const executeSaveImageToR2Block: BlockExecutor = async ({ inputs }) => {
   const config = getR2ImageConfig()
 
@@ -205,6 +254,53 @@ export const executeSaveImageToR2Block: BlockExecutor = async ({ inputs }) => {
   }
 }
 
+/**
+ * @serverBlockDoc
+ * {
+ *   "version": 1,
+ *   "functionName": "readImageFromR2",
+ *   "displayName": "读取 R2 图片",
+ *   "category": "storage",
+ *   "description": "从 Cloudflare R2 读取图片对象，返回公开 URL 或 data URL。",
+ *   "inputs": [
+ *     { "key": "key", "type": "string", "required": false, "description": "完整 R2 object key；传入后优先使用。" },
+ *     { "key": "directory", "type": "string", "required": false, "description": "R2 目录；未传 key 时与 fileName 组合。" },
+ *     { "key": "fileName", "type": "string", "required": false, "description": "R2 文件名；未传 key 时必填。" }
+ *   ],
+ *   "outputs": [
+ *     { "key": "key", "type": "string", "description": "R2 object key。" },
+ *     { "key": "directory", "type": "string", "description": "对象目录。" },
+ *     { "key": "fileName", "type": "string", "description": "对象文件名。" },
+ *     { "key": "bucket", "type": "string", "description": "R2 bucket。" },
+ *     { "key": "size", "type": "number", "description": "读取字节数。" },
+ *     { "key": "mimeType", "type": "string", "description": "对象 MIME 类型。" },
+ *     { "key": "url", "type": "string", "description": "公开 URL；未配置公开域名时为 data URL。" },
+ *     { "key": "dataUrl", "type": "string", "description": "图片 data URL。" },
+ *     { "key": "etag", "type": "string|null", "description": "R2 返回的 ETag。" }
+ *   ],
+ *   "errors": [
+ *     { "code": "BLOCK_R2_CONFIG_MISSING", "description": "Cloudflare R2 图片配置缺失。" },
+ *     { "code": "BLOCK_R2_DIRECTORY_INVALID", "description": "directory 不是合法 R2 目录。" },
+ *     { "code": "BLOCK_R2_FILE_NAME_INVALID", "description": "fileName 不是合法 R2 文件名。" },
+ *     { "code": "BLOCK_R2_SAVE_FAILED", "description": "从 R2 读取图片失败。" }
+ *   ],
+ *   "config": [
+ *     { "key": "CLOUDFLARE_R2_ACCOUNT_ID", "type": "string", "required": false, "description": "R2 账号 ID；也可用 CLOUDFLARE_R2_ENDPOINT 替代 endpoint。" },
+ *     { "key": "CLOUDFLARE_R2_ENDPOINT", "type": "string", "required": false, "description": "自定义 R2 endpoint。" },
+ *     { "key": "CLOUDFLARE_R2_ACCESS_KEY_ID", "type": "string", "required": true, "description": "R2 access key id。" },
+ *     { "key": "CLOUDFLARE_R2_SECRET_ACCESS_KEY", "type": "string", "required": true, "description": "R2 secret access key。" },
+ *     { "key": "MOKELAY_IMAGES_R2_BUCKET", "type": "string", "required": false, "description": "图片 bucket；未配置时回退 MOKELAY_APIS_R2_BUCKET。" },
+ *     { "key": "MOKELAY_IMAGES_PUBLIC_BASE_URL", "type": "string", "required": false, "description": "图片公开访问 base URL。" }
+ *   ],
+ *   "runtime": [
+ *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "network", "type": "string", "value": "Cloudflare R2 GetObject", "description": "会从 R2 读取对象内容。" }
+ *   ],
+ *   "examples": [
+ *     { "title": "读取图片", "block": { "uuid": "read_image_from_r2_block", "functionName": "readImageFromR2", "inputs": { "key": { "template": "{{request.query.key}}" } }, "outputs": ["key", "directory", "fileName", "bucket", "size", "mimeType", "url", "dataUrl", "etag"], "nextBlock": null } }
+ *   ]
+ * }
+ */
 export const executeReadImageFromR2Block: BlockExecutor = async ({ inputs }) => {
   const config = getR2ImageConfig()
 

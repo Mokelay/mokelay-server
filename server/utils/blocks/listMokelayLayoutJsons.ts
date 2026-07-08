@@ -117,6 +117,35 @@ export async function listMokelayLayoutJsons(storage?: MokelayApiAssetStorage) {
   }
 }
 
+/**
+ * @serverBlockDoc
+ * {
+ *   "version": 1,
+ *   "functionName": "listMokelayLayoutJsons",
+ *   "displayName": "列出系统布局 JSON",
+ *   "category": "asset",
+ *   "description": "从 Nitro server assets 的 mokelay-layouts 目录读取并校验系统布局 JSON 列表。",
+ *   "inputs": [],
+ *   "outputs": [
+ *     { "key": "layouts", "type": "MokelayLayoutJsonRecord[]", "description": "已标准化的布局 JSON 数组。" },
+ *     { "key": "count", "type": "number", "description": "布局 JSON 数量。" }
+ *   ],
+ *   "errors": [
+ *     { "code": "API_JSON_INVALID_JSON", "description": "布局资产文件不是合法 JSON。" },
+ *     { "code": "API_JSON_INVALID_SCHEMA", "description": "布局 JSON 缺少 name 或 blocks。" },
+ *     { "code": "API_JSON_UUID_MISMATCH", "description": "布局 JSON uuid 与文件名不一致。" },
+ *     { "code": "API_JSON_NOT_FOUND", "description": "读取到的资产 key 内容为空。" }
+ *   ],
+ *   "config": [],
+ *   "runtime": [
+ *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay-layouts", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *   ],
+ *   "examples": [
+ *     { "title": "列出系统布局", "block": { "uuid": "list_mokelay_layout_jsons_block", "functionName": "listMokelayLayoutJsons", "inputs": {}, "outputs": ["layouts", "count"], "nextBlock": null } }
+ *   ]
+ * }
+ */
 export const executeListMokelayLayoutJsonsBlock: BlockExecutor = async () => {
   return await listMokelayLayoutJsons()
 }

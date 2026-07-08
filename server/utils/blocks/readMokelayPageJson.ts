@@ -29,6 +29,37 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
   return parseMokelayPageJsonAsset(fileName, value)
 }
 
+/**
+ * @serverBlockDoc
+ * {
+ *   "version": 1,
+ *   "functionName": "readMokelayPageJson",
+ *   "displayName": "读取系统页面 JSON",
+ *   "category": "asset",
+ *   "description": "按 uuid 从 Nitro server assets 的 mokelay-pages 目录读取并校验单个系统页面 JSON。",
+ *   "inputs": [
+ *     { "key": "uuid", "type": "string", "required": true, "description": "页面 JSON uuid，同时对应 mokelay-pages/{uuid}.json。" }
+ *   ],
+ *   "outputs": [
+ *     { "key": "page", "type": "PageJson", "description": "已解析并校验的页面 JSON。" }
+ *   ],
+ *   "errors": [
+ *     { "code": "API_JSON_UUID_INVALID", "description": "uuid 为空或包含非法字符。" },
+ *     { "code": "API_JSON_NOT_FOUND", "description": "页面 JSON 资产不存在。" },
+ *     { "code": "API_JSON_INVALID_JSON", "description": "页面资产文件不是合法 JSON。" },
+ *     { "code": "API_JSON_INVALID_SCHEMA", "description": "页面 JSON 缺少 name 或 blocks。" },
+ *     { "code": "API_JSON_UUID_MISMATCH", "description": "页面 JSON uuid 与文件名不一致。" }
+ *   ],
+ *   "config": [],
+ *   "runtime": [
+ *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay-pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *   ],
+ *   "examples": [
+ *     { "title": "读取系统页面", "block": { "uuid": "read_mokelay_page_json_block", "functionName": "readMokelayPageJson", "inputs": { "uuid": { "template": "{{request.query.uuid}}" } }, "outputs": ["page"], "nextBlock": null } }
+ *   ]
+ * }
+ */
 export const executeReadMokelayPageJsonBlock: BlockExecutor = async ({ inputs }) => {
   return {
     page: await readMokelayPageJson(inputs.uuid),
