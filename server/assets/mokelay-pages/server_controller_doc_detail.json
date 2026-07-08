@@ -1,0 +1,72 @@
+{
+  "uuid": "server_controller_doc_detail",
+  "name": "服务端 Controller 文档详情",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [
+    {
+      "key": "doc",
+      "type": "context"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "server-controller-doc-detail-title",
+      "type": "MHeading",
+      "data": {
+        "text": "详情",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-controller-doc-detail-list",
+      "type": "MRecordList",
+      "data": {
+        "items": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_controller_doc_detail",
+          "variable": "context.items"
+        },
+        "count": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_controller_doc_detail",
+          "variable": "context.count"
+        },
+        "displayName": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_controller_doc_detail",
+          "variable": "context.display_name"
+        },
+        "blockType": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_controller_doc_detail",
+          "variable": "context.function_name"
+        },
+        "emptyText": "暂无文档信息",
+        "showCount": true,
+        "titleFields": ["key", "title", "code", "file", "symbol"],
+        "fieldOrder": ["key", "title", "type", "required", "defaultValue", "value", "typeValue", "enum", "code", "file", "symbol", "reason", "description", "controller"],
+        "fieldLabels": {
+          "key": "标识",
+          "title": "标题",
+          "type": "类型",
+          "required": "必填",
+          "defaultValue": "默认值",
+          "value": "值",
+          "typeValue": "节点类型",
+          "enum": "可选值",
+          "code": "错误码",
+          "file": "文件",
+          "symbol": "符号",
+          "reason": "原因",
+          "description": "说明",
+          "controller": "示例 Controller"
+        }
+      }
+    }
+  ]
+}

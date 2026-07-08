@@ -160,6 +160,33 @@ export const serverBlockDocs = pgTable('docs_server_block', {
   index('idx_docs_server_block_requires_datasource').on(table.requiresDatasource),
 ])
 
+export const serverControllerDocs = pgTable('docs_server_controller', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  functionName: varchar('function_name', { length: 128 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 120 }).notNull(),
+  category: varchar('category', { length: 64 }).notNull().default('custom'),
+  sourceKind: varchar('source_kind', { length: 64 }).notNull(),
+  sourcePackage: varchar('source_package', { length: 128 }).notNull(),
+  sourceFile: text('source_file').notNull().default(''),
+  executorName: varchar('executor_name', { length: 128 }).notNull(),
+  description: text('description').notNull().default(''),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  inputSchema: jsonb('input_schema').$type<unknown[]>().notNull().default([]),
+  nodeSchema: jsonb('node_schema').$type<unknown[]>().notNull().default([]),
+  errorSchema: jsonb('error_schema').$type<unknown[]>().notNull().default([]),
+  configSchema: jsonb('config_schema').$type<unknown[]>().notNull().default([]),
+  runtimeSchema: jsonb('runtime_schema').$type<unknown[]>().notNull().default([]),
+  examples: jsonb('examples').$type<unknown[]>().notNull().default([]),
+  sourceRefs: jsonb('source_refs').$type<unknown[]>().notNull().default([]),
+  rawMeta: jsonb('raw_meta').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_docs_server_controller_category').on(table.category),
+  index('idx_docs_server_controller_source_kind').on(table.sourceKind),
+])
+
 export type EnterpriseRecord = typeof enterprise.$inferSelect
 export type NewEnterpriseRecord = typeof enterprise.$inferInsert
 export type EmployeeRecord = typeof employees.$inferSelect
@@ -186,3 +213,5 @@ export type BlockComponentDocRecord = typeof blockComponentDocs.$inferSelect
 export type NewBlockComponentDocRecord = typeof blockComponentDocs.$inferInsert
 export type ServerBlockDocRecord = typeof serverBlockDocs.$inferSelect
 export type NewServerBlockDocRecord = typeof serverBlockDocs.$inferInsert
+export type ServerControllerDocRecord = typeof serverControllerDocs.$inferSelect
+export type NewServerControllerDocRecord = typeof serverControllerDocs.$inferInsert

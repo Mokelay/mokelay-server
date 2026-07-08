@@ -1,0 +1,28 @@
+{
+  "uuid": "server_docs",
+  "name": "服务端文档",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "server-docs-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "server-block-docs",
+        "tabs": [
+          {
+            "id": "server-block-docs",
+            "name": "Block文档",
+            "pageUUID": "server_block_docs",
+            "pageSource": "system"
+          },
+          {
+            "id": "server-controller-docs",
+            "name": "Controller文档",
+            "pageUUID": "server_controller_docs",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}

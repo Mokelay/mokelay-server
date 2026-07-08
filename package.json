@@ -13,6 +13,7 @@
     "sync:mokelay-apis:r2": "node scripts/sync-mokelay-apis-r2.mjs",
     "seed:block-docs": "node scripts/import-block-component-docs.mjs",
     "seed:server-block-docs": "node scripts/import-server-block-docs.mjs",
+    "seed:server-controller-docs": "node scripts/import-server-controller-docs.mjs",
     "update:server-core": "npm install mokelay-server-core@latest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
