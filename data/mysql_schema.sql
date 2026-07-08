@@ -125,6 +125,40 @@ CREATE TABLE `block_component_docs` (
   KEY `idx_block_component_docs_source_kind` (`source_kind`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Block 组件文档表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `server_block_docs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `server_block_docs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` varchar(128) NOT NULL COMMENT '文档唯一 ID',
+  `function_name` varchar(128) NOT NULL COMMENT '服务端 Block functionName',
+  `display_name` varchar(120) NOT NULL COMMENT '展示名称',
+  `category` varchar(64) NOT NULL DEFAULT 'custom' COMMENT 'Block 分类',
+  `source_kind` varchar(64) NOT NULL COMMENT '来源类型',
+  `source_package` varchar(128) NOT NULL COMMENT '来源包名',
+  `source_file` text NOT NULL COMMENT '源码来源文件',
+  `executor_name` varchar(128) NOT NULL COMMENT '执行器导出名',
+  `description` text NOT NULL COMMENT 'Block 描述',
+  `status` varchar(32) NOT NULL DEFAULT 'active' COMMENT '状态',
+  `requires_datasource` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否需要 datasource',
+  `input_schema` json NOT NULL COMMENT '输入字段文档',
+  `output_schema` json NOT NULL COMMENT '输出字段文档',
+  `error_schema` json NOT NULL COMMENT '错误码文档',
+  `config_schema` json NOT NULL COMMENT '配置项文档',
+  `runtime_schema` json NOT NULL COMMENT '运行时行为文档',
+  `examples` json NOT NULL COMMENT '示例 DSL',
+  `source_refs` json NOT NULL COMMENT '源码引用',
+  `raw_meta` json NOT NULL COMMENT '抽取元信息',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_server_block_docs_uuid` (`uuid`),
+  UNIQUE KEY `uk_server_block_docs_function_name` (`function_name`),
+  KEY `idx_server_block_docs_category` (`category`),
+  KEY `idx_server_block_docs_source_kind` (`source_kind`),
+  KEY `idx_server_block_docs_requires_datasource` (`requires_datasource`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='服务端 Block 文档表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `datasources`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigserial, boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigserial, boolean, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const enterprise = pgTable('enterprise', {
   id: serial('id').primaryKey(),
@@ -131,6 +131,35 @@ export const blockComponentDocs = pgTable('block_component_docs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const serverBlockDocs = pgTable('server_block_docs', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  functionName: varchar('function_name', { length: 128 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 120 }).notNull(),
+  category: varchar('category', { length: 64 }).notNull().default('custom'),
+  sourceKind: varchar('source_kind', { length: 64 }).notNull(),
+  sourcePackage: varchar('source_package', { length: 128 }).notNull(),
+  sourceFile: text('source_file').notNull().default(''),
+  executorName: varchar('executor_name', { length: 128 }).notNull(),
+  description: text('description').notNull().default(''),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  requiresDatasource: boolean('requires_datasource').notNull().default(false),
+  inputSchema: jsonb('input_schema').$type<unknown[]>().notNull().default([]),
+  outputSchema: jsonb('output_schema').$type<unknown[]>().notNull().default([]),
+  errorSchema: jsonb('error_schema').$type<unknown[]>().notNull().default([]),
+  configSchema: jsonb('config_schema').$type<unknown[]>().notNull().default([]),
+  runtimeSchema: jsonb('runtime_schema').$type<unknown[]>().notNull().default([]),
+  examples: jsonb('examples').$type<unknown[]>().notNull().default([]),
+  sourceRefs: jsonb('source_refs').$type<unknown[]>().notNull().default([]),
+  rawMeta: jsonb('raw_meta').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_server_block_docs_category').on(table.category),
+  index('idx_server_block_docs_source_kind').on(table.sourceKind),
+  index('idx_server_block_docs_requires_datasource').on(table.requiresDatasource),
+])
+
 export type EnterpriseRecord = typeof enterprise.$inferSelect
 export type NewEnterpriseRecord = typeof enterprise.$inferInsert
 export type EmployeeRecord = typeof employees.$inferSelect
@@ -155,3 +184,5 @@ export type ApiBuilderSampleRecord = typeof apiBuilderSamples.$inferSelect
 export type NewApiBuilderSampleRecord = typeof apiBuilderSamples.$inferInsert
 export type BlockComponentDocRecord = typeof blockComponentDocs.$inferSelect
 export type NewBlockComponentDocRecord = typeof blockComponentDocs.$inferInsert
+export type ServerBlockDocRecord = typeof serverBlockDocs.$inferSelect
+export type NewServerBlockDocRecord = typeof serverBlockDocs.$inferInsert

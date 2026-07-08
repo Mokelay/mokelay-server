@@ -121,6 +121,12 @@
         "children": []
       },
       {
+        "href": "#/server_block_docs",
+        "label": "服务端文档",
+        "active": false,
+        "children": []
+      },
+      {
         "href": "#/ai-chat",
         "label": "AI Chat",
           "active": false,

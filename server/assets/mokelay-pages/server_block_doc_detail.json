@@ -1,0 +1,70 @@
+{
+  "uuid": "server_block_doc_detail",
+  "name": "服务端 Block 文档详情",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [
+    {
+      "key": "doc",
+      "type": "context"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "server-block-doc-detail-title",
+      "type": "MHeading",
+      "data": {
+        "text": "详情",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-block-doc-detail-list",
+      "type": "MRecordList",
+      "data": {
+        "items": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_block_doc_detail",
+          "variable": "context.items"
+        },
+        "count": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_block_doc_detail",
+          "variable": "context.count"
+        },
+        "displayName": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_block_doc_detail",
+          "variable": "context.display_name"
+        },
+        "blockType": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_block_doc_detail",
+          "variable": "context.function_name"
+        },
+        "emptyText": "暂无文档信息",
+        "showCount": true,
+        "titleFields": ["key", "title", "code", "file", "symbol"],
+        "fieldOrder": ["key", "title", "type", "required", "defaultValue", "value", "code", "file", "symbol", "reason", "description", "block"],
+        "fieldLabels": {
+          "key": "标识",
+          "title": "标题",
+          "type": "类型",
+          "required": "必填",
+          "defaultValue": "默认值",
+          "value": "值",
+          "code": "错误码",
+          "file": "文件",
+          "symbol": "符号",
+          "reason": "原因",
+          "description": "说明",
+          "block": "示例 Block"
+        }
+      }
+    }
+  ]
+}

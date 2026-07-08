@@ -234,6 +234,55 @@ ALTER SEQUENCE public.block_component_docs_id_seq OWNED BY public.block_componen
 
 
 --
+-- Name: server_block_docs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.server_block_docs (
+    id bigint NOT NULL,
+    uuid character varying(128) NOT NULL,
+    function_name character varying(128) NOT NULL,
+    display_name character varying(120) NOT NULL,
+    category character varying(64) DEFAULT 'custom'::character varying NOT NULL,
+    source_kind character varying(64) NOT NULL,
+    source_package character varying(128) NOT NULL,
+    source_file text DEFAULT ''::text NOT NULL,
+    executor_name character varying(128) NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    status character varying(32) DEFAULT 'active'::character varying NOT NULL,
+    requires_datasource boolean DEFAULT false NOT NULL,
+    input_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    output_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    error_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    config_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    runtime_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    examples jsonb DEFAULT '[]'::jsonb NOT NULL,
+    source_refs jsonb DEFAULT '[]'::jsonb NOT NULL,
+    raw_meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: server_block_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.server_block_docs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: server_block_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.server_block_docs_id_seq OWNED BY public.server_block_docs.id;
+
+
+--
 -- Name: datasources; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -391,6 +440,13 @@ ALTER TABLE ONLY public.block_component_docs ALTER COLUMN id SET DEFAULT nextval
 
 
 --
+-- Name: server_block_docs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.server_block_docs ALTER COLUMN id SET DEFAULT nextval('public.server_block_docs_id_seq'::regclass);
+
+
+--
 -- Name: datasources id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -505,6 +561,51 @@ ALTER TABLE ONLY public.block_component_docs
 
 ALTER TABLE ONLY public.block_component_docs
     ADD CONSTRAINT block_component_docs_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: server_block_docs server_block_docs_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.server_block_docs
+    ADD CONSTRAINT server_block_docs_function_name_unique UNIQUE (function_name);
+
+
+--
+-- Name: server_block_docs server_block_docs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.server_block_docs
+    ADD CONSTRAINT server_block_docs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: server_block_docs server_block_docs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.server_block_docs
+    ADD CONSTRAINT server_block_docs_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: idx_server_block_docs_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_server_block_docs_category ON public.server_block_docs USING btree (category);
+
+
+--
+-- Name: idx_server_block_docs_requires_datasource; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_server_block_docs_requires_datasource ON public.server_block_docs USING btree (requires_datasource);
+
+
+--
+-- Name: idx_server_block_docs_source_kind; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_server_block_docs_source_kind ON public.server_block_docs USING btree (source_kind);
 
 
 --
