@@ -38,7 +38,7 @@
 
 ## POST /api/mokelay/register
 
-注册新用户。
+注册新企业，并创建关联该企业的首个员工。
 
 对应配置：`server/assets/mokelay-apis/register.json`
 
@@ -48,6 +48,7 @@ Content-Type：`application/json`
 
 | 字段 | 类型 | 必填 | 规则 |
 | --- | --- | --- | --- |
+| `enterprise_name` | `string` | 是 | 先 `trim`，长度 `1-120`。 |
 | `name` | `string` | 是 | 先 `trim`，长度 `1-120`。 |
 | `email` | `string` | 是 | 先 `trim`，必须是合法 email，最大长度 `255`。 |
 | `password` | `string` | 是 | 长度 `8-128`，必须包含字母和数字；保存前会执行 `hash_make`，不会明文入库。 |
@@ -58,6 +59,7 @@ Content-Type：`application/json`
 curl -X POST http://127.0.0.1:8787/api/mokelay/register \
   -H "Content-Type: application/json" \
   -d '{
+    "enterprise_name": "Acme Inc.",
     "name": "  Alice  ",
     "email": "  alice@example.com  ",
     "password": "abc12345"
@@ -66,7 +68,7 @@ curl -X POST http://127.0.0.1:8787/api/mokelay/register \
 
 ### 成功响应
 
-注册成功后会创建用户、写入 session，并返回公开用户信息。
+注册成功后会创建企业和员工、写入 session，并返回公开员工信息。
 
 ```json
 {
@@ -74,6 +76,8 @@ curl -X POST http://127.0.0.1:8787/api/mokelay/register \
   "data": {
     "user": {
       "id": "8cfe5c21-8d0b-4f3f-9c0f-280a4b20fd7a",
+      "enterprise_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "enterprise_name": "Acme Inc.",
       "name": "Alice",
       "email": "alice@example.com",
       "plan": "free"
@@ -92,6 +96,7 @@ Set-Cookie: mokelay_orchestration_session=...
 
 | 场景 | 错误码 | 说明 |
 | --- | --- | --- |
+| enterprise_name 为空 | `REQUEST_PARAMETER_MISSING` 或 `PROCESSOR_VALIDATION_FAILED` | 企业名称必填。 |
 | email 格式非法 | `PROCESSOR_VALIDATION_FAILED` | `email_check` 校验失败。 |
 | password 少于 8 位 | `PROCESSOR_VALIDATION_FAILED` | `min` 校验失败。 |
 | password 缺少字母 | `PROCESSOR_VALIDATION_FAILED` | 字母正则校验失败。 |
@@ -126,7 +131,7 @@ curl -X POST http://127.0.0.1:8787/api/mokelay/login \
 
 ### 成功响应
 
-登录成功后会写入 session，并返回公开用户信息。
+登录成功后会读取员工所属企业、写入 session，并返回公开员工信息。
 
 ```json
 {
@@ -134,6 +139,8 @@ curl -X POST http://127.0.0.1:8787/api/mokelay/login \
   "data": {
     "user": {
       "id": "8cfe5c21-8d0b-4f3f-9c0f-280a4b20fd7a",
+      "enterprise_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "enterprise_name": "Acme Inc.",
       "name": "Alice",
       "email": "alice@example.com",
       "plan": "free"
@@ -153,12 +160,12 @@ Set-Cookie: mokelay_orchestration_session=...
 | 场景 | 错误码 | 说明 |
 | --- | --- | --- |
 | email 格式非法 | `PROCESSOR_VALIDATION_FAILED` | `email_check` 校验失败。 |
-| 用户不存在 | `PROCESSOR_VALIDATION_FAILED` | 读取用户后 `is_not_null` 校验失败。 |
+| 员工不存在 | `PROCESSOR_VALIDATION_FAILED` | 读取员工后 `is_not_null` 校验失败。 |
 | 密码错误 | `PROCESSOR_VALIDATION_FAILED` | `hash_check` 校验失败。 |
 
 ## GET /api/mokelay/me
 
-读取当前 session 中的用户信息。
+读取当前 session 中的员工信息。
 
 对应配置：`server/assets/mokelay-apis/me.json`
 
@@ -194,6 +201,8 @@ curl http://127.0.0.1:8787/api/mokelay/me \
     "loggedIn": true,
     "user": {
       "id": "8cfe5c21-8d0b-4f3f-9c0f-280a4b20fd7a",
+      "enterprise_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "enterprise_name": "Acme Inc.",
       "name": "Alice",
       "email": "alice@example.com",
       "plan": "free"

@@ -123,6 +123,8 @@ type CountFreeUsersResponse = {
 type RegisterResponse = {
   user: {
     id: string
+    enterprise_uuid: string
+    enterprise_name: string
     name: string
     email: string
     plan: string
@@ -345,8 +347,15 @@ function createMokelayOrchestrationHandler(
   })
 }
 
-type UserRow = {
+type EnterpriseRow = {
+  id: number
+  uuid: string
+  name: string
+}
+
+type EmployeeRow = {
   id: string
+  enterprise_uuid: string
   name: string
   email: string
   password_hash: string
@@ -400,7 +409,9 @@ type ApiSnapshotRow = {
 }
 
 class FakeSqlExecutor {
-  readonly users: UserRow[] = []
+  readonly enterprise: EnterpriseRow[] = []
+  readonly employees: EmployeeRow[] = []
+  readonly users = this.employees
   readonly pages: PageRow[] = []
   readonly apps: AppRow[] = []
   readonly datasourceRows: DatasourceRow[] = []
@@ -419,8 +430,12 @@ class FakeSqlExecutor {
     const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
     const params = builtQuery.params
 
-    if (queryText.startsWith('INSERT INTO "users"')) {
-      return this.result(databaseType, this.insertUser<T>(queryText, params))
+    if (queryText.startsWith('INSERT INTO "enterprise"')) {
+      return this.result(databaseType, this.insertEnterprise<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('INSERT INTO "employees"') || queryText.startsWith('INSERT INTO "users"')) {
+      return this.result(databaseType, this.insertEmployee<T>(queryText, params))
     }
 
     if (queryText.startsWith('INSERT INTO "pages"')) {
@@ -443,8 +458,11 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.insertApiSnapshot<T>(queryText, params))
     }
 
-    if (queryText.startsWith('SELECT count(*)::int AS total FROM "users"')) {
-      return this.result(databaseType, [{ total: this.filterUsers(queryText, params).length }] as unknown as T[])
+    if (
+      queryText.startsWith('SELECT count(*)::int AS total FROM "employees"') ||
+      queryText.startsWith('SELECT count(*)::int AS total FROM "users"')
+    ) {
+      return this.result(databaseType, [{ total: this.filterEmployees(queryText, params).length }] as unknown as T[])
     }
 
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "pages"')) {
@@ -468,8 +486,13 @@ class FakeSqlExecutor {
         return this.result(databaseType, [
           { tableName: 'orders', columnName: 'id', columnType: 'integer' },
           { tableName: 'orders', columnName: 'total', columnType: 'numeric(12,2)' },
-          { tableName: 'users', columnName: 'uuid', columnType: 'uuid' },
+          { tableName: 'enterprise', columnName: 'uuid', columnType: 'uuid' },
+          { tableName: 'employees', columnName: 'enterprise_uuid', columnType: 'uuid' },
         ] as unknown as T[])
+      }
+
+      if (queryText.includes('FROM "enterprise"')) {
+        return this.result(databaseType, this.selectEnterprise<T>(queryText, params))
       }
 
       if (queryText.includes('FROM "datasources"')) {
@@ -488,11 +511,11 @@ class FakeSqlExecutor {
         return this.result(databaseType, this.selectPages<T>(queryText, params))
       }
 
-      return this.result(databaseType, this.selectUsers<T>(queryText, params))
+      return this.result(databaseType, this.selectEmployees<T>(queryText, params))
     }
 
-    if (queryText.startsWith('UPDATE "users"')) {
-      return this.result(databaseType, this.updateUsers<T>(queryText, params))
+    if (queryText.startsWith('UPDATE "employees"') || queryText.startsWith('UPDATE "users"')) {
+      return this.result(databaseType, this.updateEmployees<T>(queryText, params))
     }
 
     if (queryText.startsWith('UPDATE "pages"')) {
@@ -507,8 +530,8 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.updateDatasourceRows<T>(queryText, params))
     }
 
-    if (queryText.startsWith('DELETE FROM "users"')) {
-      return this.result(databaseType, this.deleteUsers<T>(queryText, params))
+    if (queryText.startsWith('DELETE FROM "employees"') || queryText.startsWith('DELETE FROM "users"')) {
+      return this.result(databaseType, this.deleteEmployees<T>(queryText, params))
     }
 
     if (queryText.startsWith('DELETE FROM "apis"')) {
@@ -530,12 +553,42 @@ class FakeSqlExecutor {
     }
   }
 
-  private insertUser<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const columnMatch = /INSERT INTO "users" \((.*?)\) VALUES/.exec(queryText)
-    const columns = columnMatch?.[1]?.match(/"([^"]+)"/g)?.map((column) => column.replaceAll('"', '')) ?? []
+  private ensureDefaultEnterprise() {
+    if (!this.enterprise.length) {
+      this.enterprise.push({
+        id: 1,
+        uuid: crypto.randomUUID(),
+        name: '默认企业',
+      })
+    }
+
+    return this.enterprise[0]!
+  }
+
+  private insertEnterprise<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const columns = this.insertColumns(queryText, 'enterprise')
+    const row: EnterpriseRow = {
+      id: this.enterprise.length + 1,
+      uuid: crypto.randomUUID(),
+      name: '',
+    }
+
+    columns.forEach((column, index) => {
+      row[column as keyof EnterpriseRow] = this.parseJsonParam(params[index]) as never
+    })
+
+    this.enterprise.push(row)
+
+    return [this.projectReturning(row, queryText)] as T[]
+  }
+
+  private insertEmployee<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const table = queryText.startsWith('INSERT INTO "employees"') ? 'employees' : 'users'
+    const columns = this.insertColumns(queryText, table)
     const now = new Date().toISOString()
-    const row: UserRow = {
+    const row: EmployeeRow = {
       id: crypto.randomUUID(),
+      enterprise_uuid: '',
       name: '',
       email: '',
       password_hash: '',
@@ -545,10 +598,14 @@ class FakeSqlExecutor {
     }
 
     columns.forEach((column, index) => {
-      row[column as keyof UserRow] = params[index] as never
+      row[column as keyof EmployeeRow] = params[index] as never
     })
 
-    this.users.push(row)
+    if (!row.enterprise_uuid) {
+      row.enterprise_uuid = this.ensureDefaultEnterprise().uuid
+    }
+
+    this.employees.push(row)
 
     return [this.projectReturning(row, queryText)] as T[]
   }
@@ -669,14 +726,22 @@ class FakeSqlExecutor {
     return [this.projectReturning(row, queryText)] as T[]
   }
 
-  private selectUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+  private selectEnterprise<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const fields = this.selectFields(queryText)
-    const users = this.filterUsers(queryText, params)
+    const enterprise = this.filterEnterprise(queryText, params)
+    const rows = queryText.includes(' LIMIT 1') ? enterprise.slice(0, 1) : enterprise
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
+  private selectEmployees<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const employees = this.filterEmployees(queryText, params)
     const rows = queryText.includes(' OFFSET ')
-      ? users.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      ? employees.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
       : queryText.includes(' LIMIT 1')
-        ? users.slice(0, 1)
-        : users
+        ? employees.slice(0, 1)
+        : employees
 
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
@@ -747,19 +812,19 @@ class FakeSqlExecutor {
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
 
-  private updateUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+  private updateEmployees<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
     const setParamCount = setFields.length
-    const users = this.filterUsers(queryText, params.slice(setParamCount))
+    const employees = this.filterEmployees(queryText, params.slice(setParamCount))
 
-    for (const user of users) {
+    for (const employee of employees) {
       setFields.forEach((field, index) => {
-        user[field as keyof UserRow] = params[index] as never
+        employee[field as keyof EmployeeRow] = params[index] as never
       })
     }
 
-    return users.map(() => ({ affected_marker: 1 })) as unknown as T[]
+    return employees.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
   private deleteApis<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -822,17 +887,17 @@ class FakeSqlExecutor {
     return datasourceRows.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
-  private deleteUsers<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const users = this.filterUsers(queryText, params)
-    const ids = new Set(users.map((user) => user.id))
+  private deleteEmployees<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const employees = this.filterEmployees(queryText, params)
+    const ids = new Set(employees.map((employee) => employee.id))
 
-    for (let index = this.users.length - 1; index >= 0; index -= 1) {
-      if (ids.has(this.users[index]?.id || '')) {
-        this.users.splice(index, 1)
+    for (let index = this.employees.length - 1; index >= 0; index -= 1) {
+      if (ids.has(this.employees[index]?.id || '')) {
+        this.employees.splice(index, 1)
       }
     }
 
-    return users.map(() => ({ affected_marker: 1 })) as unknown as T[]
+    return employees.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
   private selectFields(queryText: string) {
@@ -870,41 +935,69 @@ class FakeSqlExecutor {
     }
   }
 
-  private filterUsers(queryText: string, params: unknown[]) {
+  private filterEnterprise(queryText: string, params: unknown[]) {
     if (!queryText.includes(' WHERE ')) {
-      return [...this.users]
+      return [...this.enterprise]
+    }
+
+    if (queryText.includes('"uuid" =')) {
+      const uuid = params.at(-1)
+      return this.enterprise.filter((item) => item.uuid === uuid)
+    }
+
+    if (queryText.includes('"id" =')) {
+      const id = Number(params.at(-1))
+      return this.enterprise.filter((item) => item.id === id)
+    }
+
+    if (queryText.includes('"name" =')) {
+      const name = params.at(-1)
+      return this.enterprise.filter((item) => item.name === name)
+    }
+
+    return [...this.enterprise]
+  }
+
+  private filterEmployees(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.employees]
     }
 
     if (queryText.includes('"id" =')) {
       const id = params.at(-1)
-      return this.users.filter((user) => user.id === id)
+      return this.employees.filter((employee) => employee.id === id)
+    }
+
+    if (queryText.includes('"enterprise_uuid" =')) {
+      const enterpriseUuid = params.at(-1)
+      return this.employees.filter((employee) => employee.enterprise_uuid === enterpriseUuid)
     }
 
     if (queryText.includes('"plan" =')) {
       const plan = params.at(-1)
-      return this.users.filter((user) => user.plan === plan)
+      return this.employees.filter((employee) => employee.plan === plan)
     }
 
     if (queryText.includes('"email" =')) {
       const email = params.at(-1)
-      return this.users.filter((user) => user.email === email)
+      return this.employees.filter((employee) => employee.email === email)
     }
 
     if (queryText.includes('"name" =') && queryText.includes('"created_at" >=')) {
       const [name, createdAtBegin, createdAtEnd] = params
 
-      return this.users.filter((user) => (
-        user.name === name
-        && user.created_at >= String(createdAtBegin)
-        && user.created_at <= String(createdAtEnd)
+      return this.employees.filter((employee) => (
+        employee.name === name
+        && employee.created_at >= String(createdAtBegin)
+        && employee.created_at <= String(createdAtEnd)
       ))
     }
 
     if (queryText.includes('"id" IN')) {
-      return this.users.filter((user) => params.includes(user.id))
+      return this.employees.filter((employee) => params.includes(employee.id))
     }
 
-    return [...this.users]
+    return [...this.employees]
   }
 
   private filterPages(queryText: string, params: unknown[]) {
@@ -1311,22 +1404,28 @@ describe('mokelay orchestration API', () => {
 
   it('executes the stored register API JSON with request, output, and session processors', async () => {
     const response = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: '  Register Enterprise  ',
       name: '  Register User  ',
       email: '  register@mokelay.test  ',
       password: 'abc12345',
     })
     const body = await readMokelayData<RegisterResponse>(response)
-    const row = fakeSqlExecutor.users.find((user) => user.email === 'register@mokelay.test')
+    const row = fakeSqlExecutor.employees.find((employee) => employee.email === 'register@mokelay.test')
+    const enterprise = fakeSqlExecutor.enterprise.find((item) => item.name === 'Register Enterprise')
 
     expect(response.status).toBe(200)
     expect(response.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
     expect(body.user).toMatchObject({
       id: expect.stringMatching(uuidPattern),
+      enterprise_uuid: expect.stringMatching(uuidPattern),
+      enterprise_name: 'Register Enterprise',
       name: 'Register User',
       email: 'register@mokelay.test',
       plan: 'free',
     })
+    expect(enterprise).toBeDefined()
     expect(row).toBeDefined()
+    expect(row?.enterprise_uuid).toBe(enterprise?.uuid)
     expect(row?.name).toBe('Register User')
     expect(row?.password_hash).not.toBe('abc12345')
     expect(await verifyPassword(row?.password_hash || '', 'abc12345')).toBe(true)
@@ -1334,6 +1433,7 @@ describe('mokelay orchestration API', () => {
 
   it('stops stored register when the output processor detects a duplicate email', async () => {
     const firstResponse = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Duplicate Enterprise',
       name: 'First Register',
       email: 'duplicate@mokelay.test',
       password: 'abc12345',
@@ -1343,17 +1443,20 @@ describe('mokelay orchestration API', () => {
     expect((await readMokelaySuccess<RegisterResponse>(firstResponse)).ok).toBe(true)
 
     const duplicateResponse = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Duplicate Enterprise Two',
       name: 'Duplicate Register',
       email: 'duplicate@mokelay.test',
       password: 'abc12345',
     })
 
     await expectMokelayError(duplicateResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor eq/)
-    expect(fakeSqlExecutor.users).toHaveLength(1)
+    expect(fakeSqlExecutor.employees).toHaveLength(1)
+    expect(fakeSqlExecutor.enterprise.filter((item) => item.name.startsWith('Duplicate Enterprise'))).toHaveLength(1)
   })
 
   it('executes the stored login API JSON and stores the public user in orchestration session', async () => {
     const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Login Enterprise',
       name: 'Login User',
       email: 'login@mokelay.test',
       password: 'abc12345',
@@ -1372,6 +1475,8 @@ describe('mokelay orchestration API', () => {
     expect(loginResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
     expect(body.user).toEqual(expect.objectContaining({
       id: expect.stringMatching(uuidPattern),
+      enterprise_uuid: expect.stringMatching(uuidPattern),
+      enterprise_name: 'Login Enterprise',
       name: 'Login User',
       email: 'login@mokelay.test',
       plan: 'free',
@@ -1381,6 +1486,7 @@ describe('mokelay orchestration API', () => {
 
   it('rejects stored login JSON for unknown users, wrong passwords, and invalid email', async () => {
     const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Password Enterprise',
       name: 'Password User',
       email: 'password-user@mokelay.test',
       password: 'abc12345',
@@ -1417,6 +1523,7 @@ describe('mokelay orchestration API', () => {
     })
 
     const registerResponse = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Session Enterprise',
       name: 'Session User',
       email: 'session@mokelay.test',
       password: 'abc12345',
@@ -1433,6 +1540,8 @@ describe('mokelay orchestration API', () => {
       loggedIn: true,
       user: expect.objectContaining({
         id: expect.stringMatching(uuidPattern),
+        enterprise_uuid: expect.stringMatching(uuidPattern),
+        enterprise_name: 'Session Enterprise',
         name: 'Session User',
         email: 'session@mokelay.test',
         plan: 'free',
@@ -1457,20 +1566,24 @@ describe('mokelay orchestration API', () => {
       message: RegExp
     }> = [
       {
-        body: { name: 'Invalid Email', email: 'not-email', password: 'abc12345' },
+        body: { enterprise_name: 'Invalid Enterprise', name: 'Invalid Email', email: 'not-email', password: 'abc12345' },
         message: /Processor email_check/,
       },
       {
-        body: { name: 'Short Password', email: 'short-password@mokelay.test', password: 'a1' },
+        body: { enterprise_name: 'Short Password Enterprise', name: 'Short Password', email: 'short-password@mokelay.test', password: 'a1' },
         message: /Processor min/,
       },
       {
-        body: { name: 'Missing Digit', email: 'missing-digit@mokelay.test', password: 'abcdefgh' },
+        body: { enterprise_name: 'Missing Digit Enterprise', name: 'Missing Digit', email: 'missing-digit@mokelay.test', password: 'abcdefgh' },
         message: /Processor regex/,
       },
       {
-        body: { name: 'Missing Letter', email: 'missing-letter@mokelay.test', password: '12345678' },
+        body: { enterprise_name: 'Missing Letter Enterprise', name: 'Missing Letter', email: 'missing-letter@mokelay.test', password: '12345678' },
         message: /Processor regex/,
+      },
+      {
+        body: { enterprise_name: '', name: 'Missing Enterprise', email: 'missing-enterprise@mokelay.test', password: 'abc12345' },
+        message: /Processor is_not_null/,
       },
     ]
 
@@ -1480,7 +1593,7 @@ describe('mokelay orchestration API', () => {
       await expectMokelayError(response, 'PROCESSOR_VALIDATION_FAILED', item.message)
     }
 
-    expect(fakeSqlExecutor.users).toHaveLength(0)
+    expect(fakeSqlExecutor.employees).toHaveLength(0)
   })
 
   it('applies processors on input and response templates', async () => {
@@ -2613,9 +2726,15 @@ describe('mokelay orchestration API', () => {
         ],
       },
       {
-        name: 'users',
+        name: 'enterprise',
         columns: [
           { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+        ],
+      },
+      {
+        name: 'employees',
+        columns: [
+          { name: 'enterprise_uuid', type: 'uuid', dataType: 'uuid' },
         ],
       },
     ])

@@ -12,8 +12,11 @@ describe('database schema utilities', () => {
       { tableName: 'apis_snapshot', columnName: 'api_json', columnType: 'jsonb' },
       { tableName: 'pages', columnName: 'uuid', columnType: 'uuid' },
       { tableName: 'pages', columnName: 'name', columnType: 'character varying(120)' },
-      { tableName: 'users', columnName: 'id', columnType: 'uuid' },
-      { tableName: 'users', columnName: 'email', columnType: 'character varying(255)' },
+      { tableName: 'enterprise', columnName: 'uuid', columnType: 'uuid' },
+      { tableName: 'enterprise', columnName: 'name', columnType: 'character varying(120)' },
+      { tableName: 'employees', columnName: 'id', columnType: 'uuid' },
+      { tableName: 'employees', columnName: 'enterprise_uuid', columnType: 'uuid' },
+      { tableName: 'employees', columnName: 'email', columnType: 'character varying(255)' },
     ])
 
     expect(tables).toEqual([
@@ -41,9 +44,17 @@ describe('database schema utilities', () => {
         ],
       },
       {
-        name: 'users',
+        name: 'enterprise',
+        columns: [
+          { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+          { name: 'name', type: 'character varying(120)', dataType: 'character varying(120)' },
+        ],
+      },
+      {
+        name: 'employees',
         columns: [
           { name: 'id', type: 'uuid', dataType: 'uuid' },
+          { name: 'enterprise_uuid', type: 'uuid', dataType: 'uuid' },
           { name: 'email', type: 'character varying(255)', dataType: 'character varying(255)' },
         ],
       },

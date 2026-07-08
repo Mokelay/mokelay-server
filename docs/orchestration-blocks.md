@@ -306,7 +306,7 @@ BingX_DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DBNAME
 ```json
 {
   "datasource": "Mokelay",
-  "table": "users",
+  "table": "employees",
   "fields": ["id", "name", "email", "created_at", "updated_at"],
   "conditions": [],
   "orderBy": []
@@ -363,12 +363,12 @@ SELECT fields FROM table WHERE conditions ORDER BY orderBy
 
 ```json
 {
-  "uuid": "list_users_block",
-  "alias": "查询用户列表",
+  "uuid": "list_employees_block",
+  "alias": "查询员工列表",
   "functionName": "list",
   "inputs": {
     "datasource": "Mokelay",
-    "table": "users",
+    "table": "employees",
     "fields": ["id", "name", "email", "created_at", "updated_at"],
     "conditions": [
       {
@@ -498,7 +498,7 @@ SELECT count(*)::int AS total FROM table WHERE conditions
 ```json
 {
   "datasource": "Mokelay",
-  "table": "users",
+  "table": "employees",
   "conditions": []
 }
 ```
@@ -545,12 +545,12 @@ SELECT count(*)::int AS total FROM table WHERE conditions
 
 ```json
 {
-  "uuid": "count_free_users_block",
-  "alias": "统计免费套餐用户数量",
+  "uuid": "count_free_employees_block",
+  "alias": "统计免费套餐员工数量",
   "functionName": "count",
   "inputs": {
     "datasource": "Mokelay",
-    "table": "users",
+    "table": "employees",
     "conditions": [
       {
         "group": false,
@@ -651,7 +651,7 @@ SELECT fields FROM table LIMIT 1
 ```json
 {
   "datasource": "Mokelay",
-  "table": "users",
+  "table": "employees",
   "conditions": []
 }
 ```
@@ -701,7 +701,7 @@ DELETE FROM table RETURNING 1 AS affected_marker
   "functionName": "delete",
   "inputs": {
     "datasource": "Mokelay",
-    "table": "users",
+    "table": "employees",
     "conditions": [
       {
         "group": false,
@@ -769,7 +769,7 @@ MySQL：
 
 `create` 的输出 key 固定为 `uuid`，表示插入数据库后返回的这条记录的唯一 ID。`uuid` 是 block 约定输出名，不是物理数据库字段名。
 
-物理字段由 `inputs.idField` 指定。例如 `users` 表的物理字段可以是 `id`，但 block 输出仍然是 `outputs.uuid`。
+物理字段由 `inputs.idField` 指定。例如 `employees` 表的物理字段可以是 `id`，但 block 输出仍然是 `outputs.uuid`。
 
 推荐声明：
 

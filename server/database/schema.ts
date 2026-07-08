@@ -1,8 +1,15 @@
 import { sql } from 'drizzle-orm'
 import { bigserial, jsonb, pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
-export const users = pgTable('users', {
+export const enterprise = pgTable('enterprise', {
+  id: serial('id').primaryKey(),
+  uuid: uuid('uuid').notNull().defaultRandom().unique(),
+  name: varchar('name', { length: 120 }).notNull(),
+})
+
+export const employees = pgTable('employees', {
   id: uuid('id').primaryKey().defaultRandom(),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
   name: varchar('name', { length: 120 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
@@ -96,8 +103,10 @@ export const blockComponentDocs = pgTable('block_component_docs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export type UserRecord = typeof users.$inferSelect
-export type NewUserRecord = typeof users.$inferInsert
+export type EnterpriseRecord = typeof enterprise.$inferSelect
+export type NewEnterpriseRecord = typeof enterprise.$inferInsert
+export type EmployeeRecord = typeof employees.$inferSelect
+export type NewEmployeeRecord = typeof employees.$inferInsert
 export type PageRecord = typeof pages.$inferSelect
 export type NewPageRecord = typeof pages.$inferInsert
 export type AppRecord = typeof apps.$inferSelect

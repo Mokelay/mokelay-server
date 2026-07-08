@@ -149,22 +149,34 @@ CREATE TABLE `pages` (
   UNIQUE KEY `uk_pages_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='页面定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `employees`;
+DROP TABLE IF EXISTS `enterprise`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `users` (
+CREATE TABLE `enterprise` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '用户唯一标识',
-  `name` varchar(120) NOT NULL COMMENT '用户名称',
+  `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '企业唯一标识',
+  `name` varchar(120) NOT NULL COMMENT '企业名称',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_enterprise_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `employees` (
+  `id` char(36) NOT NULL DEFAULT (uuid()) COMMENT '员工唯一标识',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
+  `name` varchar(120) NOT NULL COMMENT '员工名称',
   `email` varchar(255) NOT NULL COMMENT '登录邮箱',
   `password_hash` text NOT NULL COMMENT '密码哈希',
   `plan` varchar(32) NOT NULL DEFAULT 'free' COMMENT '订阅计划',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_users_uuid` (`uuid`),
-  UNIQUE KEY `uk_users_email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户表';
+  UNIQUE KEY `uk_employees_email` (`email`),
+  KEY `idx_employees_enterprise_uuid` (`enterprise_uuid`),
+  CONSTRAINT `fk_employees_enterprise_uuid` FOREIGN KEY (`enterprise_uuid`) REFERENCES `enterprise` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='员工表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

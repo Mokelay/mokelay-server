@@ -230,6 +230,37 @@ ALTER SEQUENCE public.datasources_id_seq OWNED BY public.datasources.id;
 
 
 --
+-- Name: enterprise; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.enterprise (
+    id integer NOT NULL,
+    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    name character varying(120) NOT NULL
+);
+
+
+--
+-- Name: enterprise_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.enterprise_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: enterprise_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.enterprise_id_seq OWNED BY public.enterprise.id;
+
+
+--
 -- Name: layouts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -279,11 +310,12 @@ CREATE TABLE public.pages (
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.users (
+CREATE TABLE public.employees (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
+    enterprise_uuid uuid NOT NULL,
     name character varying(120) NOT NULL,
     email character varying(255) NOT NULL,
     password_hash text NOT NULL,
@@ -319,6 +351,13 @@ ALTER TABLE ONLY public.block_component_docs ALTER COLUMN id SET DEFAULT nextval
 --
 
 ALTER TABLE ONLY public.datasources ALTER COLUMN id SET DEFAULT nextval('public.datasources_id_seq'::regclass);
+
+
+--
+-- Name: enterprise id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.enterprise ALTER COLUMN id SET DEFAULT nextval('public.enterprise_id_seq'::regclass);
 
 
 --
@@ -441,6 +480,22 @@ ALTER TABLE ONLY public.datasources
 
 
 --
+-- Name: enterprise enterprise_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.enterprise
+    ADD CONSTRAINT enterprise_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: enterprise enterprise_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.enterprise
+    ADD CONSTRAINT enterprise_uuid_unique UNIQUE (uuid);
+
+
+--
 -- Name: pages pages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -449,19 +504,27 @@ ALTER TABLE ONLY public.pages
 
 
 --
--- Name: users users_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: employees employees_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_unique UNIQUE (email);
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT employees_email_unique UNIQUE (email);
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: employees employees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT employees_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: employees employees_enterprise_uuid_enterprise_uuid_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT employees_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
 
 
 --

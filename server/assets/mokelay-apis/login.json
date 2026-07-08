@@ -35,17 +35,18 @@
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "read_user_info"
+      "nextBlock": "read_employee_info"
     },
     {
-      "uuid": "read_user_info",
-      "alias": "按邮箱读取用户信息",
+      "uuid": "read_employee_info",
+      "alias": "按邮箱读取员工信息",
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "users",
+        "table": "employees",
         "fields": [
           "id",
+          "enterprise_uuid",
           "name",
           "email",
           "plan",
@@ -70,16 +71,16 @@
           ]
         }
       ],
-      "nextBlock": "check_user_password"
+      "nextBlock": "check_employee_password"
     },
     {
-      "uuid": "check_user_password",
+      "uuid": "check_employee_password",
       "alias": "校验密码控制器",
       "functionName": "if_controller",
       "type": "controller",
       "inputs": {
         "value": {
-          "template": "{{blocks['read_user_info'].outputs.data.password_hash}}",
+          "template": "{{blocks['read_employee_info'].outputs.data.password_hash}}",
           "processors": [
             {
               "processor": "hash_check",
@@ -97,7 +98,7 @@
           "uuid": "password_check_true_node",
           "alias": "密码校验通过",
           "value": true,
-          "nextBlock": "set_user_session"
+          "nextBlock": "read_enterprise_info"
         },
         {
           "uuid": "password_check_false_node",
@@ -108,23 +109,61 @@
       ]
     },
     {
+      "uuid": "read_enterprise_info",
+      "alias": "读取员工企业信息",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "enterprise",
+        "fields": [
+          "uuid",
+          "name"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['read_employee_info'].outputs.data.enterprise_uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": [
+            "is_not_null"
+          ]
+        }
+      ],
+      "nextBlock": "set_user_session"
+    },
+    {
       "uuid": "set_user_session",
-      "alias": "保存用户信息到Session",
+      "alias": "保存员工信息到Session",
       "functionName": "addSession",
       "inputs": {
         "key": "user",
         "value": {
           "id": {
-            "template": "{{blocks['read_user_info'].outputs.data.id}}"
+            "template": "{{blocks['read_employee_info'].outputs.data.id}}"
+          },
+          "enterprise_uuid": {
+            "template": "{{blocks['read_employee_info'].outputs.data.enterprise_uuid}}"
+          },
+          "enterprise_name": {
+            "template": "{{blocks['read_enterprise_info'].outputs.data.name}}"
           },
           "name": {
-            "template": "{{blocks['read_user_info'].outputs.data.name}}"
+            "template": "{{blocks['read_employee_info'].outputs.data.name}}"
           },
           "email": {
-            "template": "{{blocks['read_user_info'].outputs.data.email}}"
+            "template": "{{blocks['read_employee_info'].outputs.data.email}}"
           },
           "plan": {
-            "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+            "template": "{{blocks['read_employee_info'].outputs.data.plan}}"
           }
         }
       },
@@ -138,16 +177,22 @@
     "set_user_session": {
       "user": {
         "id": {
-          "template": "{{blocks['read_user_info'].outputs.data.id}}"
+          "template": "{{blocks['read_employee_info'].outputs.data.id}}"
+        },
+        "enterprise_uuid": {
+          "template": "{{blocks['read_employee_info'].outputs.data.enterprise_uuid}}"
+        },
+        "enterprise_name": {
+          "template": "{{blocks['read_enterprise_info'].outputs.data.name}}"
         },
         "name": {
-          "template": "{{blocks['read_user_info'].outputs.data.name}}"
+          "template": "{{blocks['read_employee_info'].outputs.data.name}}"
         },
         "email": {
-          "template": "{{blocks['read_user_info'].outputs.data.email}}"
+          "template": "{{blocks['read_employee_info'].outputs.data.email}}"
         },
         "plan": {
-          "template": "{{blocks['read_user_info'].outputs.data.plan}}"
+          "template": "{{blocks['read_employee_info'].outputs.data.plan}}"
         }
       }
     }
