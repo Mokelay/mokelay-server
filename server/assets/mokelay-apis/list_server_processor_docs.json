@@ -1,0 +1,107 @@
+{
+  "uuid": "list_server_processor_docs",
+  "alias": "服务端 Processor 文档列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "page",
+      "pageSize"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_server_processor_docs_block"
+    },
+    {
+      "uuid": "list_server_processor_docs_block",
+      "alias": "服务端 Processor 文档分页 Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_server_processor",
+        "fields": [
+          "id",
+          "uuid",
+          "function_name",
+          "display_name",
+          "category",
+          "source_kind",
+          "source_package",
+          "source_file",
+          "executor_name",
+          "description",
+          "status",
+          "input_schema",
+          "param_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples",
+          "source_refs",
+          "raw_meta",
+          "created_at",
+          "updated_at"
+        ],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "orderBy": [
+          {
+            "fieldName": "source_kind",
+            "direction": "ASC"
+          },
+          {
+            "fieldName": "category",
+            "direction": "ASC"
+          },
+          {
+            "fieldName": "function_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "list_server_processor_docs_block": {
+      "docs": {
+        "template": "{{blocks['list_server_processor_docs_block'].outputs.datas}}"
+      },
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_server_processor_docs_block'].outputs.hasNextPage}}"
+        }
+      }
+    }
+  }
+}

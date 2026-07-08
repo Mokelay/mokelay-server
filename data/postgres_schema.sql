@@ -331,6 +331,55 @@ ALTER SEQUENCE public.docs_server_controller_id_seq OWNED BY public.docs_server_
 
 
 --
+-- Name: docs_server_processor; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.docs_server_processor (
+    id bigint NOT NULL,
+    uuid character varying(128) NOT NULL,
+    function_name character varying(128) NOT NULL,
+    display_name character varying(120) NOT NULL,
+    category character varying(64) DEFAULT 'custom'::character varying NOT NULL,
+    source_kind character varying(64) NOT NULL,
+    source_package character varying(128) NOT NULL,
+    source_file text DEFAULT ''::text NOT NULL,
+    executor_name character varying(128) NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    status character varying(32) DEFAULT 'active'::character varying NOT NULL,
+    input_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    param_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    output_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    error_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    config_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    runtime_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    examples jsonb DEFAULT '[]'::jsonb NOT NULL,
+    source_refs jsonb DEFAULT '[]'::jsonb NOT NULL,
+    raw_meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: docs_server_processor_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.docs_server_processor_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: docs_server_processor_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.docs_server_processor_id_seq OWNED BY public.docs_server_processor.id;
+
+
+--
 -- Name: datasources; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -502,6 +551,13 @@ ALTER TABLE ONLY public.docs_server_controller ALTER COLUMN id SET DEFAULT nextv
 
 
 --
+-- Name: docs_server_processor id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_server_processor ALTER COLUMN id SET DEFAULT nextval('public.docs_server_processor_id_seq'::regclass);
+
+
+--
 -- Name: datasources id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -667,6 +723,30 @@ ALTER TABLE ONLY public.docs_server_controller
 
 
 --
+-- Name: docs_server_processor docs_server_processor_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_server_processor
+    ADD CONSTRAINT docs_server_processor_function_name_unique UNIQUE (function_name);
+
+
+--
+-- Name: docs_server_processor docs_server_processor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_server_processor
+    ADD CONSTRAINT docs_server_processor_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: docs_server_processor docs_server_processor_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_server_processor
+    ADD CONSTRAINT docs_server_processor_uuid_unique UNIQUE (uuid);
+
+
+--
 -- Name: idx_docs_server_block_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -699,6 +779,20 @@ CREATE INDEX idx_docs_server_controller_category ON public.docs_server_controlle
 --
 
 CREATE INDEX idx_docs_server_controller_source_kind ON public.docs_server_controller USING btree (source_kind);
+
+
+--
+-- Name: idx_docs_server_processor_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_server_processor_category ON public.docs_server_processor USING btree (category);
+
+
+--
+-- Name: idx_docs_server_processor_source_kind; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_server_processor_source_kind ON public.docs_server_processor USING btree (source_kind);
 
 
 --

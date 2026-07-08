@@ -1,0 +1,505 @@
+{
+  "uuid": "server_processor_docs",
+  "name": "服务端 Processor 文档",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "server-processor-docs-title",
+      "type": "MHeading",
+      "data": {
+        "text": "服务端 Processor 文档",
+        "level": "1",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-docs-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "columnName": "Processor",
+            "fieldVariable": "function_name",
+            "fieldDataType": "string",
+            "width": 190,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "server-processor-docs-col-function",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{function_name}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "名称",
+            "fieldVariable": "display_name",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-col-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{display_name}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "分类",
+            "fieldVariable": "category",
+            "fieldDataType": "string",
+            "width": 170,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-col-category",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{category}} / {{source_kind}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "说明",
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 420,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-col-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "源码",
+            "fieldVariable": "source_file",
+            "fieldDataType": "string",
+            "width": 320,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-col-source",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{source_file}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "输入",
+            "fieldVariable": "input_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-inputs",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_inputs",
+                        "action": "open_dialog",
+                        "alias": "打开输入详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 输入",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{input_schema}}",
+                            "count": "{{raw_meta.counts.inputs}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "参数",
+            "fieldVariable": "param_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-params",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_params",
+                        "action": "open_dialog",
+                        "alias": "打开参数详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 参数",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{param_schema}}",
+                            "count": "{{raw_meta.counts.params}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "输出",
+            "fieldVariable": "output_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-outputs",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_outputs",
+                        "action": "open_dialog",
+                        "alias": "打开输出详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 输出",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{output_schema}}",
+                            "count": "{{raw_meta.counts.outputs}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "错误",
+            "fieldVariable": "error_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-errors",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_errors",
+                        "action": "open_dialog",
+                        "alias": "打开错误详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 错误",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{error_schema}}",
+                            "count": "{{raw_meta.counts.errors}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "配置",
+            "fieldVariable": "config_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-config",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_config",
+                        "action": "open_dialog",
+                        "alias": "打开配置详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 配置",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{config_schema}}",
+                            "count": "{{raw_meta.counts.config}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "运行",
+            "fieldVariable": "runtime_schema",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-runtime",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_runtime",
+                        "action": "open_dialog",
+                        "alias": "打开运行详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 运行",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{runtime_schema}}",
+                            "count": "{{raw_meta.counts.runtime}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "columnName": "示例",
+            "fieldVariable": "examples",
+            "fieldDataType": "array",
+            "width": 90,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "server-processor-docs-open-examples",
+                "type": "MButton",
+                "data": {
+                  "label": "查看",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "server_processor_docs_open_examples",
+                        "action": "open_dialog",
+                        "alias": "打开示例详情",
+                        "inputs": {
+                          "title": "{{display_name}} · 示例",
+                          "pageUUID": "server_processor_doc_detail",
+                          "pageSource": "system",
+                          "context": {
+                            "function_name": "{{function_name}}",
+                            "display_name": "{{display_name}}",
+                            "items": "{{examples}}",
+                            "count": "{{raw_meta.counts.examples}}"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_server_processor_docs",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "server-processor-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "server-processor-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.docs[]",
+              "label": "docs",
+              "type": "array"
+            },
+            {
+              "path": "data.pagination.page",
+              "label": "page",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "label": "pageSize",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.total",
+              "label": "total",
+              "type": "number"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "数据",
+              "variable": "data",
+              "type": "array",
+              "matchFieldPath": "data.docs[]"
+            },
+            {
+              "label": "页码",
+              "variable": "page",
+              "type": "number",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页数量",
+              "variable": "pageSize",
+              "type": "number",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "type": "number",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

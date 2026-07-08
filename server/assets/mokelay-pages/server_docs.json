@@ -20,6 +20,12 @@
             "name": "Controller文档",
             "pageUUID": "server_controller_docs",
             "pageSource": "system"
+          },
+          {
+            "id": "server-processor-docs",
+            "name": "Processor文档",
+            "pageUUID": "server_processor_docs",
+            "pageSource": "system"
           }
         ]
       }

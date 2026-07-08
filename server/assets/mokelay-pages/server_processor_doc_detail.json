@@ -1,0 +1,95 @@
+{
+  "uuid": "server_processor_doc_detail",
+  "name": "服务端 Processor 文档详情",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [
+    {
+      "key": "doc",
+      "type": "context"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "server-processor-doc-detail-title",
+      "type": "MHeading",
+      "data": {
+        "text": "详情",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-doc-detail-list",
+      "type": "MRecordList",
+      "data": {
+        "items": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "context.items"
+        },
+        "count": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "context.count"
+        },
+        "displayName": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "context.display_name"
+        },
+        "blockType": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "context.function_name"
+        },
+        "emptyText": "暂无文档信息",
+        "showCount": true,
+        "titleFields": [
+          "key",
+          "title",
+          "code",
+          "file",
+          "symbol"
+        ],
+        "fieldOrder": [
+          "key",
+          "title",
+          "type",
+          "required",
+          "defaultValue",
+          "value",
+          "enum",
+          "code",
+          "file",
+          "symbol",
+          "reason",
+          "description",
+          "processor",
+          "input",
+          "output"
+        ],
+        "fieldLabels": {
+          "key": "标识",
+          "title": "标题",
+          "type": "类型",
+          "required": "必填",
+          "defaultValue": "默认值",
+          "value": "值",
+          "enum": "可选值",
+          "code": "错误码",
+          "file": "文件",
+          "symbol": "符号",
+          "reason": "原因",
+          "description": "说明",
+          "processor": "示例 Processor",
+          "input": "示例输入",
+          "output": "示例输出"
+        }
+      }
+    }
+  ]
+}
