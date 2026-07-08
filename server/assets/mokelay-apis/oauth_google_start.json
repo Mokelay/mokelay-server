@@ -1,0 +1,54 @@
+{
+  "uuid": "oauth_google_start",
+  "alias": "Google OAuth 起点",
+  "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "redirect",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              "/dashboard"
+            ]
+          }
+        ]
+      }
+    ],
+    "body": [],
+    "header": []
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "build_google_authorize_url"
+    },
+    {
+      "uuid": "build_google_authorize_url",
+      "alias": "生成 Google 授权地址",
+      "functionName": "oauthAuthorizeUrl",
+      "inputs": {
+        "provider": "google",
+        "redirect": {
+          "template": "{{request.query.redirect}}"
+        }
+      },
+      "outputs": [
+        "redirectUrl",
+        "provider"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "build_google_authorize_url": {
+      "redirect": {
+        "statusCode": 302,
+        "url": {
+          "template": "{{blocks['build_google_authorize_url'].outputs.redirectUrl}}"
+        }
+      }
+    }
+  }
+}

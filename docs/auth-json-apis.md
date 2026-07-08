@@ -6,6 +6,10 @@
 - `login.json`
 - `me.json`
 - `logout.json`
+- `oauth_google_start.json`
+- `oauth_google_callback.json`
+- `oauth_github_start.json`
+- `oauth_github_callback.json`
 
 这些接口统一通过 Mokelay 编排路由暴露：
 
@@ -35,6 +39,65 @@
 ```
 
 登录态使用内部编排 session Cookie：`mokelay_orchestration_session`。注册、登录成功后会写入 `user`；退出登录会移除 `user` 并清理 Cookie。
+
+第三方注册/登录也使用同一个 session Cookie。OAuth start/callback 均为 DSL API，并通过 DSL `responses.redirect` 返回 HTTP 302。
+
+## OAuth 配置
+
+服务端需要配置：
+
+```env
+OAUTH_CALLBACK_BASE_URL=https://api.mokelay.com
+OAUTH_APP_BASE_URL=https://www.mokelay.com
+OAUTH_GOOGLE_CLIENT_ID=...
+OAUTH_GOOGLE_CLIENT_SECRET=...
+OAUTH_GITHUB_CLIENT_ID=...
+OAUTH_GITHUB_CLIENT_SECRET=...
+```
+
+Provider callback URL：
+
+| Provider | Callback URL |
+| --- | --- |
+| Google | `https://api.mokelay.com/api/mokelay/oauth_google_callback` |
+| GitHub | `https://api.mokelay.com/api/mokelay/oauth_github_callback` |
+
+本地开发可使用：
+
+| Provider | Callback URL |
+| --- | --- |
+| Google | `http://127.0.0.1:8787/api/mokelay/oauth_google_callback` |
+| GitHub | `http://127.0.0.1:8787/api/mokelay/oauth_github_callback` |
+
+## GET /api/mokelay/oauth_google_start
+
+生成 Google OAuth 授权地址并返回 302。
+
+| 字段 | 位置 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- | --- |
+| `redirect` | query | `string` | 否 | 登录成功后的站内相对路径，默认 `/dashboard`。 |
+
+## GET /api/mokelay/oauth_github_start
+
+生成 GitHub OAuth 授权地址并返回 302。
+
+| 字段 | 位置 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- | --- |
+| `redirect` | query | `string` | 否 | 登录成功后的站内相对路径，默认 `/dashboard`。 |
+
+## GET /api/mokelay/oauth_google_callback
+
+处理 Google OAuth callback。成功后创建或绑定员工账号、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
+
+## GET /api/mokelay/oauth_github_callback
+
+处理 GitHub OAuth callback。成功后创建或绑定员工账号、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
+
+OAuth callback 失败时会跳转：
+
+```text
+/login?oauth_error={code}
+```
 
 ## POST /api/mokelay/register
 

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigserial, jsonb, pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigserial, boolean, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const enterprise = pgTable('enterprise', {
   id: serial('id').primaryKey(),
@@ -17,6 +17,21 @@ export const employees = pgTable('employees', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const employeeAuthIdentities = pgTable('employee_auth_identities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id),
+  provider: varchar('provider', { length: 32 }).notNull(),
+  providerUserId: varchar('provider_user_id', { length: 255 }).notNull(),
+  providerEmail: varchar('provider_email', { length: 255 }).notNull(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  profile: jsonb('profile').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('employee_auth_identity_provider_user_unique').on(table.provider, table.providerUserId),
+  uniqueIndex('employee_auth_identity_provider_employee_unique').on(table.provider, table.employeeId),
+])
 
 export const pages = pgTable('pages', {
   uuid: uuid('uuid').primaryKey().defaultRandom(),
@@ -107,6 +122,8 @@ export type EnterpriseRecord = typeof enterprise.$inferSelect
 export type NewEnterpriseRecord = typeof enterprise.$inferInsert
 export type EmployeeRecord = typeof employees.$inferSelect
 export type NewEmployeeRecord = typeof employees.$inferInsert
+export type EmployeeAuthIdentityRecord = typeof employeeAuthIdentities.$inferSelect
+export type NewEmployeeAuthIdentityRecord = typeof employeeAuthIdentities.$inferInsert
 export type PageRecord = typeof pages.$inferSelect
 export type NewPageRecord = typeof pages.$inferInsert
 export type AppRecord = typeof apps.$inferSelect

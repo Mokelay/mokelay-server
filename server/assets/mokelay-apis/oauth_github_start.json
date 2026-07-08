@@ -1,0 +1,54 @@
+{
+  "uuid": "oauth_github_start",
+  "alias": "GitHub OAuth 起点",
+  "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "redirect",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              "/dashboard"
+            ]
+          }
+        ]
+      }
+    ],
+    "body": [],
+    "header": []
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "build_github_authorize_url"
+    },
+    {
+      "uuid": "build_github_authorize_url",
+      "alias": "生成 GitHub 授权地址",
+      "functionName": "oauthAuthorizeUrl",
+      "inputs": {
+        "provider": "github",
+        "redirect": {
+          "template": "{{request.query.redirect}}"
+        }
+      },
+      "outputs": [
+        "redirectUrl",
+        "provider"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "build_github_authorize_url": {
+      "redirect": {
+        "statusCode": 302,
+        "url": {
+          "template": "{{blocks['build_github_authorize_url'].outputs.redirectUrl}}"
+        }
+      }
+    }
+  }
+}

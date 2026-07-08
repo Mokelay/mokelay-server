@@ -1,0 +1,102 @@
+{
+  "uuid": "oauth_github_callback",
+  "alias": "GitHub OAuth 回调",
+  "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "code",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "key": "state",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "key": "error",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              ""
+            ]
+          }
+        ]
+      },
+      {
+        "key": "error_description",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": [
+              ""
+            ]
+          }
+        ]
+      }
+    ],
+    "body": [],
+    "header": []
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "handle_github_callback"
+    },
+    {
+      "uuid": "handle_github_callback",
+      "alias": "处理 GitHub OAuth 回调",
+      "functionName": "oauthCallback",
+      "inputs": {
+        "datasource": "Mokelay",
+        "provider": "github",
+        "code": {
+          "template": "{{request.query.code}}"
+        },
+        "state": {
+          "template": "{{request.query.state}}"
+        },
+        "error": {
+          "template": "{{request.query.error}}"
+        },
+        "errorDescription": {
+          "template": "{{request.query.error_description}}"
+        },
+        "autoCreateEnterprise": true
+      },
+      "outputs": [
+        "user",
+        "isNewUser",
+        "linkedIdentity",
+        "provider",
+        "redirectUrl",
+        "errorCode"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "handle_github_callback": {
+      "redirect": {
+        "statusCode": 302,
+        "url": {
+          "template": "{{blocks['handle_github_callback'].outputs.redirectUrl}}"
+        }
+      }
+    }
+  }
+}

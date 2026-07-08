@@ -12,6 +12,8 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 
 Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
+OAuth login and signup also use Mokelay orchestration JSON definitions. The public entrypoints are `GET /api/mokelay/oauth_google_start`, `GET /api/mokelay/oauth_google_callback`, `GET /api/mokelay/oauth_github_start`, and `GET /api/mokelay/oauth_github_callback`. Set `OAUTH_CALLBACK_BASE_URL` to the public API origin, for example `https://api.mokelay.com`.
+
 Pages and API Builder outputs are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`, Cloudflare R2 object keys under `mokelay-apis/*.json`, or published `apis` table records. See `docs/api-json-schema.md` for the full API JSON schema and `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
@@ -110,6 +112,12 @@ COOKIE_DOMAIN=.mokelay.com
 CORS_ORIGINS=https://www.mokelay.com,https://mokelay.com,https://editor.mokelay.com,http://localhost:5173
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4.1-mini
+OAUTH_CALLBACK_BASE_URL=https://api.mokelay.com
+OAUTH_APP_BASE_URL=https://www.mokelay.com
+OAUTH_GOOGLE_CLIENT_ID=your-google-oauth-client-id
+OAUTH_GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+OAUTH_GITHUB_CLIENT_ID=your-github-oauth-client-id
+OAUTH_GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
 CLOUDFLARE_R2_ACCOUNT_ID=your-cloudflare-account-id
 CLOUDFLARE_R2_ACCESS_KEY_ID=your-r2-access-key-id
 CLOUDFLARE_R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
