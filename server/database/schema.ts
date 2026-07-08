@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigserial, boolean, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigserial, boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const enterprise = pgTable('enterprise', {
   id: serial('id').primaryKey(),
@@ -95,6 +95,19 @@ export const apisSnapshot = pgTable('apis_snapshot', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const apiBuilderSamples = pgTable('api_builder_samples', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  title: varchar('title', { length: 120 }).notNull(),
+  description: text('description').notNull().default(''),
+  method: varchar('method', { length: 16 }).notNull(),
+  apiJson: jsonb('api_json').$type<Record<string, unknown>>().notNull(),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const blockComponentDocs = pgTable('block_component_docs', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: varchar('uuid', { length: 128 }).notNull().unique(),
@@ -138,5 +151,7 @@ export type ApiRecord = typeof apis.$inferSelect
 export type NewApiRecord = typeof apis.$inferInsert
 export type ApiSnapshotRecord = typeof apisSnapshot.$inferSelect
 export type NewApiSnapshotRecord = typeof apisSnapshot.$inferInsert
+export type ApiBuilderSampleRecord = typeof apiBuilderSamples.$inferSelect
+export type NewApiBuilderSampleRecord = typeof apiBuilderSamples.$inferInsert
 export type BlockComponentDocRecord = typeof blockComponentDocs.$inferSelect
 export type NewBlockComponentDocRecord = typeof blockComponentDocs.$inferInsert

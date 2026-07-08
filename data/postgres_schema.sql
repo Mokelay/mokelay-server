@@ -86,6 +86,43 @@ CREATE TABLE public.api_domains (
 
 
 --
+-- Name: api_builder_samples; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_builder_samples (
+    id bigint NOT NULL,
+    uuid character varying(128) NOT NULL,
+    title character varying(120) NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    method character varying(16) NOT NULL,
+    api_json jsonb NOT NULL,
+    status character varying(32) DEFAULT 'active'::character varying NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: api_builder_samples_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.api_builder_samples_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: api_builder_samples_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.api_builder_samples_id_seq OWNED BY public.api_builder_samples.id;
+
+
+--
 -- Name: apis; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -333,6 +370,13 @@ ALTER TABLE ONLY drizzle.__drizzle_migrations ALTER COLUMN id SET DEFAULT nextva
 
 
 --
+-- Name: api_builder_samples id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_builder_samples ALTER COLUMN id SET DEFAULT nextval('public.api_builder_samples_id_seq'::regclass);
+
+
+--
 -- Name: apps id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -389,6 +433,22 @@ ALTER TABLE ONLY public.api_domains
 
 ALTER TABLE ONLY public.api_domains
     ADD CONSTRAINT api_domains_pkey PRIMARY KEY (uuid);
+
+
+--
+-- Name: api_builder_samples api_builder_samples_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_builder_samples
+    ADD CONSTRAINT api_builder_samples_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_builder_samples api_builder_samples_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_builder_samples
+    ADD CONSTRAINT api_builder_samples_uuid_unique UNIQUE (uuid);
 
 
 --

@@ -234,6 +234,23 @@ type ApiListResponse = {
   }
 }
 
+type PublicApiBuilderSample = {
+  uuid: string
+  title: string
+  description: string
+  method: string
+  api_json: Record<string, unknown>
+  status: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+type ApiBuilderSampleListResponse = {
+  samples: PublicApiBuilderSample[]
+  pagination: ApiListResponse['pagination']
+}
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const pgDialect = new PgDialect()
 const mysqlDialect = new MySqlDialect()
@@ -408,6 +425,18 @@ type ApiSnapshotRow = {
   created_at: string
 }
 
+type ApiBuilderSampleRow = {
+  uuid: string
+  title: string
+  description: string
+  method: string
+  api_json: Record<string, unknown>
+  status: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 class FakeSqlExecutor {
   readonly enterprise: EnterpriseRow[] = []
   readonly employees: EmployeeRow[] = []
@@ -417,6 +446,7 @@ class FakeSqlExecutor {
   readonly datasourceRows: DatasourceRow[] = []
   readonly apis: ApiRow[] = []
   readonly apiSnapshots: ApiSnapshotRow[] = []
+  readonly apiBuilderSamples: ApiBuilderSampleRow[] = []
   readonly datasources: string[] = []
 
   execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
@@ -477,6 +507,10 @@ class FakeSqlExecutor {
       return this.result(databaseType, [{ total: this.filterDatasourceRows(queryText, params).length }] as unknown as T[])
     }
 
+    if (queryText.startsWith('SELECT count(*)::int AS total FROM "api_builder_samples"')) {
+      return this.result(databaseType, [{ total: this.filterApiBuilderSamples(queryText, params).length }] as unknown as T[])
+    }
+
     if (queryText.startsWith('SELECT count(*)::int AS total FROM "apis"')) {
       return this.result(databaseType, [{ total: this.filterApis(queryText, params).length }] as unknown as T[])
     }
@@ -501,6 +535,10 @@ class FakeSqlExecutor {
 
       if (queryText.includes('FROM "apps"')) {
         return this.result(databaseType, this.selectApps<T>(queryText, params))
+      }
+
+      if (queryText.includes('FROM "api_builder_samples"')) {
+        return this.result(databaseType, this.selectApiBuilderSamples<T>(queryText, params))
       }
 
       if (queryText.includes('FROM "apis"')) {
@@ -812,6 +850,24 @@ class FakeSqlExecutor {
     return rows.map((row) => this.projectFields(row, fields)) as T[]
   }
 
+  private selectApiBuilderSamples<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const fields = this.selectFields(queryText)
+    const samples = this.filterApiBuilderSamples(queryText, params)
+    const sortedSamples = queryText.includes('ORDER BY "sort_order" ASC')
+      ? samples.sort((firstSample, secondSample) => (
+          firstSample.sort_order - secondSample.sort_order
+          || firstSample.created_at.localeCompare(secondSample.created_at)
+        ))
+      : samples
+    const rows = queryText.includes(' OFFSET ')
+      ? sortedSamples.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
+      : queryText.includes(' LIMIT 1')
+        ? sortedSamples.slice(0, 1)
+        : sortedSamples
+
+    return rows.map((row) => this.projectFields(row, fields)) as T[]
+  }
+
   private updateEmployees<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
@@ -1089,6 +1145,28 @@ class FakeSqlExecutor {
     }
 
     return [...this.apis]
+  }
+
+  private filterApiBuilderSamples(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.apiBuilderSamples]
+    }
+
+    const whereText = queryText.split(' WHERE ')[1] ?? ''
+    let result = [...this.apiBuilderSamples]
+    let paramIndex = 0
+
+    if (whereText.includes('"status" =')) {
+      const status = params[paramIndex++]
+      result = result.filter((sample) => sample.status === status)
+    }
+
+    if (whereText.includes('"uuid" =')) {
+      const uuid = params[paramIndex++]
+      result = result.filter((sample) => sample.uuid === uuid)
+    }
+
+    return result
   }
 }
 
@@ -3011,6 +3089,81 @@ describe('mokelay orchestration API', () => {
     expect(deleteMissingBody).toEqual({
       affected: 0,
       message: '删除成功',
+    })
+  })
+
+  it('lists active API builder samples with pagination and full API JSON', async () => {
+    fakeSqlExecutor.apiBuilderSamples.push(
+      {
+        uuid: 'inactive_sample',
+        title: '隐藏样例',
+        description: '不返回 inactive 样例。',
+        method: 'GET',
+        api_json: { uuid: 'hidden_api', blocks: [] },
+        status: 'inactive',
+        sort_order: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        uuid: 'active_second',
+        title: '第二个样例',
+        description: '排序第二。',
+        method: 'POST',
+        api_json: { uuid: 'second_api', method: 'POST', blocks: [{ uuid: 'starter', nextBlock: null }] },
+        status: 'active',
+        sort_order: 2,
+        created_at: '2026-01-02T00:00:00.000Z',
+        updated_at: '2026-01-02T00:00:00.000Z',
+      },
+      {
+        uuid: 'active_first',
+        title: '第一个样例',
+        description: '排序第一。',
+        method: 'GET',
+        api_json: { uuid: 'first_api', method: 'GET', blocks: [{ uuid: 'starter', nextBlock: null }] },
+        status: 'active',
+        sort_order: 1,
+        created_at: '2026-01-03T00:00:00.000Z',
+        updated_at: '2026-01-03T00:00:00.000Z',
+      },
+      {
+        uuid: 'active_third',
+        title: '第三个样例',
+        description: '第二页。',
+        method: 'GET',
+        api_json: { uuid: 'third_api', method: 'GET', blocks: [{ uuid: 'starter', nextBlock: null }] },
+        status: 'active',
+        sort_order: 3,
+        created_at: '2026-01-04T00:00:00.000Z',
+        updated_at: '2026-01-04T00:00:00.000Z',
+      },
+    )
+
+    const response = await fetch(`${testServer.baseUrl}/api/mokelay/list_api_builder_samples?page=1&pageSize=2`)
+    const body = await readMokelayData<ApiBuilderSampleListResponse>(response)
+
+    expect(response.status).toBe(200)
+    expect(body.samples.map((sample) => sample.uuid)).toEqual(['active_first', 'active_second'])
+    expect(body.samples[0]).toEqual(expect.objectContaining({
+      title: '第一个样例',
+      method: 'GET',
+      status: 'active',
+      sort_order: 1,
+      api_json: {
+        uuid: 'first_api',
+        method: 'GET',
+        blocks: [{ uuid: 'starter', nextBlock: null }],
+      },
+    }))
+    expect(body.samples.some((sample) => sample.uuid === 'inactive_sample')).toBe(false)
+    expect(body.pagination).toEqual({
+      page: 1,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true,
     })
   })
 

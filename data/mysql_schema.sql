@@ -30,6 +30,25 @@ CREATE TABLE `api_domains` (
   UNIQUE KEY `uk_api_domains_host` (`host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 域名列表表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `api_builder_samples`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `api_builder_samples` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `uuid` varchar(128) NOT NULL COMMENT '样例唯一标识',
+  `title` varchar(120) NOT NULL COMMENT '样例标题',
+  `description` text NOT NULL COMMENT '样例说明',
+  `method` varchar(16) NOT NULL COMMENT 'HTTP 请求方法',
+  `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON',
+  `status` varchar(32) NOT NULL DEFAULT 'active' COMMENT '样例状态',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序值',
+  `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_api_builder_samples_uuid` (`uuid`),
+  KEY `idx_api_builder_samples_status_sort` (`status`,`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API Builder 内置样例表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `apis`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

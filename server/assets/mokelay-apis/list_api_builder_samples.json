@@ -1,0 +1,98 @@
+{
+  "uuid": "list_api_builder_samples",
+  "alias": "API Builder 内置样例列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "page",
+      "pageSize"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_api_builder_samples_block"
+    },
+    {
+      "uuid": "list_api_builder_samples_block",
+      "alias": "API Builder 样例分页 Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "api_builder_samples",
+        "fields": [
+          "uuid",
+          "title",
+          "description",
+          "method",
+          "api_json",
+          "status",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "sort_order",
+            "direction": "ASC"
+          },
+          {
+            "fieldName": "created_at",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "list_api_builder_samples_block": {
+      "samples": {
+        "template": "{{blocks['list_api_builder_samples_block'].outputs.datas}}"
+      },
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_api_builder_samples_block'].outputs.hasNextPage}}"
+        }
+      }
+    }
+  }
+}
