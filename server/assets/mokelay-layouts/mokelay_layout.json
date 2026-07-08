@@ -104,7 +104,7 @@
         },
         {
           "href": "#/pages",
-          "label": "页面列表",
+          "label": "页面",
           "active": true,
           "children": []
         },
