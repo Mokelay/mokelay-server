@@ -97,6 +97,12 @@
           "children": []
         },
         {
+          "href": "#/apis",
+          "label": "接口",
+          "active": false,
+          "children": []
+        },
+        {
           "href": "#/pages",
           "label": "页面列表",
           "active": true,
@@ -117,12 +123,6 @@
       {
         "href": "#/ai-chat",
         "label": "AI Chat",
-          "active": false,
-          "children": []
-        },
-        {
-          "href": "#/apis",
-          "label": "API Builder",
           "active": false,
           "children": []
         }
