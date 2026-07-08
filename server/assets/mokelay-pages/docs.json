@@ -1,0 +1,30 @@
+{
+  "uuid": "docs",
+  "createdAt": "2026-07-09T00:00:00.000Z",
+  "updatedAt": "2026-07-09T00:00:00.000Z",
+  "name": "文档",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-docs-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "client-docs",
+        "tabs": [
+          {
+            "id": "client-docs",
+            "name": "客户端文档",
+            "pageUUID": "block_component_docs",
+            "pageSource": "system"
+          },
+          {
+            "id": "server-docs",
+            "name": "服务端文档",
+            "pageUUID": "server_block_docs",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}
