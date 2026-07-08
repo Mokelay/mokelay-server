@@ -1065,7 +1065,7 @@ function databaseType(databaseUrl) {
 
 async function ensureMysqlTable(connection) {
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS block_component_docs (
+    CREATE TABLE IF NOT EXISTS docs_client_block (
       id bigint NOT NULL AUTO_INCREMENT,
       uuid varchar(128) NOT NULL,
       block_type varchar(128) NOT NULL,
@@ -1087,10 +1087,10 @@ async function ensureMysqlTable(connection) {
       created_at timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
       updated_at timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
       PRIMARY KEY (id),
-      UNIQUE KEY uk_block_component_docs_uuid (uuid),
-      UNIQUE KEY uk_block_component_docs_block_type (block_type),
-      KEY idx_block_component_docs_category (category),
-      KEY idx_block_component_docs_source_kind (source_kind)
+      UNIQUE KEY uk_docs_client_block_uuid (uuid),
+      UNIQUE KEY uk_docs_client_block_block_type (block_type),
+      KEY idx_docs_client_block_category (category),
+      KEY idx_docs_client_block_source_kind (source_kind)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Block 组件文档表'
   `)
 
@@ -1098,22 +1098,22 @@ async function ensureMysqlTable(connection) {
     SELECT 1
     FROM information_schema.columns
     WHERE table_schema = DATABASE()
-      AND table_name = 'block_component_docs'
+      AND table_name = 'docs_client_block'
       AND column_name = 'id'
   `)
   if (!idColumns.length) {
     await connection.execute(`
-      ALTER TABLE block_component_docs
+      ALTER TABLE docs_client_block
         DROP PRIMARY KEY,
         ADD COLUMN id bigint NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST,
-        ADD UNIQUE KEY uk_block_component_docs_uuid (uuid)
+        ADD UNIQUE KEY uk_docs_client_block_uuid (uuid)
     `)
   }
 }
 
 async function ensurePostgresTable(sql) {
   await sql`
-    CREATE TABLE IF NOT EXISTS block_component_docs (
+    CREATE TABLE IF NOT EXISTS docs_client_block (
       id bigserial PRIMARY KEY,
       uuid varchar(128) NOT NULL UNIQUE,
       block_type varchar(128) NOT NULL UNIQUE,
@@ -1140,34 +1140,34 @@ async function ensurePostgresTable(sql) {
     SELECT 1
     FROM information_schema.columns
     WHERE table_schema = 'public'
-      AND table_name = 'block_component_docs'
+      AND table_name = 'docs_client_block'
       AND column_name = 'id'
   `
   if (!idColumns.length) {
-    await sql`ALTER TABLE block_component_docs DROP CONSTRAINT IF EXISTS block_component_docs_pkey`
-    await sql`ALTER TABLE block_component_docs ADD COLUMN id bigserial`
-    await sql`ALTER TABLE block_component_docs ADD CONSTRAINT block_component_docs_pkey PRIMARY KEY (id)`
+    await sql`ALTER TABLE docs_client_block DROP CONSTRAINT IF EXISTS docs_client_block_pkey`
+    await sql`ALTER TABLE docs_client_block ADD COLUMN id bigserial`
+    await sql`ALTER TABLE docs_client_block ADD CONSTRAINT docs_client_block_pkey PRIMARY KEY (id)`
     await sql`
       DO $$
       BEGIN
         IF NOT EXISTS (
           SELECT 1
           FROM pg_constraint
-          WHERE conrelid = 'block_component_docs'::regclass
-            AND conname = 'block_component_docs_uuid_unique'
+          WHERE conrelid = 'docs_client_block'::regclass
+            AND conname = 'docs_client_block_uuid_unique'
         ) THEN
-          ALTER TABLE block_component_docs ADD CONSTRAINT block_component_docs_uuid_unique UNIQUE (uuid);
+          ALTER TABLE docs_client_block ADD CONSTRAINT docs_client_block_uuid_unique UNIQUE (uuid);
         END IF;
       END $$;
     `
   }
-  await sql`CREATE INDEX IF NOT EXISTS idx_block_component_docs_category ON block_component_docs (category)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_block_component_docs_source_kind ON block_component_docs (source_kind)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_category ON docs_client_block (category)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_source_kind ON docs_client_block (source_kind)`
 }
 
 async function upsertMysql(connection, docs) {
   const query = `
-    INSERT INTO block_component_docs (
+    INSERT INTO docs_client_block (
       uuid, block_type, display_name, category, source_kind, source_file, description, status,
       toolbox, initial_props, property_schema, event_schema, method_schema, data_fields_schema,
       examples, source_refs, raw_meta
@@ -1199,7 +1199,7 @@ async function upsertMysql(connection, docs) {
 async function upsertPostgres(sql, docs) {
   for (const doc of docs) {
     await sql`
-      INSERT INTO block_component_docs (
+      INSERT INTO docs_client_block (
         uuid, block_type, display_name, category, source_kind, source_file, description, status,
         toolbox, initial_props, property_schema, event_schema, method_schema, data_fields_schema,
         examples, source_refs, raw_meta
@@ -1259,7 +1259,7 @@ async function pruneMysql(connection, docs) {
   if (!uuids.length) return
   const placeholders = uuids.map(() => '?').join(', ')
   await connection.execute(
-    `DELETE FROM block_component_docs WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor', 'layout') AND uuid NOT IN (${placeholders})`,
+    `DELETE FROM docs_client_block WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor', 'layout') AND uuid NOT IN (${placeholders})`,
     uuids,
   )
 }
@@ -1268,7 +1268,7 @@ async function prunePostgres(sql, docs) {
   const uuids = docs.map((doc) => doc.uuid)
   if (!uuids.length) return
   await sql`
-    DELETE FROM block_component_docs
+    DELETE FROM docs_client_block
     WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor', 'layout')
       AND uuid NOT IN ${sql(uuids)}
   `

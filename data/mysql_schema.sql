@@ -94,10 +94,10 @@ CREATE TABLE `apps` (
   UNIQUE KEY `uk_apps_uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='App 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `block_component_docs`;
+DROP TABLE IF EXISTS `docs_client_block`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `block_component_docs` (
+CREATE TABLE `docs_client_block` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `uuid` varchar(128) NOT NULL COMMENT '文档唯一 ID',
   `block_type` varchar(128) NOT NULL COMMENT 'Block 类型，例如 MInput',
@@ -119,16 +119,16 @@ CREATE TABLE `block_component_docs` (
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_block_component_docs_uuid` (`uuid`),
-  UNIQUE KEY `uk_block_component_docs_block_type` (`block_type`),
-  KEY `idx_block_component_docs_category` (`category`),
-  KEY `idx_block_component_docs_source_kind` (`source_kind`)
+  UNIQUE KEY `uk_docs_client_block_uuid` (`uuid`),
+  UNIQUE KEY `uk_docs_client_block_block_type` (`block_type`),
+  KEY `idx_docs_client_block_category` (`category`),
+  KEY `idx_docs_client_block_source_kind` (`source_kind`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Block 组件文档表';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `server_block_docs`;
+DROP TABLE IF EXISTS `docs_server_block`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `server_block_docs` (
+CREATE TABLE `docs_server_block` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '自增主键',
   `uuid` varchar(128) NOT NULL COMMENT '文档唯一 ID',
   `function_name` varchar(128) NOT NULL COMMENT '服务端 Block functionName',
@@ -152,11 +152,11 @@ CREATE TABLE `server_block_docs` (
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_server_block_docs_uuid` (`uuid`),
-  UNIQUE KEY `uk_server_block_docs_function_name` (`function_name`),
-  KEY `idx_server_block_docs_category` (`category`),
-  KEY `idx_server_block_docs_source_kind` (`source_kind`),
-  KEY `idx_server_block_docs_requires_datasource` (`requires_datasource`)
+  UNIQUE KEY `uk_docs_server_block_uuid` (`uuid`),
+  UNIQUE KEY `uk_docs_server_block_function_name` (`function_name`),
+  KEY `idx_docs_server_block_category` (`category`),
+  KEY `idx_docs_server_block_source_kind` (`source_kind`),
+  KEY `idx_docs_server_block_requires_datasource` (`requires_datasource`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='服务端 Block 文档表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `datasources`;

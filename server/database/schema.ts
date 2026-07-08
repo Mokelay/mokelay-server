@@ -108,7 +108,7 @@ export const apiBuilderSamples = pgTable('api_builder_samples', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const blockComponentDocs = pgTable('block_component_docs', {
+export const blockComponentDocs = pgTable('docs_client_block', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: varchar('uuid', { length: 128 }).notNull().unique(),
   blockType: varchar('block_type', { length: 128 }).notNull().unique(),
@@ -131,7 +131,7 @@ export const blockComponentDocs = pgTable('block_component_docs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const serverBlockDocs = pgTable('server_block_docs', {
+export const serverBlockDocs = pgTable('docs_server_block', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: varchar('uuid', { length: 128 }).notNull().unique(),
   functionName: varchar('function_name', { length: 128 }).notNull().unique(),
@@ -155,9 +155,9 @@ export const serverBlockDocs = pgTable('server_block_docs', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  index('idx_server_block_docs_category').on(table.category),
-  index('idx_server_block_docs_source_kind').on(table.sourceKind),
-  index('idx_server_block_docs_requires_datasource').on(table.requiresDatasource),
+  index('idx_docs_server_block_category').on(table.category),
+  index('idx_docs_server_block_source_kind').on(table.sourceKind),
+  index('idx_docs_server_block_requires_datasource').on(table.requiresDatasource),
 ])
 
 export type EnterpriseRecord = typeof enterprise.$inferSelect

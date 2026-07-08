@@ -134,6 +134,13 @@
       "when": 1783521000000,
       "tag": "0018_server_block_docs",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1783528393014,
+      "tag": "0019_docs_table_names",
+      "breakpoints": true
     }
   ]
 }

@@ -187,10 +187,10 @@ ALTER SEQUENCE public.apps_id_seq OWNED BY public.apps.id;
 
 
 --
--- Name: block_component_docs; Type: TABLE; Schema: public; Owner: -
+-- Name: docs_client_block; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.block_component_docs (
+CREATE TABLE public.docs_client_block (
     id bigint NOT NULL,
     uuid character varying(128) NOT NULL,
     block_type character varying(128) NOT NULL,
@@ -215,10 +215,10 @@ CREATE TABLE public.block_component_docs (
 
 
 --
--- Name: block_component_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: docs_client_block_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.block_component_docs_id_seq
+CREATE SEQUENCE public.docs_client_block_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -227,17 +227,17 @@ CREATE SEQUENCE public.block_component_docs_id_seq
 
 
 --
--- Name: block_component_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: docs_client_block_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.block_component_docs_id_seq OWNED BY public.block_component_docs.id;
+ALTER SEQUENCE public.docs_client_block_id_seq OWNED BY public.docs_client_block.id;
 
 
 --
--- Name: server_block_docs; Type: TABLE; Schema: public; Owner: -
+-- Name: docs_server_block; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.server_block_docs (
+CREATE TABLE public.docs_server_block (
     id bigint NOT NULL,
     uuid character varying(128) NOT NULL,
     function_name character varying(128) NOT NULL,
@@ -264,10 +264,10 @@ CREATE TABLE public.server_block_docs (
 
 
 --
--- Name: server_block_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: docs_server_block_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.server_block_docs_id_seq
+CREATE SEQUENCE public.docs_server_block_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -276,10 +276,10 @@ CREATE SEQUENCE public.server_block_docs_id_seq
 
 
 --
--- Name: server_block_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: docs_server_block_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.server_block_docs_id_seq OWNED BY public.server_block_docs.id;
+ALTER SEQUENCE public.docs_server_block_id_seq OWNED BY public.docs_server_block.id;
 
 
 --
@@ -433,17 +433,17 @@ ALTER TABLE ONLY public.apps ALTER COLUMN id SET DEFAULT nextval('public.apps_id
 
 
 --
--- Name: block_component_docs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: docs_client_block id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.block_component_docs ALTER COLUMN id SET DEFAULT nextval('public.block_component_docs_id_seq'::regclass);
+ALTER TABLE ONLY public.docs_client_block ALTER COLUMN id SET DEFAULT nextval('public.docs_client_block_id_seq'::regclass);
 
 
 --
--- Name: server_block_docs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: docs_server_block id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.server_block_docs ALTER COLUMN id SET DEFAULT nextval('public.server_block_docs_id_seq'::regclass);
+ALTER TABLE ONLY public.docs_server_block ALTER COLUMN id SET DEFAULT nextval('public.docs_server_block_id_seq'::regclass);
 
 
 --
@@ -540,72 +540,72 @@ ALTER TABLE ONLY public.apps
 
 
 --
--- Name: block_component_docs block_component_docs_block_type_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: docs_client_block docs_client_block_block_type_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.block_component_docs
-    ADD CONSTRAINT block_component_docs_block_type_unique UNIQUE (block_type);
-
-
---
--- Name: block_component_docs block_component_docs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.block_component_docs
-    ADD CONSTRAINT block_component_docs_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.docs_client_block
+    ADD CONSTRAINT docs_client_block_block_type_unique UNIQUE (block_type);
 
 
 --
--- Name: block_component_docs block_component_docs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: docs_client_block docs_client_block_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.block_component_docs
-    ADD CONSTRAINT block_component_docs_uuid_unique UNIQUE (uuid);
-
-
---
--- Name: server_block_docs server_block_docs_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.server_block_docs
-    ADD CONSTRAINT server_block_docs_function_name_unique UNIQUE (function_name);
+ALTER TABLE ONLY public.docs_client_block
+    ADD CONSTRAINT docs_client_block_pkey PRIMARY KEY (id);
 
 
 --
--- Name: server_block_docs server_block_docs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: docs_client_block docs_client_block_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.server_block_docs
-    ADD CONSTRAINT server_block_docs_pkey PRIMARY KEY (id);
-
-
---
--- Name: server_block_docs server_block_docs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.server_block_docs
-    ADD CONSTRAINT server_block_docs_uuid_unique UNIQUE (uuid);
+ALTER TABLE ONLY public.docs_client_block
+    ADD CONSTRAINT docs_client_block_uuid_unique UNIQUE (uuid);
 
 
 --
--- Name: idx_server_block_docs_category; Type: INDEX; Schema: public; Owner: -
+-- Name: docs_server_block docs_server_block_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_server_block_docs_category ON public.server_block_docs USING btree (category);
-
-
---
--- Name: idx_server_block_docs_requires_datasource; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_server_block_docs_requires_datasource ON public.server_block_docs USING btree (requires_datasource);
+ALTER TABLE ONLY public.docs_server_block
+    ADD CONSTRAINT docs_server_block_function_name_unique UNIQUE (function_name);
 
 
 --
--- Name: idx_server_block_docs_source_kind; Type: INDEX; Schema: public; Owner: -
+-- Name: docs_server_block docs_server_block_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_server_block_docs_source_kind ON public.server_block_docs USING btree (source_kind);
+ALTER TABLE ONLY public.docs_server_block
+    ADD CONSTRAINT docs_server_block_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: docs_server_block docs_server_block_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_server_block
+    ADD CONSTRAINT docs_server_block_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: idx_docs_server_block_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_server_block_category ON public.docs_server_block USING btree (category);
+
+
+--
+-- Name: idx_docs_server_block_requires_datasource; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_server_block_requires_datasource ON public.docs_server_block USING btree (requires_datasource);
+
+
+--
+-- Name: idx_docs_server_block_source_kind; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_server_block_source_kind ON public.docs_server_block USING btree (source_kind);
 
 
 --

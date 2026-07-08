@@ -18,7 +18,7 @@
       "functionName": "delete",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "block_component_docs",
+        "table": "docs_client_block",
         "conditions": [
           {
             "group": false,

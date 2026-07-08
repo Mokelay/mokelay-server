@@ -34,7 +34,7 @@
       "functionName": "upsert",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "block_component_docs",
+        "table": "docs_client_block",
         "idField": "uuid",
         "fields": {
           "uuid": {
@@ -104,7 +104,7 @@
       "functionName": "read",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "block_component_docs",
+        "table": "docs_client_block",
         "fields": [
           "id",
           "uuid",

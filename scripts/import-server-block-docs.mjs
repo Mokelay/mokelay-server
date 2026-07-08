@@ -551,7 +551,7 @@ function databaseType(databaseUrl) {
 
 async function ensureMysqlTable(connection) {
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS server_block_docs (
+    CREATE TABLE IF NOT EXISTS docs_server_block (
       id bigint NOT NULL AUTO_INCREMENT,
       uuid varchar(128) NOT NULL,
       function_name varchar(128) NOT NULL,
@@ -575,18 +575,18 @@ async function ensureMysqlTable(connection) {
       created_at timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
       updated_at timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
       PRIMARY KEY (id),
-      UNIQUE KEY uk_server_block_docs_uuid (uuid),
-      UNIQUE KEY uk_server_block_docs_function_name (function_name),
-      KEY idx_server_block_docs_category (category),
-      KEY idx_server_block_docs_source_kind (source_kind),
-      KEY idx_server_block_docs_requires_datasource (requires_datasource)
+      UNIQUE KEY uk_docs_server_block_uuid (uuid),
+      UNIQUE KEY uk_docs_server_block_function_name (function_name),
+      KEY idx_docs_server_block_category (category),
+      KEY idx_docs_server_block_source_kind (source_kind),
+      KEY idx_docs_server_block_requires_datasource (requires_datasource)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='服务端 Block 文档表'
   `)
 }
 
 async function ensurePostgresTable(sql) {
   await sql`
-    CREATE TABLE IF NOT EXISTS server_block_docs (
+    CREATE TABLE IF NOT EXISTS docs_server_block (
       id bigserial PRIMARY KEY,
       uuid varchar(128) NOT NULL UNIQUE,
       function_name varchar(128) NOT NULL UNIQUE,
@@ -611,9 +611,9 @@ async function ensurePostgresTable(sql) {
       updated_at timestamp with time zone NOT NULL DEFAULT now()
     )
   `
-  await sql`CREATE INDEX IF NOT EXISTS idx_server_block_docs_category ON server_block_docs (category)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_server_block_docs_source_kind ON server_block_docs (source_kind)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_server_block_docs_requires_datasource ON server_block_docs (requires_datasource)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_server_block_category ON docs_server_block (category)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_server_block_source_kind ON docs_server_block (source_kind)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_server_block_requires_datasource ON docs_server_block (requires_datasource)`
 }
 
 function docParams(doc, encodeJson) {
@@ -642,7 +642,7 @@ function docParams(doc, encodeJson) {
 
 async function upsertMysql(connection, docs) {
   const query = `
-    INSERT INTO server_block_docs (
+    INSERT INTO docs_server_block (
       uuid, function_name, display_name, category, source_kind, source_package, source_file,
       executor_name, description, status, requires_datasource, input_schema, output_schema,
       error_schema, config_schema, runtime_schema, examples, source_refs, raw_meta
@@ -677,7 +677,7 @@ async function upsertMysql(connection, docs) {
 async function upsertPostgres(sql, docs) {
   for (const doc of docs) {
     await sql`
-      INSERT INTO server_block_docs (
+      INSERT INTO docs_server_block (
         uuid, function_name, display_name, category, source_kind, source_package, source_file,
         executor_name, description, status, requires_datasource, input_schema, output_schema,
         error_schema, config_schema, runtime_schema, examples, source_refs, raw_meta
@@ -716,13 +716,13 @@ async function pruneMysql(connection, docs) {
   const uuids = docs.map((doc) => doc.uuid)
   if (!uuids.length) return
   const placeholders = uuids.map(() => '?').join(', ')
-  await connection.execute(`DELETE FROM server_block_docs WHERE uuid NOT IN (${placeholders})`, uuids)
+  await connection.execute(`DELETE FROM docs_server_block WHERE uuid NOT IN (${placeholders})`, uuids)
 }
 
 async function prunePostgres(sql, docs) {
   const uuids = docs.map((doc) => doc.uuid)
   if (!uuids.length) return
-  await sql`DELETE FROM server_block_docs WHERE uuid NOT IN ${sql(uuids)}`
+  await sql`DELETE FROM docs_server_block WHERE uuid NOT IN ${sql(uuids)}`
 }
 
 export async function writeServerBlockDocsToDatabase(docs, prune = false) {

@@ -19,7 +19,7 @@
       "functionName": "page",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "server_block_docs",
+        "table": "docs_server_block",
         "fields": [
           "id",
           "uuid",
