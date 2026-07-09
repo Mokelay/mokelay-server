@@ -9,6 +9,66 @@
       "id": "mokelay-datasource-create-form",
       "type": "MForm",
       "data": {
+        "values": {
+          "uuid": {
+            "mode": "flow",
+            "flow": {
+              "version": 1,
+              "nodes": [
+                {
+                  "id": "empty_uuid",
+                  "type": "constant",
+                  "value": ""
+                },
+                {
+                  "id": "generate_uuid",
+                  "type": "processor",
+                  "processors": [
+                    {
+                      "processor": "random_id",
+                      "param": {
+                        "prefix": "ds_",
+                        "length": 5,
+                        "when": "empty"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "output_uuid",
+                  "type": "output"
+                }
+              ],
+              "edges": [
+                {
+                  "id": "empty_uuid-generate_uuid",
+                  "source": "empty_uuid",
+                  "target": "generate_uuid"
+                },
+                {
+                  "id": "generate_uuid-output_uuid",
+                  "source": "generate_uuid",
+                  "target": "output_uuid"
+                }
+              ],
+              "layout": {
+                "empty_uuid": {
+                  "x": 80,
+                  "y": 120
+                },
+                "generate_uuid": {
+                  "x": 330,
+                  "y": 120
+                },
+                "output_uuid": {
+                  "x": 590,
+                  "y": 120
+                }
+              },
+              "outputNodeId": "output_uuid"
+            }
+          }
+        },
         "items": [
           {
             "labelName": "数据源 UUID",
@@ -105,7 +165,17 @@
                       "dataType": "string",
                       "value": {
                         "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.uuid}}",
-                        "processors": ["trim"]
+                        "processors": [
+                          "trim",
+                          {
+                            "processor": "random_id",
+                            "param": {
+                              "prefix": "ds_",
+                              "length": 5,
+                              "when": "empty"
+                            }
+                          }
+                        ]
                       }
                     },
                     {
