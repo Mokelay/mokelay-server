@@ -9,7 +9,82 @@
       "id": "mokelay-create-page-form",
       "type": "MForm",
       "data": {
+        "values": {
+          "uuid": {
+            "mode": "flow",
+            "flow": {
+              "version": 1,
+              "nodes": [
+                {
+                  "id": "empty_uuid",
+                  "type": "constant",
+                  "value": ""
+                },
+                {
+                  "id": "generate_uuid",
+                  "type": "processor",
+                  "processors": [
+                    {
+                      "processor": "random_id",
+                      "param": {
+                        "prefix": "page_",
+                        "length": 6,
+                        "when": "empty"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "output_uuid",
+                  "type": "output"
+                }
+              ],
+              "edges": [
+                {
+                  "id": "empty_uuid-generate_uuid",
+                  "source": "empty_uuid",
+                  "target": "generate_uuid"
+                },
+                {
+                  "id": "generate_uuid-output_uuid",
+                  "source": "generate_uuid",
+                  "target": "output_uuid"
+                }
+              ],
+              "layout": {
+                "empty_uuid": {
+                  "x": 80,
+                  "y": 120
+                },
+                "generate_uuid": {
+                  "x": 330,
+                  "y": 120
+                },
+                "output_uuid": {
+                  "x": 590,
+                  "y": 120
+                }
+              },
+              "outputNodeId": "output_uuid"
+            }
+          }
+        },
         "items": [
+          {
+            "labelName": "页面 UUID",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-create-page-uuid-input",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入页面 UUID",
+                "value": ""
+              }
+            },
+            "events": []
+          },
           {
             "labelName": "页面名称",
             "variableName": "name",
@@ -20,7 +95,8 @@
               "type": "MInput",
               "data": {
                 "placeholder": "请输入页面名称",
-                "value": ""
+                "value": "",
+                "required": true
               }
             },
             "events": []
@@ -44,6 +120,44 @@
         {
           "event": "click",
           "actions": [
+            {
+              "uuid": "mokelay_create_page_get_form_data",
+              "action": "call_block_method",
+              "alias": "获取页面表单数据",
+              "inputs": {
+                "blockId": "mokelay-create-page-form",
+                "method": "submit"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "mokelay_create_page_valid_route"
+            },
+            {
+              "uuid": "mokelay_create_page_valid_route",
+              "action": "if_controller",
+              "type": "controller",
+              "alias": "校验页面表单",
+              "inputs": {
+                "value": {
+                  "template": "{{actions['mokelay_create_page_get_form_data'].outputs.returnData.valid}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "mokelay_create_page_valid_true",
+                  "alias": "校验通过",
+                  "value": true,
+                  "nextAction": "mokelay_create_page_confirm"
+                },
+                {
+                  "uuid": "mokelay_create_page_valid_false",
+                  "alias": "校验失败",
+                  "value": false,
+                  "nextAction": null
+                }
+              ]
+            },
             {
               "uuid": "mokelay_create_page_confirm",
               "action": "confirm",
@@ -95,13 +209,28 @@
                   "headerData": [],
                   "bodyData": [
                     {
+                      "key": "uuid",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions['mokelay_create_page_get_form_data'].outputs.returnData.values.uuid}}",
+                        "processors": [
+                          "trim",
+                          {
+                            "processor": "random_id",
+                            "param": {
+                              "prefix": "page_",
+                              "length": 6,
+                              "when": "empty"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "key": "name",
                       "dataType": "string",
                       "value": {
-                        "mode": "variable",
-                        "blockId": "mokelay-create-page-form",
-                        "blockType": "MForm",
-                        "variable": "name",
+                        "template": "{{actions['mokelay_create_page_get_form_data'].outputs.returnData.values.name}}",
                         "processors": [
                           "trim"
                         ]

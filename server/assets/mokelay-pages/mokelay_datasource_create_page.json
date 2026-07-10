@@ -95,7 +95,8 @@
               "type": "MInput",
               "data": {
                 "placeholder": "请输入数据源名称",
-                "value": ""
+                "value": "",
+                "required": true
               }
             },
             "events": []
@@ -141,12 +142,37 @@
               "alias": "获取数据源表单数据",
               "inputs": {
                 "blockId": "mokelay-datasource-create-form",
-                "method": "getData"
+                "method": "submit"
               },
               "outputs": [
                 "returnData"
               ],
-              "nextAction": "mokelay_datasource_create_execute_ds"
+              "nextAction": "mokelay_datasource_create_valid_route"
+            },
+            {
+              "uuid": "mokelay_datasource_create_valid_route",
+              "action": "if_controller",
+              "type": "controller",
+              "alias": "校验数据源表单",
+              "inputs": {
+                "value": {
+                  "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.valid}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "mokelay_datasource_create_valid_true",
+                  "alias": "校验通过",
+                  "value": true,
+                  "nextAction": "mokelay_datasource_create_execute_ds"
+                },
+                {
+                  "uuid": "mokelay_datasource_create_valid_false",
+                  "alias": "校验失败",
+                  "value": false,
+                  "nextAction": null
+                }
+              ]
             },
             {
               "uuid": "mokelay_datasource_create_execute_ds",
@@ -164,7 +190,7 @@
                       "key": "uuid",
                       "dataType": "string",
                       "value": {
-                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.uuid}}",
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.values.uuid}}",
                         "processors": [
                           "trim",
                           {
@@ -182,7 +208,7 @@
                       "key": "alias",
                       "dataType": "string",
                       "value": {
-                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.alias}}",
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.values.alias}}",
                         "processors": ["trim"]
                       }
                     },
@@ -190,7 +216,7 @@
                       "key": "description",
                       "dataType": "string",
                       "value": {
-                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.description}}",
+                        "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.values.description}}",
                         "processors": ["trim"]
                       }
                     }
