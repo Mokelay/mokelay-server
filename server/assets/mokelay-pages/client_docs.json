@@ -1,0 +1,22 @@
+{
+  "uuid": "client_docs",
+  "name": "客户端文档",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "client-docs-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "client-block-docs",
+        "tabs": [
+          {
+            "id": "client-block-docs",
+            "name": "Block文档",
+            "pageUUID": "block_component_docs",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}

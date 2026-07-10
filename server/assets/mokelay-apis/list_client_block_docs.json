@@ -1,6 +1,6 @@
 {
-  "uuid": "list_block_component_docs",
-  "alias": "Block 组件文档列表接口",
+  "uuid": "list_client_block_docs",
+  "alias": "客户端 Block 文档列表接口",
   "method": "GET",
   "request": {
     "query": [

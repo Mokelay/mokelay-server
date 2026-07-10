@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import dotenv from 'dotenv'
 import mysql from 'mysql2/promise'
 import postgres from 'postgres'
@@ -11,14 +11,33 @@ const serverRoot = path.resolve(scriptDir, '..')
 const workspaceRoot = path.resolve(serverRoot, '../..')
 const editorRoot = path.resolve(serverRoot, '../mokelay-editor')
 
-dotenv.config({ path: path.join(serverRoot, '.env'), quiet: true })
+const requiredDocFields = [
+  'version',
+  'blockType',
+  'displayName',
+  'category',
+  'description',
+  'registration',
+  'toolbox',
+  'defaultData',
+  'properties',
+  'events',
+  'methods',
+  'dataFields',
+  'saveRules',
+  'examples',
+]
 
-const runtimeProps = new Set([
-  'edit',
-  'currentBlockId',
-  'getAvailableBlockDataSources',
-  'previewRuntime',
+const jsonArrayFields = ['properties', 'events', 'methods', 'dataFields', 'saveRules', 'examples']
+const propertyComponentNames = new Set([
+  'MActionEditor',
+  'MActionToolBarEditor',
+  'MAdvanceTableColumnsEditor',
+  'MDatasourceEditor',
+  'MFormItemsEditor',
 ])
+
+dotenv.config({ path: path.join(serverRoot, '.env'), quiet: true })
 
 const manualEditorJsDocs = [
   {
@@ -27,38 +46,26 @@ const manualEditorJsDocs = [
     display_name: '段落',
     category: 'content',
     source_kind: 'editorjs',
+    source_package: 'editorjs',
     source_file: 'EditorJS default paragraph tool',
+    component_name: 'paragraph',
+    tool_symbol: 'paragraph',
     description: 'EditorJS 默认段落 block。MPage 预览态会直接把 data.text 渲染为段落 HTML。',
     status: 'active',
-    toolbox: {
-      title: { zh: '段落', en: 'Paragraph', raw: 'EditorJS default paragraph' },
-    },
-    initial_props: {},
-    property_schema: [
-      {
-        key: 'text',
-        label: { zh: '段落内容', en: 'Text', raw: 'data.text' },
-        type: 'html',
-        valueType: 'string',
-        source: 'EditorPreviewBlock.vue renders block.data.text',
-      },
-    ],
+    editor_enabled: true,
+    toolbox_visible: true,
+    sort_order: 1,
+    registration: { sourceKind: 'editorjs', componentName: 'paragraph', toolSymbol: 'paragraph', editorEnabled: true, toolboxVisible: true, sortOrder: 1 },
+    toolbox: { title: { zh: '段落', en: 'Paragraph', raw: 'EditorJS default paragraph' } },
+    default_data: {},
+    property_schema: [{ key: 'text', label: { zh: '段落内容', en: 'Text', raw: 'data.text' }, type: 'html', valueType: 'string' }],
     event_schema: [],
     method_schema: [],
-    data_fields_schema: [
-      { label: 'text', variable: 'text', dataType: 'string', source: 'inferred from data.text' },
-    ],
-    examples: [
-      { id: 'paragraph-example', type: 'paragraph', data: { text: 'Hello Mokelay' } },
-    ],
-    source_refs: [
-      { file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers EditorJS' },
-      { file: 'submodule/mokelay-editor/src/blocks/components/EditorPreviewBlock.vue', reason: 'renders paragraph' },
-    ],
-    raw_meta: {
-      managedBy: 'import-block-component-docs.mjs',
-      notes: ['Non-custom EditorJS block, not registered as runtime method target.'],
-    },
+    data_fields_schema: [{ label: 'text', variable: 'text', dataType: 'string' }],
+    save_schema: [{ key: 'text', type: 'string', description: '保存为 data.text。' }],
+    examples: [{ id: 'paragraph-example', type: 'paragraph', data: { text: 'Hello Mokelay' } }],
+    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/components/EditorPreviewBlock.vue', reason: 'renders paragraph' }],
+    raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
   {
     uuid: 'editorjs-table',
@@ -66,50 +73,32 @@ const manualEditorJsDocs = [
     display_name: '表格',
     category: 'content',
     source_kind: 'editorjs-plugin',
+    source_package: '@editorjs/table',
     source_file: '@editorjs/table',
+    component_name: 'table',
+    tool_symbol: 'Table',
     description: 'EditorJS Table 插件 block。MPage 预览态读取 data.content 并按 withHeadings 渲染表格。',
     status: 'active',
-    toolbox: {
-      title: { zh: '表格', en: 'Table', raw: '@editorjs/table' },
-    },
-    initial_props: {},
+    editor_enabled: true,
+    toolbox_visible: true,
+    sort_order: 2,
+    registration: { sourceKind: 'editorjs-plugin', sourcePackage: '@editorjs/table', componentName: 'table', toolSymbol: 'Table', editorEnabled: true, toolboxVisible: true, sortOrder: 2 },
+    toolbox: { title: { zh: '表格', en: 'Table', raw: '@editorjs/table' } },
+    default_data: {},
     property_schema: [
-      {
-        key: 'content',
-        label: { zh: '表格内容', en: 'Content', raw: 'data.content' },
-        type: 'array',
-        valueType: 'json',
-        source: '@editorjs/table saved data',
-      },
-      {
-        key: 'withHeadings',
-        label: { zh: '首行为表头', en: 'With headings', raw: 'data.withHeadings' },
-        type: 'checkbox',
-        valueType: 'boolean',
-        source: '@editorjs/table saved data',
-      },
+      { key: 'content', label: { zh: '表格内容', en: 'Content', raw: 'data.content' }, type: 'array', valueType: 'json' },
+      { key: 'withHeadings', label: { zh: '首行为表头', en: 'With headings', raw: 'data.withHeadings' }, type: 'checkbox', valueType: 'boolean' },
     ],
     event_schema: [],
     method_schema: [],
     data_fields_schema: [
-      { label: 'content', variable: 'content', dataType: 'array', source: 'inferred from table data' },
-      { label: 'withHeadings', variable: 'withHeadings', dataType: 'boolean', source: 'inferred from table data' },
+      { label: 'content', variable: 'content', dataType: 'array' },
+      { label: 'withHeadings', variable: 'withHeadings', dataType: 'boolean' },
     ],
-    examples: [
-      {
-        id: 'table-example',
-        type: 'table',
-        data: { withHeadings: true, content: [['列1', '列2'], ['值1', '值2']] },
-      },
-    ],
-    source_refs: [
-      { file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers @editorjs/table' },
-      { file: 'submodule/mokelay-editor/src/blocks/components/EditorPreviewBlock.vue', reason: 'renders table' },
-    ],
-    raw_meta: {
-      managedBy: 'import-block-component-docs.mjs',
-      notes: ['Non-custom EditorJS plugin block, not registered as runtime method target.'],
-    },
+    save_schema: [{ key: 'content', type: 'string[][]', description: '保存为 data.content。' }],
+    examples: [{ id: 'table-example', type: 'table', data: { withHeadings: true, content: [['列1', '列2'], ['值1', '值2']] } }],
+    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers @editorjs/table' }],
+    raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
   {
     uuid: 'editorjs-columns',
@@ -117,56 +106,26 @@ const manualEditorJsDocs = [
     display_name: '多列容器',
     category: 'layout',
     source_kind: 'editorjs-plugin',
+    source_package: '@calumk/editorjs-columns',
     source_file: '@calumk/editorjs-columns',
+    component_name: 'columns',
+    tool_symbol: 'EditorJsColumns',
     description: 'EditorJS Columns 插件 block。每列的 data.cols[].blocks 继续保存一组 EditorJS blocks。',
     status: 'active',
-    toolbox: {
-      title: { zh: '多列容器', en: 'Columns', raw: '@calumk/editorjs-columns' },
-    },
-    initial_props: {},
-    property_schema: [
-      {
-        key: 'cols',
-        label: { zh: '列配置', en: 'Columns', raw: 'data.cols' },
-        type: 'array',
-        valueType: 'json',
-        source: '@calumk/editorjs-columns saved data',
-      },
-    ],
+    editor_enabled: true,
+    toolbox_visible: true,
+    sort_order: 3,
+    registration: { sourceKind: 'editorjs-plugin', sourcePackage: '@calumk/editorjs-columns', componentName: 'columns', toolSymbol: 'EditorJsColumns', editorEnabled: true, toolboxVisible: true, sortOrder: 3 },
+    toolbox: { title: { zh: '多列容器', en: 'Columns', raw: '@calumk/editorjs-columns' } },
+    default_data: { cols: [{ blocks: [] }, { blocks: [] }] },
+    property_schema: [{ key: 'cols', label: { zh: '列配置', en: 'Columns', raw: 'data.cols' }, type: 'array', valueType: 'json' }],
     event_schema: [],
     method_schema: [],
-    data_fields_schema: [
-      { label: 'cols', variable: 'cols', dataType: 'array', source: 'inferred from columns data' },
-    ],
-    examples: [
-      { id: 'columns-example', type: 'columns', data: { cols: [{ blocks: [] }, { blocks: [] }] } },
-    ],
-    source_refs: [
-      { file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers and renders columns' },
-    ],
-    raw_meta: {
-      managedBy: 'import-block-component-docs.mjs',
-      notes: ['Nested blocks under cols[].blocks preserve events through blockEvents utilities.'],
-    },
-  },
-]
-
-const manualLayoutDocs = [
-  {
-    type: 'MPageSlot',
-    displayName: '页面插槽',
-    description: 'LayoutRenderer 使用的页面内容插槽 block，用于把当前页面 blocks 渲染到 layout 指定位置。',
-    propertySchema: [],
-    sourceFile: 'submodule/mokelay-editor/src/layouts/layoutBlockRegistry.ts',
-  },
-  {
-    type: 'MIf',
-    displayName: '条件渲染',
-    description: 'LayoutRenderer 使用的条件 block，按 layout 运行时上下文渲染 slots。',
-    propertySchema: [
-      { key: 'condition', label: { zh: '条件表达式', en: 'Condition', raw: 'data.condition' }, type: 'text' },
-    ],
-    sourceFile: 'submodule/mokelay-editor/src/layouts/layoutBlockRegistry.ts',
+    data_fields_schema: [{ label: 'cols', variable: 'cols', dataType: 'array' }],
+    save_schema: [{ key: 'cols', type: 'Array<{ blocks: Block[] }>', description: '保存每列内部 EditorJS blocks。' }],
+    examples: [{ id: 'columns-example', type: 'columns', data: { cols: [{ blocks: [] }, { blocks: [] }] } }],
+    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers columns' }],
+    raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
 ]
 
@@ -178,14 +137,25 @@ function workspaceRelative(filePath) {
   return toPosixPath(path.relative(workspaceRoot, filePath))
 }
 
+async function firstExistingPath(candidates, label) {
+  for (const candidate of candidates) {
+    try {
+      await readFile(candidate, 'utf8')
+      return candidate
+    } catch {
+      // keep looking
+    }
+  }
+
+  throw new Error(`Cannot find ${label}. Tried: ${candidates.map(workspaceRelative).join(', ')}`)
+}
+
 async function readText(filePath) {
   return await readFile(filePath, 'utf8')
 }
 
 function extractScriptContent(filePath, source) {
-  if (!filePath.endsWith('.vue')) {
-    return source
-  }
+  if (!filePath.endsWith('.vue')) return source
 
   const scripts = []
   const pattern = /<script\b[^>]*>([\s\S]*?)<\/script>/g
@@ -202,30 +172,36 @@ function parseSource(fileName, source) {
   return ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
 }
 
-function lineOf(sourceFile, node) {
-  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
+function cleanJsDoc(rawComment) {
+  return rawComment
+    .replace(/^\/\*\*/, '')
+    .replace(/\*\/$/, '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*\*\s?/, ''))
+    .join('\n')
 }
 
-function propertyName(name) {
-  if (!name) return ''
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
-    return name.text
+export function parseClientBlockDocComment(rawComment, filePath = 'unknown') {
+  const cleaned = cleanJsDoc(rawComment)
+  const tagIndex = cleaned.indexOf('@clientBlockDoc')
+
+  if (tagIndex < 0) {
+    throw new Error(`Missing @clientBlockDoc in ${workspaceRelative(filePath)}.`)
   }
-  return name.getText()
-}
 
-function objectProperty(objectLiteral, name) {
-  return objectLiteral.properties.find((property) => propertyName(property.name) === name)
-}
+  const jsonText = cleaned.slice(tagIndex + '@clientBlockDoc'.length).trim()
+  const start = jsonText.indexOf('{')
+  const end = jsonText.lastIndexOf('}')
 
-function propertyExpression(property) {
-  if (!property) return undefined
-  if (ts.isPropertyAssignment(property)) return property.initializer
-  if (ts.isGetAccessor(property)) {
-    const statement = property.body?.statements.find(ts.isReturnStatement)
-    return statement?.expression
+  if (start < 0 || end < start) {
+    throw new Error(`@clientBlockDoc in ${workspaceRelative(filePath)} must contain a JSON object.`)
   }
-  return undefined
+
+  try {
+    return JSON.parse(jsonText.slice(start, end + 1))
+  } catch (error) {
+    throw new Error(`Invalid @clientBlockDoc JSON in ${workspaceRelative(filePath)}: ${error.message}`)
+  }
 }
 
 function visit(node, callback) {
@@ -233,166 +209,19 @@ function visit(node, callback) {
   ts.forEachChild(node, (child) => visit(child, callback))
 }
 
-function findVariableObject(sourceFile, variableName) {
-  let result
-
-  visit(sourceFile, (node) => {
-    if (result || !ts.isVariableDeclaration(node)) return
-    if (!ts.isIdentifier(node.name) || node.name.text !== variableName) return
-    const initializer = node.initializer ? unwrapExpression(node.initializer) : undefined
-    if (initializer && ts.isObjectLiteralExpression(initializer)) {
-      result = initializer
-    }
-  })
-
-  return result
-}
-
-function findVariableInitializer(sourceFile, variableName) {
-  let result
-
-  for (const statement of sourceFile.statements) {
-    if (!ts.isVariableStatement(statement)) continue
-
-    for (const declaration of statement.declarationList.declarations) {
-      if (ts.isIdentifier(declaration.name) && declaration.name.text === variableName && declaration.initializer) {
-        result = declaration.initializer
-      }
-    }
-  }
-
-  return result
-}
-
-function unwrapExpression(expression) {
-  let current = expression
-
-  while (
-    ts.isAsExpression(current)
-    || ts.isSatisfiesExpression(current)
-    || ts.isParenthesizedExpression(current)
-    || ts.isTypeAssertionExpression(current)
-  ) {
-    current = current.expression
-  }
-
-  return current
-}
-
-function objectLiteralToValue(objectLiteral, sourceFile, messages) {
-  const result = {}
-
-  for (const property of objectLiteral.properties) {
-    if (ts.isSpreadAssignment(property)) {
-      result[`...${property.expression.getText(sourceFile)}`] = true
-      continue
-    }
-
-    const name = propertyName(property.name)
-    const expression = propertyExpression(property)
-
-    if (!name || !expression) continue
-    result[name] = expressionToValue(expression, sourceFile, messages)
-  }
-
-  return result
-}
-
-function expressionToValue(expression, sourceFile, messages) {
-  expression = unwrapExpression(expression)
-
-  if (ts.isStringLiteralLike(expression)) return expression.text
-  if (ts.isNumericLiteral(expression)) return Number(expression.text)
-  if (expression.kind === ts.SyntaxKind.TrueKeyword) return true
-  if (expression.kind === ts.SyntaxKind.FalseKeyword) return false
-  if (expression.kind === ts.SyntaxKind.NullKeyword) return null
-
-  if (ts.isIdentifier(expression)) {
-    const initializer = findVariableInitializer(sourceFile, expression.text)
-    if (initializer) {
-      return expressionToValue(initializer, sourceFile, messages)
-    }
-  }
-
-  if (ts.isArrayLiteralExpression(expression)) {
-    return expression.elements.map((element) => expressionToValue(element, sourceFile, messages))
-  }
-
-  if (ts.isObjectLiteralExpression(expression)) {
-    return objectLiteralToValue(expression, sourceFile, messages)
-  }
-
-  const i18nKey = i18nCallKey(expression)
-  if (i18nKey) {
-    return {
-      raw: expression.getText(sourceFile),
-      zh: getMessage(messages.zh, i18nKey) ?? i18nKey,
-      en: getMessage(messages.en, i18nKey) ?? i18nKey,
-    }
-  }
-
-  return {
-    raw: expression.getText(sourceFile),
-  }
-}
-
-function i18nCallKey(expression) {
-  if (!ts.isCallExpression(expression) || expression.arguments.length === 0) return ''
-  const firstArg = expression.arguments[0]
-  if (!ts.isStringLiteralLike(firstArg)) return ''
-
-  const callee = expression.expression
-  if (ts.isPropertyAccessExpression(callee) && callee.name.text === 't') {
-    return firstArg.text
-  }
-
-  return ''
-}
-
-function expressionSummary(expression, sourceFile, messages) {
-  if (!expression) return undefined
-  const value = expressionToValue(expression, sourceFile, messages)
-
-  if (typeof value === 'string') {
-    return {
-      raw: expression.getText(sourceFile),
-      zh: value,
-      en: value,
-    }
-  }
-
-  if (typeof value === 'object' && value !== null && ('zh' in value || 'en' in value || 'raw' in value)) {
-    return value
-  }
-
-  return {
-    raw: expression.getText(sourceFile),
-    value,
-  }
-}
-
-function getMessage(messages, key) {
-  return key.split('.').reduce((current, segment) => (
-    current && typeof current === 'object' && segment in current ? current[segment] : undefined
-  ), messages)
-}
-
-async function loadMessages(filePath, variableName) {
-  const source = await readText(filePath)
-  const sourceFile = parseSource(filePath, source)
-  const objectLiteral = findVariableObject(sourceFile, variableName)
-  return objectLiteral ? objectLiteralToValue(objectLiteral, sourceFile, { zh: {}, en: {} }) : {}
+function propertyName(name) {
+  if (!name) return ''
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text
+  return name.getText()
 }
 
 function parseImportMap(sourceFile) {
   const symbols = new Map()
 
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement)) continue
-    if (!ts.isStringLiteral(statement.moduleSpecifier)) continue
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue
     const modulePath = statement.moduleSpecifier.text
     if (!modulePath.startsWith('@/')) continue
-
     const clause = statement.importClause
     if (!clause) continue
 
@@ -411,34 +240,43 @@ function parseImportMap(sourceFile) {
   return symbols
 }
 
-function resolveAlias(modulePath) {
+function resolveAlias(modulePath, root = editorRoot) {
   const withoutAlias = modulePath.replace(/^@\//, '')
-  const candidates = [
-    path.join(editorRoot, 'src', withoutAlias),
-    path.join(editorRoot, 'src', `${withoutAlias}.ts`),
-    path.join(editorRoot, 'src', `${withoutAlias}.vue`),
+  return [
+    path.join(root, 'src', withoutAlias),
+    path.join(root, 'src', `${withoutAlias}.ts`),
+    path.join(root, 'src', `${withoutAlias}.vue`),
   ]
-  return candidates
 }
 
-async function existingPath(candidates) {
-  for (const candidate of candidates) {
-    try {
-      await readFile(candidate)
-      return candidate
-    } catch {
-      // keep looking
-    }
-  }
+async function readModuleSource(modulePath, root = editorRoot) {
+  const filePath = await firstExistingPath(resolveAlias(modulePath, root), modulePath)
+  const raw = await readText(filePath)
+  const source = extractScriptContent(filePath, raw)
 
-  return candidates[0]
+  return {
+    filePath,
+    source,
+    sourceFile: parseSource(filePath, source),
+    label: workspaceRelative(filePath),
+  }
+}
+
+function isLayoutModule(filePath, root = editorRoot) {
+  const layoutDirectory = path.resolve(root, 'src/layouts')
+  const relativePath = path.relative(layoutDirectory, filePath)
+
+  return Boolean(relativePath)
+    && relativePath !== '..'
+    && !relativePath.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relativePath)
 }
 
 function extractRegistryEntries(sourceFile, importMap) {
   const entries = []
 
   visit(sourceFile, (node) => {
-    if (!ts.isPropertyAssignment(node)) return
+    if (!ts.isPropertyAssignment(node) || !ts.isObjectLiteralExpression(node.initializer)) return
 
     let blockType = ''
     if (ts.isIdentifier(node.name)) {
@@ -454,12 +292,13 @@ function extractRegistryEntries(sourceFile, importMap) {
       blockType = node.name.expression.arguments[0].text
     }
 
-    if (!blockType || !ts.isObjectLiteralExpression(node.initializer)) return
+    if (!blockType) return
 
     const spread = node.initializer.properties.find((property) => (
-      ts.isSpreadAssignment(property) && ts.isIdentifier(property.expression) && property.expression.text.endsWith('EditorTool')
+      ts.isSpreadAssignment(property)
+      && ts.isIdentifier(property.expression)
+      && importMap.has(property.expression.text)
     ))
-
     if (!spread || !ts.isSpreadAssignment(spread) || !ts.isIdentifier(spread.expression)) return
 
     entries.push({
@@ -473,587 +312,290 @@ function extractRegistryEntries(sourceFile, importMap) {
   return entries
 }
 
-function findDefineEditorToolArg(sourceFile) {
+function findToolDeclaration(sourceFile, toolSymbol) {
   let result
 
   visit(sourceFile, (node) => {
-    if (result || !ts.isCallExpression(node)) return
-    if (!ts.isIdentifier(node.expression) || node.expression.text !== 'defineEditorTool') return
-    const [argument] = node.arguments
-    if (argument && ts.isObjectLiteralExpression(argument)) {
-      result = argument
+    if (result || !ts.isVariableDeclaration(node)) return
+    if (ts.isIdentifier(node.name) && node.name.text === toolSymbol) {
+      result = node
     }
   })
 
   return result
 }
 
-function findDefineEditorToolType(sourceFile) {
-  let result = ''
-
-  visit(sourceFile, (node) => {
-    if (result || !ts.isCallExpression(node)) return
-    if (!ts.isIdentifier(node.expression) || node.expression.text !== 'defineEditorTool') return
-    const [typeArg] = node.typeArguments ?? []
-    if (typeArg) {
-      result = typeArg.getText(sourceFile)
-    }
-  })
-
-  return result
-}
-
-function findTypeMembers(sourceFile, typeName, sourceLabel) {
-  if (!typeName) return []
-  const members = []
-
-  for (const statement of sourceFile.statements) {
-    if (ts.isInterfaceDeclaration(statement) && statement.name.text === typeName) {
-      for (const member of statement.members) {
-        const name = propertyName(member.name)
-        if (!name || runtimeProps.has(name)) continue
-
-        members.push({
-          key: name,
-          optional: Boolean(member.questionToken),
-          tsType: member.type?.getText(sourceFile) ?? 'unknown',
-          source: sourceLabel,
-          line: lineOf(sourceFile, member),
-        })
-      }
-    }
-
-    if (ts.isTypeAliasDeclaration(statement) && statement.name.text === typeName && ts.isTypeLiteralNode(statement.type)) {
-      for (const member of statement.type.members) {
-        const name = propertyName(member.name)
-        if (!name || runtimeProps.has(name)) continue
-
-        members.push({
-          key: name,
-          optional: Boolean(member.questionToken),
-          tsType: member.type?.getText(sourceFile) ?? 'unknown',
-          source: sourceLabel,
-          line: lineOf(sourceFile, member),
-        })
-      }
-    }
+function validateToolDefinitionMetadataBoundary(declaration, entry, tool) {
+  const initializer = declaration.initializer
+  if (
+    !initializer
+    || !ts.isCallExpression(initializer)
+    || !ts.isIdentifier(initializer.expression)
+    || initializer.expression.text !== 'defineEditorTool'
+    || !ts.isObjectLiteralExpression(initializer.arguments[0])
+  ) {
+    throw new Error(`Cannot inspect editor tool definition for ${entry.blockType} in ${tool.label}.`)
   }
 
-  return members
-}
-
-function extractToolbox(toolArg, sourceFile, messages, blockType) {
-  const toolboxExpression = propertyExpression(objectProperty(toolArg, 'toolbox'))
-  if (!toolboxExpression || !ts.isObjectLiteralExpression(toolboxExpression)) {
-    return {
-      title: { zh: blockType, en: blockType, raw: blockType },
-      hasIcon: false,
+  const forbiddenFields = new Set(['toolbox', 'propertyPanel', 'createInitialProps'])
+  for (const property of initializer.arguments[0].properties) {
+    const name = propertyName(property.name)
+    if (forbiddenFields.has(name)) {
+      throw new Error(`${entry.blockType} must declare ${name} only in its @clientBlockDoc comment, not in runtime code.`)
     }
   }
+}
 
-  const title = expressionSummary(propertyExpression(objectProperty(toolboxExpression, 'title')), sourceFile, messages)
-    ?? { zh: blockType, en: blockType, raw: blockType }
-  const iconExpression = propertyExpression(objectProperty(toolboxExpression, 'icon'))
+function leadingClientBlockDocComment(sourceFile, node, filePath) {
+  const fullText = sourceFile.getFullText()
+  const candidates = [node, node.parent, node.parent?.parent].filter(Boolean)
+  const ranges = candidates.flatMap((candidate) => ts.getLeadingCommentRanges(fullText, candidate.pos) ?? [])
+  const matching = ranges
+    .map((range) => fullText.slice(range.pos, range.end))
+    .filter((comment) => comment.includes('@clientBlockDoc'))
+
+  if (matching.length === 0) return undefined
+  if (matching.length > 1) {
+    throw new Error(`Multiple @clientBlockDoc comments found before editor tool in ${workspaceRelative(filePath)}.`)
+  }
+  return matching[0]
+}
+
+async function readEditorToolDoc(entry, root = editorRoot) {
+  if (!entry.toolModule) {
+    throw new Error(`Cannot resolve tool module for registered client block ${entry.blockType}.`)
+  }
+
+  const tool = await readModuleSource(entry.toolModule, root)
+  const declaration = findToolDeclaration(tool.sourceFile, entry.toolSymbol)
+  if (!declaration) {
+    throw new Error(`Cannot find editor tool ${entry.toolSymbol} in ${tool.label}.`)
+  }
+
+  validateToolDefinitionMetadataBoundary(declaration, entry, tool)
+
+  const comment = leadingClientBlockDocComment(tool.sourceFile, declaration, tool.filePath)
+  if (!comment) {
+    throw new Error(`Missing @clientBlockDoc for ${entry.blockType} (${entry.toolSymbol}) in ${tool.label}.`)
+  }
 
   return {
-    title,
-    hasIcon: Boolean(iconExpression),
-    iconSource: iconExpression?.getText(sourceFile).slice(0, 120),
+    doc: parseClientBlockDocComment(comment, tool.filePath),
+    tool,
   }
 }
 
-function returnedObjectExpression(functionLike) {
-  if (!functionLike) return undefined
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
-  if (ts.isArrowFunction(functionLike)) {
-    if (ts.isParenthesizedExpression(functionLike.body) && ts.isObjectLiteralExpression(functionLike.body.expression)) {
-      return functionLike.body.expression
-    }
-
-    if (ts.isObjectLiteralExpression(functionLike.body)) {
-      return functionLike.body
-    }
+function assertArray(value, fieldName, blockType) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${blockType} @clientBlockDoc.${fieldName} must be an array.`)
   }
+}
 
-  if (functionLike.body && ts.isBlock(functionLike.body)) {
-    const statement = functionLike.body.statements.find(ts.isReturnStatement)
-    if (statement?.expression && ts.isObjectLiteralExpression(statement.expression)) {
-      return statement.expression
+function assertRequiredFields(doc, blockType) {
+  for (const fieldName of requiredDocFields) {
+    if (!Object.prototype.hasOwnProperty.call(doc, fieldName)) {
+      throw new Error(`${blockType} @clientBlockDoc is missing required field: ${fieldName}.`)
     }
   }
 
-  return undefined
+  for (const fieldName of jsonArrayFields) {
+    assertArray(doc[fieldName], fieldName, blockType)
+  }
 }
 
-function extractInitialProps(toolArg, sourceFile, messages) {
-  const property = objectProperty(toolArg, 'createInitialProps')
-  const expression = propertyExpression(property)
-  const objectLiteral = returnedObjectExpression(expression)
-  return objectLiteral ? objectLiteralToValue(objectLiteral, sourceFile, messages) : {}
-}
-
-function extractPropertyFields(sourceFile, messages, sourceLabel) {
-  const fields = []
-
-  visit(sourceFile, (node) => {
-    if (!ts.isObjectLiteralExpression(node)) return
-    const keyExpression = propertyExpression(objectProperty(node, 'key'))
-    const labelExpression = propertyExpression(objectProperty(node, 'label'))
-    if (!keyExpression || !labelExpression || !ts.isStringLiteralLike(keyExpression)) return
-
-    const typeExpression = propertyExpression(objectProperty(node, 'type'))
-    const valueTypeExpression = propertyExpression(objectProperty(node, 'valueType'))
-    const placeholderExpression = propertyExpression(objectProperty(node, 'placeholder'))
-    const validationExpression = propertyExpression(objectProperty(node, 'validationMessage'))
-    const componentExpression = propertyExpression(objectProperty(node, 'component'))
-    const optionsExpression = propertyExpression(objectProperty(node, 'options'))
-
-    fields.push({
-      key: keyExpression.text,
-      label: expressionSummary(labelExpression, sourceFile, messages),
-      type: readLiteralText(typeExpression, sourceFile) ?? 'text',
-      valueType: readLiteralText(valueTypeExpression, sourceFile),
-      placeholder: placeholderExpression ? expressionSummary(placeholderExpression, sourceFile, messages) : undefined,
-      validationMessage: validationExpression ? expressionSummary(validationExpression, sourceFile, messages) : undefined,
-      component: componentExpression?.getText(sourceFile),
-      options: optionsExpression ? expressionToValue(optionsExpression, sourceFile, messages) : undefined,
-      source: sourceLabel,
-      line: lineOf(sourceFile, node),
-    })
-  })
-
-  return dedupeBy(fields, (field) => `${field.key}:${field.source}:${field.line}`)
-}
-
-function readLiteralText(expression, sourceFile) {
-  if (!expression) return undefined
-  if (ts.isStringLiteralLike(expression)) return expression.text
-  if (ts.isAsExpression(expression)) return readLiteralText(expression.expression, sourceFile)
-  return expression.getText(sourceFile)
-}
-
-function extractDefineEmits(sourceFile, sourceLabel) {
-  const events = []
-
-  visit(sourceFile, (node) => {
-    if (!ts.isCallExpression(node)) return
-    if (!ts.isIdentifier(node.expression) || node.expression.text !== 'defineEmits') return
-
-    const typeText = node.typeArguments?.[0]?.getText(sourceFile) ?? ''
-    const eventNames = [...typeText.matchAll(/event:\s*['"]([^'"]+)['"]/g)].map((match) => match[1])
-
-    for (const eventName of eventNames) {
-      events.push({
-        event: eventName,
-        payload: extractEventPayload(typeText, eventName),
-        trigger: 'Vue component emit',
-        source: sourceLabel,
-        line: lineOf(sourceFile, node),
-      })
+function validatePropertyComponents(properties, blockType) {
+  for (const property of properties) {
+    if (!isRecord(property) || property.type !== 'component' || property.component === undefined) continue
+    if (typeof property.component !== 'string' || !propertyComponentNames.has(property.component)) {
+      throw new Error(`${blockType} @clientBlockDoc.properties[] uses unknown property component: ${property.component}.`)
     }
+  }
+}
 
-    const firstArg = node.arguments[0]
-    if (firstArg && ts.isArrayLiteralExpression(firstArg)) {
-      for (const element of firstArg.elements) {
-        if (ts.isStringLiteralLike(element)) {
-          events.push({
-            event: element.text,
-            payload: 'unknown',
-            trigger: 'Vue component emit',
-            source: sourceLabel,
-            line: lineOf(sourceFile, node),
-          })
-        }
-      }
+function validateDocAgainstRegistry(doc, entry) {
+  if (!isRecord(doc)) {
+    throw new Error(`${entry.blockType} @clientBlockDoc must be a JSON object.`)
+  }
+
+  assertRequiredFields(doc, entry.blockType)
+
+  if (doc.blockType !== entry.blockType) {
+    throw new Error(`${entry.toolSymbol} documents blockType "${doc.blockType}", expected "${entry.blockType}".`)
+  }
+
+  if (!isRecord(doc.registration)) {
+    throw new Error(`${entry.blockType} @clientBlockDoc.registration must be an object.`)
+  }
+
+  if (doc.registration.toolSymbol !== undefined && doc.registration.toolSymbol !== entry.toolSymbol) {
+    throw new Error(`${entry.blockType} documents toolSymbol "${doc.registration.toolSymbol}", expected "${entry.toolSymbol}".`)
+  }
+
+  if (doc.registration.componentName !== undefined && doc.registration.componentName !== entry.blockType) {
+    throw new Error(`${entry.blockType} documents componentName "${doc.registration.componentName}", expected "${entry.blockType}".`)
+  }
+
+  validatePropertyComponents(doc.properties, entry.blockType)
+}
+
+function normalizeBoolean(value, defaultValue) {
+  return typeof value === 'boolean' ? value : defaultValue
+}
+
+function normalizeInteger(value, defaultValue) {
+  return Number.isFinite(Number(value)) ? Number(value) : defaultValue
+}
+
+function normalizeDoc(entry, doc, tool, registryFile, index) {
+  const registration = doc.registration
+  const sourceFile = workspaceRelative(entry.componentFilePath)
+  const sourceRefs = Array.isArray(doc.sourceRefs) ? [...doc.sourceRefs] : []
+  const requiredRefs = [
+    { file: sourceFile, reason: 'Vue component implementation' },
+    { file: tool.label, symbol: entry.toolSymbol, reason: 'Editor tool definition and @clientBlockDoc source' },
+    { file: workspaceRelative(registryFile), reason: 'registered editor component' },
+  ]
+
+  for (const ref of requiredRefs) {
+    if (!sourceRefs.some((item) => isRecord(item) && item.file === ref.file && item.reason === ref.reason)) {
+      sourceRefs.unshift(ref)
     }
-  })
-
-  return dedupeBy(events, (event) => event.event)
-}
-
-function extractEventPayload(typeText, eventName) {
-  const escaped = eventName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = typeText.match(new RegExp(`event:\\s*['"]${escaped}['"]\\s*,\\s*([^)]*)\\)`, 'm'))
-  return match?.[1]?.trim() || 'void'
-}
-
-function extractDefineExpose(sourceFile, sourceText, sourceLabel) {
-  const methods = []
-
-  visit(sourceFile, (node) => {
-    if (!ts.isCallExpression(node)) return
-    if (!ts.isIdentifier(node.expression) || node.expression.text !== 'defineExpose') return
-    const [argument] = node.arguments
-    if (!argument || !ts.isObjectLiteralExpression(argument)) return
-
-    for (const property of argument.properties) {
-      const name = ts.isShorthandPropertyAssignment(property)
-        ? property.name.text
-        : propertyName(property.name)
-      if (!name) continue
-
-      methods.push({
-        name,
-        exposed: true,
-        async: new RegExp(`async\\s+function\\s+${name}\\b`).test(sourceText),
-        params: 'not declared in defineExpose object',
-        returns: 'unknown',
-        source: sourceLabel,
-        line: lineOf(sourceFile, property),
-      })
-    }
-  })
-
-  return dedupeBy(methods, (method) => method.name)
-}
-
-function extractDataFields(sourceFile, sourceText, messages, sourceLabel, blockType) {
-  const fields = []
-  const valueFieldMatches = [...sourceText.matchAll(/valueBlockDataField\(['"]([^'"]+)['"]\)/g)]
-
-  for (const match of valueFieldMatches) {
-    fields.push({
-      label: '值',
-      variable: 'value',
-      dataType: match[1],
-      source: sourceLabel,
-    })
   }
 
-  visit(sourceFile, (node) => {
-    if (!ts.isObjectLiteralExpression(node)) return
-    const variableExpression = propertyExpression(objectProperty(node, 'variable'))
-    const dataTypeExpression = propertyExpression(objectProperty(node, 'dataType'))
-    if (!variableExpression || !dataTypeExpression) return
-    const variable = readLiteralText(variableExpression, sourceFile)
-    const dataType = readLiteralText(dataTypeExpression, sourceFile)
-    if (!variable || !dataType || variable.includes('i18n.')) return
+  const editorEnabled = normalizeBoolean(registration.editorEnabled, true)
+  const toolboxVisible = normalizeBoolean(registration.toolboxVisible, editorEnabled)
+  const sortOrder = normalizeInteger(registration.sortOrder, (index + 1) * 10)
+  const defaultData = isRecord(doc.defaultData) ? doc.defaultData : {}
 
-    const labelExpression = propertyExpression(objectProperty(node, 'label'))
-    fields.push({
-      label: labelExpression ? expressionSummary(labelExpression, sourceFile, messages) : variable,
-      variable,
-      dataType,
-      source: sourceLabel,
-      line: lineOf(sourceFile, node),
-    })
-  })
-
-  if (blockType === 'MForm') {
-    fields.push({
-      label: { zh: '表单项字段', en: 'Form item field', raw: 'normalizeMFormItems(context.data.items)' },
-      variable: '<item.variableName>',
-      dataType: 'dynamic',
-      source: sourceLabel,
-      notes: 'getDataFields maps each configured form item to its variableName and labelName.',
-    })
-  }
-
-  return dedupeBy(fields, (field) => field.variable)
-}
-
-function dedupeBy(items, keyFn) {
-  const seen = new Set()
-  const result = []
-
-  for (const item of items) {
-    const key = keyFn(item)
-    if (seen.has(key)) continue
-    seen.add(key)
-    result.push(item)
-  }
-
-  return result
-}
-
-function mergeProperties(typeMembers, propertyFields) {
-  const byKey = new Map()
-
-  for (const member of typeMembers) {
-    byKey.set(member.key, {
-      ...member,
-      declaredInProps: true,
-      configurable: false,
-    })
-  }
-
-  for (const field of propertyFields) {
-    const existing = byKey.get(field.key) ?? {}
-    byKey.set(field.key, {
-      ...existing,
-      ...field,
-      declaredInProps: existing.declaredInProps === true,
-      configurable: true,
-    })
-  }
-
-  return [...byKey.values()].filter((item) => !runtimeProps.has(item.key))
-}
-
-function uuidForBlock(type, sourceKind) {
-  return `${sourceKind}-${type}`.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 128)
-}
-
-async function readModuleSource(modulePath) {
-  const filePath = await existingPath(resolveAlias(modulePath))
-  const raw = await readText(filePath)
-  const script = extractScriptContent(filePath, raw)
   return {
-    filePath,
-    source: script,
-    sourceFile: parseSource(filePath, script),
-    label: workspaceRelative(filePath),
+    uuid: typeof doc.uuid === 'string' && doc.uuid.trim() ? doc.uuid.trim() : `mokelay-editor-${entry.blockType}`,
+    block_type: entry.blockType,
+    display_name: doc.displayName,
+    category: doc.category,
+    source_kind: typeof registration.sourceKind === 'string' && registration.sourceKind.trim() ? registration.sourceKind.trim() : 'mokelay-editor',
+    source_package: typeof registration.sourcePackage === 'string' && registration.sourcePackage.trim() ? registration.sourcePackage.trim() : 'mokelay-editor',
+    source_file: sourceFile,
+    component_name: typeof registration.componentName === 'string' && registration.componentName.trim() ? registration.componentName.trim() : entry.blockType,
+    tool_symbol: entry.toolSymbol,
+    description: doc.description,
+    status: typeof doc.status === 'string' && doc.status.trim() ? doc.status.trim() : 'active',
+    editor_enabled: editorEnabled,
+    toolbox_visible: toolboxVisible,
+    sort_order: sortOrder,
+    registration: { ...registration, editorEnabled, toolboxVisible, sortOrder },
+    toolbox: isRecord(doc.toolbox) ? doc.toolbox : {},
+    initial_props: defaultData,
+    default_data: defaultData,
+    property_schema: doc.properties,
+    event_schema: doc.events,
+    method_schema: doc.methods,
+    data_fields_schema: doc.dataFields,
+    save_schema: doc.saveRules,
+    examples: doc.examples,
+    source_refs: sourceRefs,
+    raw_meta: {
+      version: doc.version,
+      managedBy: 'import-block-component-docs.mjs',
+      sourceKind: registration.sourceKind ?? 'mokelay-editor',
+      registryFile: workspaceRelative(registryFile),
+      componentModule: entry.componentModule,
+      toolModule: entry.toolModule,
+      toolSymbol: entry.toolSymbol,
+      counts: {
+        properties: doc.properties.length,
+        events: doc.events.length,
+        methods: doc.methods.length,
+        dataFields: doc.dataFields.length,
+        saveRules: doc.saveRules.length,
+        examples: doc.examples.length,
+      },
+      importedFromCodeAt: new Date().toISOString(),
+    },
   }
 }
 
-async function collectEditorToolDocs(messages) {
-  const registryFile = path.join(editorRoot, 'src/editors/editorComponentRegistry.ts')
+function normalizeManualDoc(doc) {
+  return {
+    initial_props: doc.default_data ?? {},
+    save_schema: doc.save_schema ?? [],
+    ...doc,
+    raw_meta: {
+      ...(doc.raw_meta ?? {}),
+      counts: {
+        properties: doc.property_schema?.length ?? 0,
+        events: doc.event_schema?.length ?? 0,
+        methods: doc.method_schema?.length ?? 0,
+        dataFields: doc.data_fields_schema?.length ?? 0,
+        saveRules: doc.save_schema?.length ?? 0,
+        examples: doc.examples?.length ?? 0,
+      },
+      importedFromCodeAt: new Date().toISOString(),
+    },
+  }
+}
+
+export async function collectClientBlockDocs(options = {}) {
+  const root = options.editorRoot ?? editorRoot
+  const registryFile = options.registryFile ?? path.join(root, 'src/editors/editorComponentRegistry.ts')
+  const includeManual = options.includeManual !== false
   const registrySource = await readText(registryFile)
   const registrySourceFile = parseSource(registryFile, registrySource)
   const importMap = parseImportMap(registrySourceFile)
   const entries = extractRegistryEntries(registrySourceFile, importMap)
   const docs = []
+  const seenBlockTypes = new Set()
+  const seenUuids = new Set()
 
-  for (const entry of entries) {
-    const toolModule = entry.toolModule
-    if (!toolModule) continue
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index]
+    const component = await readModuleSource(entry.componentModule, root)
 
-    const tool = await readModuleSource(toolModule)
-    const component = await readModuleSource(entry.componentModule)
-    const toolArg = findDefineEditorToolArg(tool.sourceFile) ?? findDefineEditorToolArg(component.sourceFile)
-    if (!toolArg) continue
+    // docs_client_block is limited to editor blocks; layout rendering modules are not Block docs.
+    if (isLayoutModule(component.filePath, root)) continue
 
-    const propsType = findDefineEditorToolType(tool.sourceFile) || findDefineEditorToolType(component.sourceFile)
-    const typeMembers = [
-      ...findTypeMembers(tool.sourceFile, propsType, tool.label),
-      ...findTypeMembers(component.sourceFile, propsType, component.label),
-    ]
-    const propertyFields = dedupeBy([
-      ...extractPropertyFields(tool.sourceFile, messages, tool.label),
-      ...extractPropertyFields(component.sourceFile, messages, component.label),
-    ], (field) => field.key)
-    const toolbox = extractToolbox(toolArg, tool.sourceFile, messages, entry.blockType)
-    const initialProps = extractInitialProps(toolArg, tool.sourceFile, messages)
-    const dataFields = dedupeBy([
-      ...extractDataFields(tool.sourceFile, tool.source, messages, tool.label, entry.blockType),
-      ...extractDataFields(component.sourceFile, component.source, messages, component.label, entry.blockType),
-    ], (field) => field.variable)
-    const events = extractDefineEmits(component.sourceFile, component.label)
-    const methods = extractDefineExpose(component.sourceFile, component.source, component.label)
-    const displayName = typeof toolbox.title?.zh === 'string' ? toolbox.title.zh : entry.blockType
+    if (seenBlockTypes.has(entry.blockType)) {
+      throw new Error(`Duplicate registered client block type: ${entry.blockType}.`)
+    }
+    seenBlockTypes.add(entry.blockType)
 
-    docs.push({
-      uuid: uuidForBlock(entry.blockType, 'mokelay-editor'),
-      block_type: entry.blockType,
-      display_name: displayName,
-      category: inferCategory(entry.blockType),
-      source_kind: 'mokelay-editor',
-      source_file: component.label,
-      description: buildDescription(entry.blockType, displayName, component.label),
-      status: 'active',
-      toolbox,
-      initial_props: initialProps,
-      property_schema: mergeProperties(typeMembers, propertyFields),
-      event_schema: events,
-      method_schema: methods,
-      data_fields_schema: dataFields,
-      examples: buildExamples(entry.blockType, initialProps),
-      source_refs: dedupeBy([
-        { file: component.label, reason: 'Vue component implementation' },
-        { file: tool.label, reason: 'Editor tool definition' },
-        { file: workspaceRelative(registryFile), reason: 'registered editor component' },
-      ], (ref) => `${ref.file}:${ref.reason}`),
-      raw_meta: {
-        managedBy: 'import-block-component-docs.mjs',
-        propsType,
-        toolSymbol: entry.toolSymbol,
-        componentModule: entry.componentModule,
-        toolModule,
-        configurableEvents: 'All custom editor blocks can store top-level events; only emitted event names can trigger at runtime.',
-      },
-    })
+    const rawDoc = await readEditorToolDoc(entry, root)
+    const completeEntry = {
+      ...entry,
+      componentFilePath: component.filePath,
+    }
+
+    validateDocAgainstRegistry(rawDoc.doc, completeEntry)
+    const doc = normalizeDoc(completeEntry, rawDoc.doc, rawDoc.tool, registryFile, index)
+
+    if (seenUuids.has(doc.uuid)) {
+      throw new Error(`Duplicate client block doc uuid: ${doc.uuid}.`)
+    }
+    seenUuids.add(doc.uuid)
+    docs.push(doc)
   }
 
-  return docs
-}
-
-function inferCategory(blockType) {
-  if (blockType === 'MPage' || blockType === 'MForm' || blockType === 'MEditorSelector') return 'container'
-  if (blockType.includes('Table') || blockType.includes('Chart') || blockType.includes('Datasource')) return 'data'
-  if (blockType.includes('Field') || blockType === 'MInput' || blockType === 'MAdvanceInput') return 'form'
-  if (blockType.includes('Button') || blockType.includes('Action')) return 'action'
-  if (blockType.includes('Page')) return 'page'
-  return 'content'
-}
-
-function buildDescription(blockType, displayName, sourceFile) {
-  return `${displayName} (${blockType})，来源于 ${sourceFile}。属性、事件、方法由当前 mokelay-editor 源码自动抽取。`
-}
-
-function buildExamples(blockType, initialProps) {
-  const data = Object.fromEntries(
-    Object.entries(initialProps ?? {}).filter(([key]) => !runtimeProps.has(key)),
-  )
-
-  return [{
-    id: `${blockType}-example`,
-    type: blockType,
-    data,
-  }]
-}
-
-async function collectLayoutDocs(messages) {
-  const topNavTypes = await readModuleSource('@/layouts/topNavTypes')
-  const topNavProps = findTypeMembers(topNavTypes.sourceFile, 'TopNavProps', topNavTypes.label)
-  const registryFile = path.join(editorRoot, 'src/layouts/layoutBlockRegistry.ts')
-  const registrySource = await readText(registryFile)
-  const layoutTypes = [
-    'MSiteTopNav',
-    'MEditorTopNav',
-    'MWebTopNav',
-    'MTopNav',
-  ]
-  const docs = manualLayoutDocs.map((item) => ({
-    uuid: uuidForBlock(item.type, 'layout'),
-    block_type: item.type,
-    display_name: item.displayName,
-    category: 'layout',
-    source_kind: 'layout',
-    source_file: item.sourceFile,
-    description: item.description,
-    status: 'active',
-    toolbox: { title: { zh: item.displayName, en: item.type, raw: item.type } },
-    initial_props: {},
-    property_schema: item.propertySchema,
-    event_schema: [],
-    method_schema: [],
-    data_fields_schema: [],
-    examples: [{ id: `${item.type}-example`, type: item.type, data: {} }],
-    source_refs: [{ file: item.sourceFile, reason: 'registered layout block' }],
-    raw_meta: {
-      managedBy: 'import-block-component-docs.mjs',
-      registryExcerpt: registrySource.includes(item.type) ? 'registered' : 'manual',
-    },
-  }))
-
-  for (const type of layoutTypes) {
-    const component = await readModuleSource(`@/layouts/${type}.vue`)
-    docs.push({
-      uuid: uuidForBlock(type, 'layout'),
-      block_type: type,
-      display_name: type,
-      category: 'layout',
-      source_kind: 'layout',
-      source_file: component.label,
-      description: `${type} layout navigation block，使用 TopNavProps 并通过 normalizeTopNavProps 归一化数据。`,
-      status: 'active',
-      toolbox: { title: { zh: type, en: type, raw: type } },
-      initial_props: {},
-      property_schema: topNavProps,
-      event_schema: extractDefineEmits(component.sourceFile, component.label),
-      method_schema: extractDefineExpose(component.sourceFile, component.source, component.label),
-      data_fields_schema: [],
-      examples: [{ id: `${type}-example`, type, data: {} }],
-      source_refs: [
-        { file: component.label, reason: 'Vue layout component' },
-        { file: topNavTypes.label, reason: 'TopNavProps declaration' },
-        { file: workspaceRelative(registryFile), reason: 'registered layout block' },
-      ],
-      raw_meta: {
-        managedBy: 'import-block-component-docs.mjs',
-        normalizedBy: 'submodule/mokelay-editor/src/layouts/topNavRuntime.ts',
-      },
-    })
+  const manualDocs = includeManual ? manualEditorJsDocs.map(normalizeManualDoc) : []
+  for (const doc of manualDocs) {
+    if (seenUuids.has(doc.uuid)) {
+      throw new Error(`Duplicate client block doc uuid: ${doc.uuid}.`)
+    }
+    if (seenBlockTypes.has(doc.block_type)) {
+      throw new Error(`Duplicate client block doc block_type: ${doc.block_type}.`)
+    }
+    seenUuids.add(doc.uuid)
+    seenBlockTypes.add(doc.block_type)
   }
 
-  const adminShell = await readModuleSource('@/layouts/MInternalAdminShell.vue')
-  docs.push({
-    uuid: uuidForBlock('MInternalAdminShell', 'layout'),
-    block_type: 'MInternalAdminShell',
-    display_name: '内部管理台壳',
-    category: 'layout',
-    source_kind: 'layout',
-    source_file: adminShell.label,
-    description: '内部管理台 layout shell，读取 data/context 渲染侧边栏、顶部工具、标签页和用户信息。',
-    status: 'active',
-    toolbox: { title: { zh: '内部管理台壳', en: 'Internal Admin Shell', raw: 'MInternalAdminShell' } },
-    initial_props: {},
-    property_schema: findTypeMembers(adminShell.sourceFile, '', adminShell.label),
-    event_schema: extractDefineEmits(adminShell.sourceFile, adminShell.label),
-    method_schema: extractDefineExpose(adminShell.sourceFile, adminShell.source, adminShell.label),
-    data_fields_schema: [],
-    examples: [{ id: 'MInternalAdminShell-example', type: 'MInternalAdminShell', data: {} }],
-    source_refs: [
-      { file: adminShell.label, reason: 'Vue layout component' },
-      { file: workspaceRelative(registryFile), reason: 'registered layout block' },
-    ],
-    raw_meta: {
-      managedBy: 'import-block-component-docs.mjs',
-      dataKeys: [
-        'environmentLabel',
-        'searchPlaceholder',
-        'favoriteMenuTitle',
-        'sidebarMenu',
-        'favoriteMenu',
-        'quickMenu',
-        'tabs',
-        'header',
-      ],
-    },
-  })
-
-  return docs
-}
-
-async function collectDocs() {
-  const messages = {
-    zh: await loadMessages(path.join(editorRoot, 'src/langs/zh.ts'), 'zhMessages'),
-    en: await loadMessages(path.join(editorRoot, 'src/langs/en.ts'), 'enMessages'),
-  }
-  const customDocs = await collectEditorToolDocs(messages)
-  const layoutDocs = await collectLayoutDocs(messages)
-
-  return [
-    ...manualEditorJsDocs,
-    ...customDocs,
-    ...layoutDocs,
-  ].map(normalizeDoc)
-}
-
-function normalizeDoc(doc) {
-  const propertyCount = Array.isArray(doc.property_schema) ? doc.property_schema.length : 0
-  const eventCount = Array.isArray(doc.event_schema) ? doc.event_schema.length : 0
-  const methodCount = Array.isArray(doc.method_schema) ? doc.method_schema.length : 0
-  const dataFieldCount = Array.isArray(doc.data_fields_schema) ? doc.data_fields_schema.length : 0
-
-  return {
-    uuid: doc.uuid,
-    block_type: doc.block_type,
-    display_name: doc.display_name || doc.block_type,
-    category: doc.category || 'custom',
-    source_kind: doc.source_kind || 'mokelay-editor',
-    source_file: doc.source_file || '',
-    description: doc.description || '',
-    status: doc.status || 'active',
-    toolbox: doc.toolbox ?? {},
-    initial_props: doc.initial_props ?? {},
-    property_schema: doc.property_schema ?? [],
-    event_schema: doc.event_schema ?? [],
-    method_schema: doc.method_schema ?? [],
-    data_fields_schema: doc.data_fields_schema ?? [],
-    examples: doc.examples ?? [],
-    source_refs: doc.source_refs ?? [],
-    raw_meta: {
-      ...(doc.raw_meta ?? {}),
-      counts: {
-        properties: propertyCount,
-        events: eventCount,
-        methods: methodCount,
-        dataFields: dataFieldCount,
-      },
-      importedFromCodeAt: new Date().toISOString(),
-    },
-  }
+  return [...manualDocs, ...docs].sort((a, b) => (
+    a.sort_order - b.sort_order
+    || a.source_kind.localeCompare(b.source_kind)
+    || a.category.localeCompare(b.category)
+    || a.block_type.localeCompare(b.block_type)
+  ))
 }
 
 function databaseType(databaseUrl) {
@@ -1061,6 +603,40 @@ function databaseType(databaseUrl) {
   if (protocol === 'mysql') return 'mysql'
   if (protocol === 'postgres' || protocol === 'postgresql') return 'postgres'
   throw new Error(`Unsupported Mokelay_DATABASE_URL protocol: ${protocol}`)
+}
+
+async function ensureMysqlColumn(connection, columnName, definition) {
+  const [rows] = await connection.execute(`
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'docs_client_block'
+      AND column_name = ?
+  `, [columnName])
+
+  if (!rows.length) {
+    await connection.execute(`ALTER TABLE docs_client_block ADD COLUMN ${definition}`)
+  }
+}
+
+async function ensureMysqlJsonColumn(connection, columnName, definition, fallbackExpression) {
+  await ensureMysqlColumn(connection, columnName, definition)
+  await connection.execute(`UPDATE docs_client_block SET ${columnName} = ${fallbackExpression} WHERE ${columnName} IS NULL`)
+  await connection.execute(`ALTER TABLE docs_client_block MODIFY ${columnName} json NOT NULL`)
+}
+
+async function ensureMysqlIndex(connection, indexName, definition) {
+  const [rows] = await connection.execute(`
+    SELECT 1
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'docs_client_block'
+      AND index_name = ?
+  `, [indexName])
+
+  if (!rows.length) {
+    await connection.execute(definition)
+  }
 }
 
 async function ensureMysqlTable(connection) {
@@ -1072,15 +648,24 @@ async function ensureMysqlTable(connection) {
       display_name varchar(120) NOT NULL,
       category varchar(64) NOT NULL DEFAULT 'custom',
       source_kind varchar(64) NOT NULL DEFAULT 'mokelay-editor',
+      source_package varchar(128) NOT NULL DEFAULT 'mokelay-editor',
       source_file text NOT NULL,
+      component_name varchar(128) NOT NULL DEFAULT '',
+      tool_symbol varchar(128) NOT NULL DEFAULT '',
       description text NOT NULL,
       status varchar(32) NOT NULL DEFAULT 'active',
+      editor_enabled tinyint(1) NOT NULL DEFAULT 1,
+      toolbox_visible tinyint(1) NOT NULL DEFAULT 1,
+      sort_order int NOT NULL DEFAULT 0,
+      registration json NOT NULL,
       toolbox json NOT NULL,
       initial_props json NOT NULL,
+      default_data json NOT NULL,
       property_schema json NOT NULL,
       event_schema json NOT NULL,
       method_schema json NOT NULL,
       data_fields_schema json NOT NULL,
+      save_schema json NOT NULL,
       examples json NOT NULL,
       source_refs json NOT NULL,
       raw_meta json NOT NULL,
@@ -1090,25 +675,23 @@ async function ensureMysqlTable(connection) {
       UNIQUE KEY uk_docs_client_block_uuid (uuid),
       UNIQUE KEY uk_docs_client_block_block_type (block_type),
       KEY idx_docs_client_block_category (category),
-      KEY idx_docs_client_block_source_kind (source_kind)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Block 组件文档表'
+      KEY idx_docs_client_block_source_kind (source_kind),
+      KEY idx_docs_client_block_editor_enabled (editor_enabled),
+      KEY idx_docs_client_block_toolbox_visible (toolbox_visible)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='客户端 Block 文档表'
   `)
 
-  const [idColumns] = await connection.execute(`
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-      AND table_name = 'docs_client_block'
-      AND column_name = 'id'
-  `)
-  if (!idColumns.length) {
-    await connection.execute(`
-      ALTER TABLE docs_client_block
-        DROP PRIMARY KEY,
-        ADD COLUMN id bigint NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST,
-        ADD UNIQUE KEY uk_docs_client_block_uuid (uuid)
-    `)
-  }
+  await ensureMysqlColumn(connection, 'source_package', "source_package varchar(128) NOT NULL DEFAULT 'mokelay-editor'")
+  await ensureMysqlColumn(connection, 'component_name', "component_name varchar(128) NOT NULL DEFAULT ''")
+  await ensureMysqlColumn(connection, 'tool_symbol', "tool_symbol varchar(128) NOT NULL DEFAULT ''")
+  await ensureMysqlColumn(connection, 'editor_enabled', 'editor_enabled tinyint(1) NOT NULL DEFAULT 1')
+  await ensureMysqlColumn(connection, 'toolbox_visible', 'toolbox_visible tinyint(1) NOT NULL DEFAULT 1')
+  await ensureMysqlColumn(connection, 'sort_order', 'sort_order int NOT NULL DEFAULT 0')
+  await ensureMysqlJsonColumn(connection, 'registration', 'registration json NULL', 'JSON_OBJECT()')
+  await ensureMysqlJsonColumn(connection, 'default_data', 'default_data json NULL', 'COALESCE(initial_props, JSON_OBJECT())')
+  await ensureMysqlJsonColumn(connection, 'save_schema', 'save_schema json NULL', 'JSON_ARRAY()')
+  await ensureMysqlIndex(connection, 'idx_docs_client_block_editor_enabled', 'CREATE INDEX idx_docs_client_block_editor_enabled ON docs_client_block (editor_enabled)')
+  await ensureMysqlIndex(connection, 'idx_docs_client_block_toolbox_visible', 'CREATE INDEX idx_docs_client_block_toolbox_visible ON docs_client_block (toolbox_visible)')
 }
 
 async function ensurePostgresTable(sql) {
@@ -1120,15 +703,24 @@ async function ensurePostgresTable(sql) {
       display_name varchar(120) NOT NULL,
       category varchar(64) NOT NULL DEFAULT 'custom',
       source_kind varchar(64) NOT NULL DEFAULT 'mokelay-editor',
+      source_package varchar(128) NOT NULL DEFAULT 'mokelay-editor',
       source_file text NOT NULL DEFAULT '',
+      component_name varchar(128) NOT NULL DEFAULT '',
+      tool_symbol varchar(128) NOT NULL DEFAULT '',
       description text NOT NULL DEFAULT '',
       status varchar(32) NOT NULL DEFAULT 'active',
+      editor_enabled boolean NOT NULL DEFAULT true,
+      toolbox_visible boolean NOT NULL DEFAULT true,
+      sort_order integer NOT NULL DEFAULT 0,
+      registration jsonb NOT NULL DEFAULT '{}'::jsonb,
       toolbox jsonb NOT NULL DEFAULT '{}'::jsonb,
       initial_props jsonb NOT NULL DEFAULT '{}'::jsonb,
+      default_data jsonb NOT NULL DEFAULT '{}'::jsonb,
       property_schema jsonb NOT NULL DEFAULT '[]'::jsonb,
       event_schema jsonb NOT NULL DEFAULT '[]'::jsonb,
       method_schema jsonb NOT NULL DEFAULT '[]'::jsonb,
       data_fields_schema jsonb NOT NULL DEFAULT '[]'::jsonb,
+      save_schema jsonb NOT NULL DEFAULT '[]'::jsonb,
       examples jsonb NOT NULL DEFAULT '[]'::jsonb,
       source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
       raw_meta jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -1136,55 +728,80 @@ async function ensurePostgresTable(sql) {
       updated_at timestamp with time zone NOT NULL DEFAULT now()
     )
   `
-  const idColumns = await sql`
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'docs_client_block'
-      AND column_name = 'id'
-  `
-  if (!idColumns.length) {
-    await sql`ALTER TABLE docs_client_block DROP CONSTRAINT IF EXISTS docs_client_block_pkey`
-    await sql`ALTER TABLE docs_client_block ADD COLUMN id bigserial`
-    await sql`ALTER TABLE docs_client_block ADD CONSTRAINT docs_client_block_pkey PRIMARY KEY (id)`
-    await sql`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conrelid = 'docs_client_block'::regclass
-            AND conname = 'docs_client_block_uuid_unique'
-        ) THEN
-          ALTER TABLE docs_client_block ADD CONSTRAINT docs_client_block_uuid_unique UNIQUE (uuid);
-        END IF;
-      END $$;
-    `
-  }
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS source_package varchar(128) NOT NULL DEFAULT 'mokelay-editor'`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS component_name varchar(128) NOT NULL DEFAULT ''`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS tool_symbol varchar(128) NOT NULL DEFAULT ''`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS editor_enabled boolean NOT NULL DEFAULT true`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS toolbox_visible boolean NOT NULL DEFAULT true`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS registration jsonb NOT NULL DEFAULT '{}'::jsonb`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS default_data jsonb NOT NULL DEFAULT '{}'::jsonb`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS save_schema jsonb NOT NULL DEFAULT '[]'::jsonb`
   await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_category ON docs_client_block (category)`
   await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_source_kind ON docs_client_block (source_kind)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_editor_enabled ON docs_client_block (editor_enabled)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_toolbox_visible ON docs_client_block (toolbox_visible)`
+}
+
+function docParams(doc, encodeJson) {
+  return [
+    doc.uuid,
+    doc.block_type,
+    doc.display_name,
+    doc.category,
+    doc.source_kind,
+    doc.source_package,
+    doc.source_file,
+    doc.component_name,
+    doc.tool_symbol,
+    doc.description,
+    doc.status,
+    doc.editor_enabled ? 1 : 0,
+    doc.toolbox_visible ? 1 : 0,
+    doc.sort_order,
+    encodeJson(doc.registration),
+    encodeJson(doc.toolbox),
+    encodeJson(doc.initial_props),
+    encodeJson(doc.default_data),
+    encodeJson(doc.property_schema),
+    encodeJson(doc.event_schema),
+    encodeJson(doc.method_schema),
+    encodeJson(doc.data_fields_schema),
+    encodeJson(doc.save_schema),
+    encodeJson(doc.examples),
+    encodeJson(doc.source_refs),
+    encodeJson(doc.raw_meta),
+  ]
 }
 
 async function upsertMysql(connection, docs) {
   const query = `
     INSERT INTO docs_client_block (
-      uuid, block_type, display_name, category, source_kind, source_file, description, status,
-      toolbox, initial_props, property_schema, event_schema, method_schema, data_fields_schema,
-      examples, source_refs, raw_meta
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      uuid, block_type, display_name, category, source_kind, source_package, source_file,
+      component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, sort_order,
+      registration, toolbox, initial_props, default_data, property_schema, event_schema, method_schema,
+      data_fields_schema, save_schema, examples, source_refs, raw_meta
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
+      block_type = VALUES(block_type),
       display_name = VALUES(display_name),
       category = VALUES(category),
       source_kind = VALUES(source_kind),
+      source_package = VALUES(source_package),
       source_file = VALUES(source_file),
+      component_name = VALUES(component_name),
+      tool_symbol = VALUES(tool_symbol),
       description = VALUES(description),
       status = VALUES(status),
+      registration = VALUES(registration),
       toolbox = VALUES(toolbox),
       initial_props = VALUES(initial_props),
+      default_data = VALUES(default_data),
       property_schema = VALUES(property_schema),
       event_schema = VALUES(event_schema),
       method_schema = VALUES(method_schema),
       data_fields_schema = VALUES(data_fields_schema),
+      save_schema = VALUES(save_schema),
       examples = VALUES(examples),
       source_refs = VALUES(source_refs),
       raw_meta = VALUES(raw_meta),
@@ -1200,14 +817,17 @@ async function upsertPostgres(sql, docs) {
   for (const doc of docs) {
     await sql`
       INSERT INTO docs_client_block (
-        uuid, block_type, display_name, category, source_kind, source_file, description, status,
-        toolbox, initial_props, property_schema, event_schema, method_schema, data_fields_schema,
-        examples, source_refs, raw_meta
+        uuid, block_type, display_name, category, source_kind, source_package, source_file,
+        component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, sort_order,
+        registration, toolbox, initial_props, default_data, property_schema, event_schema, method_schema,
+        data_fields_schema, save_schema, examples, source_refs, raw_meta
       ) VALUES (
         ${doc.uuid}, ${doc.block_type}, ${doc.display_name}, ${doc.category}, ${doc.source_kind},
-        ${doc.source_file}, ${doc.description}, ${doc.status},
-        ${sql.json(doc.toolbox)}, ${sql.json(doc.initial_props)}, ${sql.json(doc.property_schema)},
-        ${sql.json(doc.event_schema)}, ${sql.json(doc.method_schema)}, ${sql.json(doc.data_fields_schema)},
+        ${doc.source_package}, ${doc.source_file}, ${doc.component_name}, ${doc.tool_symbol},
+        ${doc.description}, ${doc.status}, ${doc.editor_enabled}, ${doc.toolbox_visible}, ${doc.sort_order},
+        ${sql.json(doc.registration)}, ${sql.json(doc.toolbox)}, ${sql.json(doc.initial_props)},
+        ${sql.json(doc.default_data)}, ${sql.json(doc.property_schema)}, ${sql.json(doc.event_schema)},
+        ${sql.json(doc.method_schema)}, ${sql.json(doc.data_fields_schema)}, ${sql.json(doc.save_schema)},
         ${sql.json(doc.examples)}, ${sql.json(doc.source_refs)}, ${sql.json(doc.raw_meta)}
       )
       ON CONFLICT (uuid) DO UPDATE SET
@@ -1215,15 +835,21 @@ async function upsertPostgres(sql, docs) {
         display_name = excluded.display_name,
         category = excluded.category,
         source_kind = excluded.source_kind,
+        source_package = excluded.source_package,
         source_file = excluded.source_file,
+        component_name = excluded.component_name,
+        tool_symbol = excluded.tool_symbol,
         description = excluded.description,
         status = excluded.status,
+        registration = excluded.registration,
         toolbox = excluded.toolbox,
         initial_props = excluded.initial_props,
+        default_data = excluded.default_data,
         property_schema = excluded.property_schema,
         event_schema = excluded.event_schema,
         method_schema = excluded.method_schema,
         data_fields_schema = excluded.data_fields_schema,
+        save_schema = excluded.save_schema,
         examples = excluded.examples,
         source_refs = excluded.source_refs,
         raw_meta = excluded.raw_meta,
@@ -1232,34 +858,12 @@ async function upsertPostgres(sql, docs) {
   }
 }
 
-function docParams(doc, encodeJson) {
-  return [
-    doc.uuid,
-    doc.block_type,
-    doc.display_name,
-    doc.category,
-    doc.source_kind,
-    doc.source_file,
-    doc.description,
-    doc.status,
-    encodeJson(doc.toolbox),
-    encodeJson(doc.initial_props),
-    encodeJson(doc.property_schema),
-    encodeJson(doc.event_schema),
-    encodeJson(doc.method_schema),
-    encodeJson(doc.data_fields_schema),
-    encodeJson(doc.examples),
-    encodeJson(doc.source_refs),
-    encodeJson(doc.raw_meta),
-  ]
-}
-
 async function pruneMysql(connection, docs) {
   const uuids = docs.map((doc) => doc.uuid)
   if (!uuids.length) return
   const placeholders = uuids.map(() => '?').join(', ')
   await connection.execute(
-    `DELETE FROM docs_client_block WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor', 'layout') AND uuid NOT IN (${placeholders})`,
+    `DELETE FROM docs_client_block WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor') AND uuid NOT IN (${placeholders})`,
     uuids,
   )
 }
@@ -1269,12 +873,27 @@ async function prunePostgres(sql, docs) {
   if (!uuids.length) return
   await sql`
     DELETE FROM docs_client_block
-    WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor', 'layout')
+    WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor')
       AND uuid NOT IN ${sql(uuids)}
   `
 }
 
-async function writeToDatabase(docs, prune) {
+async function removeLayoutDocsMysql(connection) {
+  await connection.execute(
+    `DELETE FROM docs_client_block WHERE source_kind = 'layout' OR source_file LIKE ?`,
+    ['submodule/mokelay-editor/src/layouts/%'],
+  )
+}
+
+async function removeLayoutDocsPostgres(sql) {
+  await sql`
+    DELETE FROM docs_client_block
+    WHERE source_kind = 'layout'
+      OR source_file LIKE ${'submodule/mokelay-editor/src/layouts/%'}
+  `
+}
+
+export async function writeClientBlockDocsToDatabase(docs, prune = false) {
   const databaseUrl = process.env.Mokelay_DATABASE_URL
   if (!databaseUrl) {
     throw new Error('Mokelay_DATABASE_URL is not configured.')
@@ -1285,6 +904,7 @@ async function writeToDatabase(docs, prune) {
     const connection = await mysql.createConnection(databaseUrl)
     try {
       await ensureMysqlTable(connection)
+      await removeLayoutDocsMysql(connection)
       await upsertMysql(connection, docs)
       if (prune) await pruneMysql(connection, docs)
     } finally {
@@ -1296,6 +916,7 @@ async function writeToDatabase(docs, prune) {
   const sql = postgres(databaseUrl, { max: 1, prepare: false })
   try {
     await ensurePostgresTable(sql)
+    await removeLayoutDocsPostgres(sql)
     await upsertPostgres(sql, docs)
     if (prune) await prunePostgres(sql, docs)
   } finally {
@@ -1308,7 +929,11 @@ async function main() {
   const args = new Set(process.argv.slice(2))
   const dryRun = args.has('--dry-run')
   const prune = args.has('--prune')
-  const docs = await collectDocs()
+  if (args.has('--write-editor-cache')) {
+    throw new Error('--write-editor-cache has been removed; the editor loads client Block docs from the document API.')
+  }
+
+  const docs = await collectClientBlockDocs()
 
   if (dryRun) {
     console.log(JSON.stringify({
@@ -1318,11 +943,13 @@ async function main() {
     return
   }
 
-  const type = await writeToDatabase(docs, prune)
-  console.log(`Imported ${docs.length} block component docs into ${type} database.`)
+  const type = await writeClientBlockDocsToDatabase(docs, prune)
+  console.log(`Imported ${docs.length} client block docs into ${type} database.`)
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exitCode = 1
-})
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  main().catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}

@@ -1,13 +1,13 @@
 {
   "uuid": "block_component_docs",
-  "name": "Block 组件文档管理",
+  "name": "客户端 Block 文档管理",
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
       "id": "block-docs-title",
       "type": "MHeading",
       "data": {
-        "text": "Block 组件文档管理",
+        "text": "客户端 Block 文档管理",
         "level": "1",
         "align": "left"
       }
@@ -16,8 +16,211 @@
       "id": "block-docs-intro",
       "type": "MRichText",
       "data": {
-        "content": "这里展示 mokelay-editor 当前代码中已注册 block 的完整文档数据。数据由导入脚本从真实源码抽取后写入数据库，包含基础信息、属性、事件、方法、可读数据字段、示例 DSL 和源码引用。"
+        "content": "这里展示 docs_client_block 中由 @clientBlockDoc 注释同步而来的客户端 block 注册、工具箱、属性、默认值、保存规则、事件、方法和源码引用。页面编辑器的组件列表也会读取同一份后端 API 数据。"
       }
+    },
+    {
+      "id": "block-docs-search-form",
+      "type": "MForm",
+      "data": {
+        "layout": "Horizontal",
+        "items": [
+          {
+            "labelName": "启用",
+            "variableName": "editorEnabled",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "block-docs-search-editor-enabled",
+              "type": "MSelectField",
+              "data": {
+                "value": "",
+                "options": [
+                  {
+                    "label": "全部",
+                    "value": ""
+                  },
+                  {
+                    "label": "是",
+                    "value": "1"
+                  },
+                  {
+                    "label": "否",
+                    "value": "0"
+                  }
+                ]
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "显示",
+            "variableName": "toolboxVisible",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "block-docs-search-toolbox-visible",
+              "type": "MSelectField",
+              "data": {
+                "value": "",
+                "options": [
+                  {
+                    "label": "全部",
+                    "value": ""
+                  },
+                  {
+                    "label": "是",
+                    "value": "1"
+                  },
+                  {
+                    "label": "否",
+                    "value": "0"
+                  }
+                ]
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "分类",
+            "variableName": "category",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "block-docs-search-category",
+              "type": "MSelectField",
+              "data": {
+                "value": "",
+                "options": [
+                  {
+                    "label": "全部",
+                    "value": ""
+                  },
+                  {
+                    "label": "动作",
+                    "value": "action"
+                  },
+                  {
+                    "label": "容器",
+                    "value": "container"
+                  },
+                  {
+                    "label": "内容",
+                    "value": "content"
+                  },
+                  {
+                    "label": "数据",
+                    "value": "data"
+                  },
+                  {
+                    "label": "表单",
+                    "value": "form"
+                  },
+                  {
+                    "label": "布局",
+                    "value": "layout"
+                  },
+                  {
+                    "label": "页面",
+                    "value": "page"
+                  }
+                ]
+              }
+            },
+            "events": []
+          }
+        ],
+        "actionBar": {
+          "align": "left",
+          "size": "small",
+          "mode": "inline",
+          "buttons": [
+            {
+              "id": "search",
+              "label": "查询",
+              "variant": "secondary",
+              "events": [
+                {
+                  "event": "click",
+                  "actions": [
+                    {
+                      "uuid": "block_docs_search_get_form_data",
+                      "action": "call_block_method",
+                      "alias": "获取客户端 Block 查询条件",
+                      "inputs": {
+                        "blockId": "block-docs-search-form",
+                        "method": "getData"
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": "block_docs_search_table"
+                    },
+                    {
+                      "uuid": "block_docs_search_table",
+                      "action": "call_block_method",
+                      "alias": "查询客户端 Block 文档",
+                      "inputs": {
+                        "blockId": "block-docs-table",
+                        "method": "search",
+                        "args": {
+                          "template": "{{actions['block_docs_search_get_form_data'].outputs.returnData}}"
+                        }
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "reset",
+              "label": "重置",
+              "variant": "ghost",
+              "events": [
+                {
+                  "event": "click",
+                  "actions": [
+                    {
+                      "uuid": "block_docs_reset_form",
+                      "action": "call_block_method",
+                      "alias": "重置客户端 Block 查询条件",
+                      "inputs": {
+                        "blockId": "block-docs-search-form",
+                        "method": "reset"
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": "block_docs_reset_table"
+                    },
+                    {
+                      "uuid": "block_docs_reset_table",
+                      "action": "call_block_method",
+                      "alias": "重置客户端 Block 文档列表",
+                      "inputs": {
+                        "blockId": "block-docs-table",
+                        "method": "search",
+                        "args": {
+                          "template": "{{actions['block_docs_reset_form'].outputs.returnData.values}}"
+                        }
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "events": []
     },
     {
       "id": "block-docs-table",
@@ -108,17 +311,381 @@
             ]
           },
           {
-            "columnName": "属性",
-            "fieldVariable": "property_schema",
-            "fieldDataType": "array",
-            "width": 96,
+            "columnName": "注册",
+            "fieldVariable": "component_name",
+            "fieldDataType": "string",
+            "width": 220,
             "fixed": null,
             "columnContent": [
               {
-                "id": "block-docs-open-properties",
+                "id": "block-docs-col-component-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{component_name}} / {{tool_symbol}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "工具箱",
+            "fieldVariable": "toolbox_visible",
+            "fieldDataType": "string",
+            "width": 320,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [
+              {
+                "id": "block-docs-editor-enabled-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "查看",
+                  "label": "编辑器：已启用",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "visible": "{{editor_enabled}}"
+                },
+                "events": []
+              },
+              {
+                "id": "block-docs-editor-disabled-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "编辑器：已停用",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "hidden": "{{editor_enabled}}"
+                },
+                "events": []
+              },
+              {
+                "id": "block-docs-toolbox-shown-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "工具箱：显示",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "visible": "{{toolbox_visible}}"
+                },
+                "events": []
+              },
+              {
+                "id": "block-docs-toolbox-hidden-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "工具箱：隐藏",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "hidden": "{{toolbox_visible}}"
+                },
+                "events": []
+              },
+              {
+                "id": "block-docs-disable-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "停用",
+                  "variant": "warning",
+                  "align": "left",
+                  "bare": true,
+                  "visible": "{{editor_enabled}}"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_disable_request",
+                        "action": "execute_ds",
+                        "alias": "停用客户端 Block",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/update_client_block_doc_settings",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": "{{uuid}}"
+                              },
+                              {
+                                "key": "editor_enabled",
+                                "dataType": "boolean",
+                                "value": false
+                              },
+                              {
+                                "key": "toolbox_visible",
+                                "dataType": "boolean",
+                                "value": "{{toolbox_visible}}"
+                              },
+                              {
+                                "key": "sort_order",
+                                "dataType": "string",
+                                "value": "{{sort_order}}"
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "block_docs_disable_refresh"
+                      },
+                      {
+                        "uuid": "block_docs_disable_refresh",
+                        "action": "call_block_method",
+                        "alias": "刷新客户端 Block 文档",
+                        "inputs": {
+                          "blockId": "block-docs-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "block-docs-enable-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "启用",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true,
+                  "hidden": "{{editor_enabled}}"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_enable_request",
+                        "action": "execute_ds",
+                        "alias": "启用客户端 Block",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/update_client_block_doc_settings",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": "{{uuid}}"
+                              },
+                              {
+                                "key": "editor_enabled",
+                                "dataType": "boolean",
+                                "value": true
+                              },
+                              {
+                                "key": "toolbox_visible",
+                                "dataType": "boolean",
+                                "value": "{{toolbox_visible}}"
+                              },
+                              {
+                                "key": "sort_order",
+                                "dataType": "string",
+                                "value": "{{sort_order}}"
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "block_docs_enable_refresh"
+                      },
+                      {
+                        "uuid": "block_docs_enable_refresh",
+                        "action": "call_block_method",
+                        "alias": "刷新客户端 Block 文档",
+                        "inputs": {
+                          "blockId": "block-docs-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "block-docs-hide-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "隐藏",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true,
+                  "visible": "{{toolbox_visible}}"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_hide_request",
+                        "action": "execute_ds",
+                        "alias": "隐藏客户端 Block 工具箱项",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/update_client_block_doc_settings",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": "{{uuid}}"
+                              },
+                              {
+                                "key": "editor_enabled",
+                                "dataType": "boolean",
+                                "value": "{{editor_enabled}}"
+                              },
+                              {
+                                "key": "toolbox_visible",
+                                "dataType": "boolean",
+                                "value": false
+                              },
+                              {
+                                "key": "sort_order",
+                                "dataType": "string",
+                                "value": "{{sort_order}}"
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "block_docs_hide_refresh"
+                      },
+                      {
+                        "uuid": "block_docs_hide_refresh",
+                        "action": "call_block_method",
+                        "alias": "刷新客户端 Block 文档",
+                        "inputs": {
+                          "blockId": "block-docs-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "block-docs-show-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "展示",
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true,
+                  "hidden": "{{toolbox_visible}}"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "block_docs_show_request",
+                        "action": "execute_ds",
+                        "alias": "展示客户端 Block 工具箱项",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/update_client_block_doc_settings",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": "{{uuid}}"
+                              },
+                              {
+                                "key": "editor_enabled",
+                                "dataType": "boolean",
+                                "value": "{{editor_enabled}}"
+                              },
+                              {
+                                "key": "toolbox_visible",
+                                "dataType": "boolean",
+                                "value": true
+                              },
+                              {
+                                "key": "sort_order",
+                                "dataType": "string",
+                                "value": "{{sort_order}}"
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "block_docs_show_refresh"
+                      },
+                      {
+                        "uuid": "block_docs_show_refresh",
+                        "action": "call_block_method",
+                        "alias": "刷新客户端 Block 文档",
+                        "inputs": {
+                          "blockId": "block-docs-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "block-docs-sort-order-{{uuid}}",
+                "type": "MInput",
+                "data": {
+                  "id": "block-docs-sort-order-{{uuid}}",
+                  "value": "{{sort_order}}",
+                  "placeholder": "排序",
+                  "maxLength": 9
+                },
+                "events": []
+              },
+              {
+                "id": "block-docs-save-sort-order-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "保存排序",
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -128,23 +695,71 @@
                     "event": "click",
                     "actions": [
                       {
-                        "uuid": "block_docs_open_property_detail",
-                        "action": "open_dialog",
-                        "alias": "打开属性详情页面",
+                        "uuid": "block_docs_read_sort_order",
+                        "action": "call_block_method",
+                        "alias": "读取客户端 Block 排序",
                         "inputs": {
-                          "title": "{{display_name}} · 属性信息",
-                          "pageUUID": "block_component_doc_properties",
-                          "pageSource": "system",
-                          "context": {
-                            "block_type": "{{block_type}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{property_schema}}",
-                            "count": "{{raw_meta.counts.properties}}",
-                            "emptyText": "暂无属性信息"
+                          "blockId": "block-docs-sort-order-{{uuid}}",
+                          "method": "getData"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": "block_docs_save_sort_order_request"
+                      },
+                      {
+                        "uuid": "block_docs_save_sort_order_request",
+                        "action": "execute_ds",
+                        "alias": "保存客户端 Block 排序",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/update_client_block_doc_settings",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": "{{uuid}}"
+                              },
+                              {
+                                "key": "editor_enabled",
+                                "dataType": "boolean",
+                                "value": "{{editor_enabled}}"
+                              },
+                              {
+                                "key": "toolbox_visible",
+                                "dataType": "boolean",
+                                "value": "{{toolbox_visible}}"
+                              },
+                              {
+                                "key": "sort_order",
+                                "dataType": "string",
+                                "value": {
+                                  "template": "{{actions['block_docs_read_sort_order'].outputs.returnData.value}}"
+                                }
+                              }
+                            ],
+                            "queryData": []
                           }
                         },
                         "outputs": [
-                          "close_result"
+                          "rawResponse"
+                        ],
+                        "nextAction": "block_docs_save_sort_order_refresh"
+                      },
+                      {
+                        "uuid": "block_docs_save_sort_order_refresh",
+                        "action": "call_block_method",
+                        "alias": "刷新客户端 Block 文档",
+                        "inputs": {
+                          "blockId": "block-docs-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
                         ],
                         "nextAction": null
                       }
@@ -155,17 +770,17 @@
             ]
           },
           {
-            "columnName": "事件",
-            "fieldVariable": "event_schema",
-            "fieldDataType": "array",
-            "width": 96,
-            "fixed": null,
+            "columnName": "操作",
+            "fieldVariable": "uuid",
+            "fieldDataType": "string",
+            "width": 112,
+            "fixed": "right",
             "columnContent": [
               {
-                "id": "block-docs-open-events",
+                "id": "block-docs-open-detail-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "查看",
+                  "label": "查看详情",
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -175,71 +790,15 @@
                     "event": "click",
                     "actions": [
                       {
-                        "uuid": "block_docs_open_event_detail",
-                        "action": "open_dialog",
-                        "alias": "打开事件详情页面",
+                        "uuid": "block_docs_open_detail",
+                        "action": "jump_url",
+                        "alias": "查看客户端 Block 文档详情",
                         "inputs": {
-                          "title": "{{display_name}} · 事件信息",
-                          "pageUUID": "block_component_doc_events",
-                          "pageSource": "system",
-                          "context": {
-                            "block_type": "{{block_type}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{event_schema}}",
-                            "count": "{{raw_meta.counts.events}}",
-                            "emptyText": "暂无事件信息"
+                          "url": {
+                            "template": "/#/block_component_doc_detail?uuid={{uuid}}"
                           }
                         },
-                        "outputs": [
-                          "close_result"
-                        ],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "方法",
-            "fieldVariable": "method_schema",
-            "fieldDataType": "array",
-            "width": 96,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "block-docs-open-methods",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "block_docs_open_method_detail",
-                        "action": "open_dialog",
-                        "alias": "打开方法详情页面",
-                        "inputs": {
-                          "title": "{{display_name}} · 方法信息",
-                          "pageUUID": "block_component_doc_methods",
-                          "pageSource": "system",
-                          "context": {
-                            "block_type": "{{block_type}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{method_schema}}",
-                            "count": "{{raw_meta.counts.methods}}",
-                            "emptyText": "暂无方法信息"
-                          }
-                        },
-                        "outputs": [
-                          "close_result"
-                        ],
+                        "outputs": [],
                         "nextAction": null
                       }
                     ]
@@ -252,7 +811,7 @@
         "ds": {
           "type": "API",
           "domain": "mokelay",
-          "path": "/api/mokelay/list_block_component_docs",
+          "path": "/api/mokelay/list_client_block_docs",
           "method": "GET",
           "headerData": [],
           "bodyData": [],
@@ -273,6 +832,37 @@
                 "blockId": "block-docs-table",
                 "blockType": "MAdvanceTable",
                 "variable": "pageSize"
+              }
+            },
+            {
+              "key": "status",
+              "value": "active"
+            },
+            {
+              "key": "editorEnabled",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.editorEnabled"
+              }
+            },
+            {
+              "key": "toolboxVisible",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.toolboxVisible"
+              }
+            },
+            {
+              "key": "category",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.category"
               }
             }
           ],

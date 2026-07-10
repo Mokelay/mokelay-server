@@ -197,15 +197,24 @@ CREATE TABLE public.docs_client_block (
     display_name character varying(120) NOT NULL,
     category character varying(64) DEFAULT 'custom'::character varying NOT NULL,
     source_kind character varying(64) DEFAULT 'mokelay-editor'::character varying NOT NULL,
+    source_package character varying(128) DEFAULT 'mokelay-editor'::character varying NOT NULL,
     source_file text DEFAULT ''::text NOT NULL,
+    component_name character varying(128) DEFAULT ''::character varying NOT NULL,
+    tool_symbol character varying(128) DEFAULT ''::character varying NOT NULL,
     description text DEFAULT ''::text NOT NULL,
     status character varying(32) DEFAULT 'active'::character varying NOT NULL,
+    editor_enabled boolean DEFAULT true NOT NULL,
+    toolbox_visible boolean DEFAULT true NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    registration jsonb DEFAULT '{}'::jsonb NOT NULL,
     toolbox jsonb DEFAULT '{}'::jsonb NOT NULL,
     initial_props jsonb DEFAULT '{}'::jsonb NOT NULL,
+    default_data jsonb DEFAULT '{}'::jsonb NOT NULL,
     property_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
     event_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
     method_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
     data_fields_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
+    save_schema jsonb DEFAULT '[]'::jsonb NOT NULL,
     examples jsonb DEFAULT '[]'::jsonb NOT NULL,
     source_refs jsonb DEFAULT '[]'::jsonb NOT NULL,
     raw_meta jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -744,6 +753,34 @@ ALTER TABLE ONLY public.docs_server_processor
 
 ALTER TABLE ONLY public.docs_server_processor
     ADD CONSTRAINT docs_server_processor_uuid_unique UNIQUE (uuid);
+
+
+--
+-- Name: idx_docs_client_block_category; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_client_block_category ON public.docs_client_block USING btree (category);
+
+
+--
+-- Name: idx_docs_client_block_editor_enabled; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_client_block_editor_enabled ON public.docs_client_block USING btree (editor_enabled);
+
+
+--
+-- Name: idx_docs_client_block_source_kind; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_client_block_source_kind ON public.docs_client_block USING btree (source_kind);
+
+
+--
+-- Name: idx_docs_client_block_toolbox_visible; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_client_block_toolbox_visible ON public.docs_client_block USING btree (toolbox_visible);
 
 
 --

@@ -9,15 +9,24 @@
       "display_name",
       "category",
       "source_kind",
+      "source_package",
       "source_file",
+      "component_name",
+      "tool_symbol",
       "description",
       "status",
+      "editor_enabled",
+      "toolbox_visible",
+      "sort_order",
+      "registration",
       "toolbox",
       "initial_props",
+      "default_data",
       "property_schema",
       "event_schema",
       "method_schema",
       "data_fields_schema",
+      "save_schema",
       "examples",
       "source_refs",
       "raw_meta"
@@ -52,8 +61,17 @@
           "source_kind": {
             "template": "{{request.body.source_kind}}"
           },
+          "source_package": {
+            "template": "{{request.body.source_package}}"
+          },
           "source_file": {
             "template": "{{request.body.source_file}}"
+          },
+          "component_name": {
+            "template": "{{request.body.component_name}}"
+          },
+          "tool_symbol": {
+            "template": "{{request.body.tool_symbol}}"
           },
           "description": {
             "template": "{{request.body.description}}"
@@ -61,11 +79,26 @@
           "status": {
             "template": "{{request.body.status}}"
           },
+          "editor_enabled": {
+            "template": "{{request.body.editor_enabled}}"
+          },
+          "toolbox_visible": {
+            "template": "{{request.body.toolbox_visible}}"
+          },
+          "sort_order": {
+            "template": "{{request.body.sort_order}}"
+          },
+          "registration": {
+            "template": "{{request.body.registration}}"
+          },
           "toolbox": {
             "template": "{{request.body.toolbox}}"
           },
           "initial_props": {
-            "template": "{{request.body.initial_props}}"
+            "template": "{{request.body.default_data}}"
+          },
+          "default_data": {
+            "template": "{{request.body.default_data}}"
           },
           "property_schema": {
             "template": "{{request.body.property_schema}}"
@@ -78,6 +111,9 @@
           },
           "data_fields_schema": {
             "template": "{{request.body.data_fields_schema}}"
+          },
+          "save_schema": {
+            "template": "{{request.body.save_schema}}"
           },
           "examples": {
             "template": "{{request.body.examples}}"
@@ -112,15 +148,24 @@
           "display_name",
           "category",
           "source_kind",
+          "source_package",
           "source_file",
+          "component_name",
+          "tool_symbol",
           "description",
           "status",
+          "editor_enabled",
+          "toolbox_visible",
+          "sort_order",
+          "registration",
           "toolbox",
           "initial_props",
+          "default_data",
           "property_schema",
           "event_schema",
           "method_schema",
           "data_fields_schema",
+          "save_schema",
           "examples",
           "source_refs",
           "raw_meta",

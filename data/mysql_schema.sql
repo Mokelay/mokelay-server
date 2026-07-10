@@ -104,15 +104,24 @@ CREATE TABLE `docs_client_block` (
   `display_name` varchar(120) NOT NULL COMMENT '展示名称',
   `category` varchar(64) NOT NULL DEFAULT 'custom' COMMENT 'Block 分类',
   `source_kind` varchar(64) NOT NULL DEFAULT 'mokelay-editor' COMMENT '来源类型',
+  `source_package` varchar(128) NOT NULL DEFAULT 'mokelay-editor' COMMENT '来源包名',
   `source_file` text NOT NULL COMMENT '源码来源文件',
+  `component_name` varchar(128) NOT NULL DEFAULT '' COMMENT 'Vue 组件名',
+  `tool_symbol` varchar(128) NOT NULL DEFAULT '' COMMENT 'Editor tool 导出符号',
   `description` text NOT NULL COMMENT 'Block 描述',
   `status` varchar(32) NOT NULL DEFAULT 'active' COMMENT '状态',
+  `editor_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否可注册到编辑器',
+  `toolbox_visible` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否显示在工具箱',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '工具箱排序',
+  `registration` json NOT NULL COMMENT '编辑器注册信息',
   `toolbox` json NOT NULL COMMENT '工具栏信息',
   `initial_props` json NOT NULL COMMENT '初始属性',
+  `default_data` json NOT NULL COMMENT '默认 block.data',
   `property_schema` json NOT NULL COMMENT '属性信息',
   `event_schema` json NOT NULL COMMENT '事件信息',
   `method_schema` json NOT NULL COMMENT '方法信息',
   `data_fields_schema` json NOT NULL COMMENT '可读取数据字段信息',
+  `save_schema` json NOT NULL COMMENT '保存规则',
   `examples` json NOT NULL COMMENT '示例 DSL',
   `source_refs` json NOT NULL COMMENT '源码引用',
   `raw_meta` json NOT NULL COMMENT '抽取元信息',
@@ -122,8 +131,10 @@ CREATE TABLE `docs_client_block` (
   UNIQUE KEY `uk_docs_client_block_uuid` (`uuid`),
   UNIQUE KEY `uk_docs_client_block_block_type` (`block_type`),
   KEY `idx_docs_client_block_category` (`category`),
-  KEY `idx_docs_client_block_source_kind` (`source_kind`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Block 组件文档表';
+  KEY `idx_docs_client_block_source_kind` (`source_kind`),
+  KEY `idx_docs_client_block_editor_enabled` (`editor_enabled`),
+  KEY `idx_docs_client_block_toolbox_visible` (`toolbox_visible`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='客户端 Block 文档表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `docs_server_block`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

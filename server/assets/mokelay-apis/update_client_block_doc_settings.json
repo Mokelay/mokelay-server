@@ -1,0 +1,194 @@
+{
+  "uuid": "update_client_block_doc_settings",
+  "alias": "更新客户端 Block 工具箱配置接口",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "uuid",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "max",
+            "param": [
+              128
+            ]
+          }
+        ]
+      },
+      {
+        "key": "editor_enabled"
+      },
+      {
+        "key": "toolbox_visible"
+      },
+      {
+        "key": "sort_order",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "regex",
+            "param": "^(0|[1-9][0-9]{0,8})$"
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "validate_editor_enabled"
+    },
+    {
+      "uuid": "validate_editor_enabled",
+      "alias": "校验编辑器启用配置",
+      "functionName": "switch_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{request.body.editor_enabled}}"
+        },
+        "dataType": "boolean"
+      },
+      "nodes": [
+        {
+          "uuid": "editor_enabled_true",
+          "value": true,
+          "nextBlock": "validate_toolbox_visible"
+        },
+        {
+          "uuid": "editor_enabled_false",
+          "value": false,
+          "nextBlock": "validate_toolbox_visible"
+        }
+      ]
+    },
+    {
+      "uuid": "validate_toolbox_visible",
+      "alias": "校验工具箱显示配置",
+      "functionName": "switch_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{request.body.toolbox_visible}}"
+        },
+        "dataType": "boolean"
+      },
+      "nodes": [
+        {
+          "uuid": "toolbox_visible_true",
+          "value": true,
+          "nextBlock": "update_block_doc_settings"
+        },
+        {
+          "uuid": "toolbox_visible_false",
+          "value": false,
+          "nextBlock": "update_block_doc_settings"
+        }
+      ]
+    },
+    {
+      "uuid": "update_block_doc_settings",
+      "alias": "更新客户端 Block 工具箱配置",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_client_block",
+        "fields": {
+          "editor_enabled": {
+            "template": "{{request.body.editor_enabled}}"
+          },
+          "toolbox_visible": {
+            "template": "{{request.body.toolbox_visible}}"
+          },
+          "sort_order": {
+            "template": "{{request.body.sort_order}}"
+          },
+          "updated_at": {
+            "template": "{{now}}"
+          }
+        },
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": "read_updated_block_doc_settings"
+    },
+    {
+      "uuid": "read_updated_block_doc_settings",
+      "alias": "读取更新后的客户端 Block 文档",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_client_block",
+        "fields": [
+          "id",
+          "uuid",
+          "block_type",
+          "display_name",
+          "category",
+          "source_kind",
+          "source_package",
+          "source_file",
+          "component_name",
+          "tool_symbol",
+          "description",
+          "status",
+          "editor_enabled",
+          "toolbox_visible",
+          "sort_order",
+          "registration",
+          "toolbox",
+          "initial_props",
+          "default_data",
+          "property_schema",
+          "event_schema",
+          "method_schema",
+          "data_fields_schema",
+          "save_schema",
+          "examples",
+          "source_refs",
+          "raw_meta",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.body.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_updated_block_doc_settings": {
+      "affected": {
+        "template": "{{blocks['update_block_doc_settings'].outputs.affected}}"
+      },
+      "doc": {
+        "template": "{{blocks['read_updated_block_doc_settings'].outputs.data}}"
+      }
+    }
+  }
+}

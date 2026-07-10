@@ -1,0 +1,647 @@
+{
+  "uuid": "block_component_doc_detail",
+  "createdAt": "2026-07-10T00:00:00.000Z",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "name": "客户端 Block 文档详情",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [
+    {
+      "key": "doc",
+      "type": "datasource",
+      "ds": {
+        "type": "API",
+        "domain": "mokelay",
+        "path": "/api/mokelay/read_block_component_doc",
+        "method": "GET",
+        "headerData": [],
+        "bodyData": [],
+        "queryData": [
+          {
+            "key": "uuid",
+            "value": {
+              "mode": "variable",
+              "source": "MPage",
+              "pageId": "block_component_doc_detail",
+              "variable": "context.route.query.uuid"
+            }
+          }
+        ],
+        "schemaSelections": [
+          {
+            "path": "data.doc",
+            "label": "Block 文档",
+            "type": "object"
+          }
+        ],
+        "matchingExternalFields": [
+          {
+            "label": "Block 文档",
+            "variable": "doc",
+            "matchFieldPath": "data.doc"
+          }
+        ]
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "id": "block-doc-detail-back",
+      "type": "MButton",
+      "data": {
+        "label": "返回 Block 文档",
+        "variant": "secondary",
+        "align": "left",
+        "bare": true
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "block_doc_detail_back",
+              "action": "jump_url",
+              "alias": "返回客户端 Block 文档",
+              "inputs": {
+                "url": "/#/docs"
+              },
+              "outputs": [],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "block-doc-detail-title",
+      "type": "MHeading",
+      "data": {
+        "text": "客户端 Block 文档详情",
+        "level": "1",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-records",
+      "type": "MRecordList",
+      "data": {
+        "items": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc"
+        },
+        "displayName": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc.display_name"
+        },
+        "blockType": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc.block_type"
+        },
+        "emptyText": "未找到对应的 Block 文档。",
+        "showCount": false,
+        "titleFields": ["display_name", "block_type", "uuid"],
+        "fieldOrder": [
+          "uuid",
+          "block_type",
+          "display_name",
+          "description",
+          "category",
+          "status",
+          "source_kind",
+          "source_package",
+          "source_file",
+          "component_name",
+          "tool_symbol",
+          "editor_enabled",
+          "toolbox_visible",
+          "sort_order",
+          "created_at",
+          "updated_at"
+        ],
+        "fieldLabels": {
+          "uuid": "UUID",
+          "block_type": "Block Type",
+          "display_name": "名称",
+          "description": "说明",
+          "category": "分类",
+          "status": "状态",
+          "source_kind": "来源类型",
+          "source_package": "来源包",
+          "source_file": "源码",
+          "component_name": "组件名称",
+          "tool_symbol": "工具符号",
+          "editor_enabled": "编辑器启用",
+          "toolbox_visible": "工具箱显示",
+          "sort_order": "排序",
+          "registration": "注册信息",
+          "toolbox": "工具箱配置",
+          "initial_props": "兼容初始属性",
+          "default_data": "默认值",
+          "data_fields_schema": "数据字段",
+          "save_schema": "保存规则",
+          "examples": "示例",
+          "source_refs": "源码引用",
+          "raw_meta": "原始元数据",
+          "created_at": "创建时间",
+          "updated_at": "更新时间"
+        },
+        "hiddenFields": [
+          "registration",
+          "toolbox",
+          "initial_props",
+          "default_data",
+          "property_schema",
+          "event_schema",
+          "method_schema",
+          "data_fields_schema",
+          "save_schema",
+          "examples",
+          "source_refs",
+          "raw_meta"
+        ]
+      }
+    },
+    {
+      "id": "block-doc-detail-json-config-title",
+      "type": "MHeading",
+      "data": {
+        "text": "文档配置 JSON",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-json-config-grid",
+      "type": "MLayoutGrid",
+      "data": {
+        "gap": 16,
+        "columns": "minmax(0, 1fr) minmax(0, 1fr)",
+        "responsive": {
+          "mobile": {
+            "columns": 1,
+            "areaOrder": ["primary", "secondary"]
+          }
+        },
+        "areas": [
+          {
+            "id": "primary",
+            "name": "基础配置",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "block-doc-detail-registration-json",
+                "type": "MJson",
+                "data": {
+                  "label": "注册信息",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.registration"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-initial-props-json",
+                "type": "MJson",
+                "data": {
+                  "label": "兼容初始属性",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.initial_props"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-data-fields-json",
+                "type": "MJson",
+                "data": {
+                  "label": "数据字段",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.data_fields_schema"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-examples-json",
+                "type": "MJson",
+                "data": {
+                  "label": "示例",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.examples"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "secondary",
+            "name": "扩展配置",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "block-doc-detail-toolbox-json",
+                "type": "MJson",
+                "data": {
+                  "label": "工具箱配置",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.toolbox"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-default-data-json",
+                "type": "MJson",
+                "data": {
+                  "label": "默认值",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.default_data"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-save-rules-json",
+                "type": "MJson",
+                "data": {
+                  "label": "保存规则",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.save_schema"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-source-refs-json",
+                "type": "MJson",
+                "data": {
+                  "label": "源码引用",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.source_refs"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "block-doc-detail-raw-meta-json",
+                "type": "MJson",
+                "data": {
+                  "label": "原始元数据",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "block_component_doc_detail",
+                    "variable": "dataSources.doc.doc.raw_meta"
+                  },
+                  "height": 320,
+                  "expandDepth": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "block-doc-detail-properties-title",
+      "type": "MHeading",
+      "data": {
+        "text": "属性",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-properties-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc.property_schema"
+        },
+        "columns": [
+          {
+            "columnName": "标识",
+            "fieldVariable": "key",
+            "fieldDataType": "string",
+            "width": 160,
+            "fixed": "left",
+            "columnContent": [{
+              "id": "block-doc-detail-property-key",
+              "type": "paragraph",
+              "data": { "text": "{{key}}" }
+            }]
+          },
+          {
+            "columnName": "名称",
+            "fieldVariable": "label",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-property-label",
+              "type": "paragraph",
+              "data": { "text": "{{label}}" }
+            }]
+          },
+          {
+            "columnName": "类型",
+            "fieldVariable": "type",
+            "fieldDataType": "string",
+            "width": 220,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-property-type",
+              "type": "paragraph",
+              "data": { "text": "{{type}} / {{tsType}}" }
+            }]
+          },
+          {
+            "columnName": "默认值",
+            "fieldVariable": "defaultValue",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-property-default",
+              "type": "paragraph",
+              "data": { "text": "{{defaultValue}}" }
+            }]
+          },
+          {
+            "columnName": "配置",
+            "fieldVariable": "configurable",
+            "fieldDataType": "string",
+            "width": 150,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-property-flags",
+              "type": "paragraph",
+              "data": { "text": "可配置 {{configurable}} / 可选 {{optional}}" }
+            }]
+          },
+          {
+            "columnName": "源码",
+            "fieldVariable": "source",
+            "fieldDataType": "string",
+            "width": 320,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-property-source",
+              "type": "paragraph",
+              "data": { "text": "{{source}}:{{line}}" }
+            }]
+          }
+        ]
+      }
+    },
+    {
+      "id": "block-doc-detail-events-title",
+      "type": "MHeading",
+      "data": {
+        "text": "事件",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-events-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc.event_schema"
+        },
+        "columns": [
+          {
+            "columnName": "事件",
+            "fieldVariable": "event",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [{
+              "id": "block-doc-detail-event-name",
+              "type": "paragraph",
+              "data": { "text": "{{event}}" }
+            }]
+          },
+          {
+            "columnName": "载荷",
+            "fieldVariable": "payload",
+            "fieldDataType": "string",
+            "width": 360,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-event-payload",
+              "type": "paragraph",
+              "data": { "text": "{{payload}}" }
+            }]
+          },
+          {
+            "columnName": "触发方式",
+            "fieldVariable": "trigger",
+            "fieldDataType": "string",
+            "width": 200,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-event-trigger",
+              "type": "paragraph",
+              "data": { "text": "{{trigger}}" }
+            }]
+          },
+          {
+            "columnName": "源码",
+            "fieldVariable": "source",
+            "fieldDataType": "string",
+            "width": 360,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-event-source",
+              "type": "paragraph",
+              "data": { "text": "{{source}}:{{line}}" }
+            }]
+          }
+        ]
+      }
+    },
+    {
+      "id": "block-doc-detail-methods-title",
+      "type": "MHeading",
+      "data": {
+        "text": "方法",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-methods-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc.method_schema"
+        },
+        "columns": [
+          {
+            "columnName": "方法",
+            "fieldVariable": "name",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [{
+              "id": "block-doc-detail-method-name",
+              "type": "paragraph",
+              "data": { "text": "{{name}}" }
+            }]
+          },
+          {
+            "columnName": "参数",
+            "fieldVariable": "params",
+            "fieldDataType": "string",
+            "width": 280,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-method-params",
+              "type": "paragraph",
+              "data": { "text": "{{params}}" }
+            }]
+          },
+          {
+            "columnName": "返回值",
+            "fieldVariable": "returns",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-method-returns",
+              "type": "paragraph",
+              "data": { "text": "{{returns}}" }
+            }]
+          },
+          {
+            "columnName": "异步",
+            "fieldVariable": "async",
+            "fieldDataType": "boolean",
+            "width": 100,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-method-async",
+              "type": "paragraph",
+              "data": { "text": "{{async}}" }
+            }]
+          },
+          {
+            "columnName": "暴露",
+            "fieldVariable": "exposed",
+            "fieldDataType": "boolean",
+            "width": 100,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-method-exposed",
+              "type": "paragraph",
+              "data": { "text": "{{exposed}}" }
+            }]
+          },
+          {
+            "columnName": "源码",
+            "fieldVariable": "source",
+            "fieldDataType": "string",
+            "width": 360,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [{
+              "id": "block-doc-detail-method-source",
+              "type": "paragraph",
+              "data": { "text": "{{source}}:{{line}}" }
+            }]
+          }
+        ]
+      }
+    },
+    {
+      "id": "block-doc-detail-json-title",
+      "type": "MHeading",
+      "data": {
+        "text": "完整文档 JSON",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "block-doc-detail-json",
+      "type": "MJson",
+      "data": {
+        "label": "只读文档数据",
+        "value": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc"
+        },
+        "height": 560,
+        "expandDepth": 1
+      }
+    }
+  ]
+}
