@@ -137,6 +137,7 @@ describe('collectClientBlockDocs', () => {
   it('collects all registered client block docs from the repo', async () => {
     const docs = await collectClientBlockDocs()
     const blockTypes = docs.map((doc) => doc.block_type)
+    const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
     expect(docs).toHaveLength(47)
     expect(blockTypes).toContain('MButton')
@@ -164,6 +165,8 @@ describe('collectClientBlockDocs', () => {
     })
     expect(docs).not.toContainEqual(expect.objectContaining({ source_kind: 'layout' }))
     expect(docs.some((doc) => doc.source_file.includes('/src/layouts/'))).toBe(false)
+    expect(editorDocs.every((doc) => doc.description.trim().length >= 8)).toBe(true)
+    expect(editorDocs.some((doc) => doc.description.includes('属性、事件、方法由当前 mokelay-editor 源码自动抽取'))).toBe(false)
   })
 
   it('normalizes a valid fixture doc', async () => {
