@@ -18,14 +18,6 @@
         "items": {
           "template": "{{resources.mainMenu.items}}"
         },
-        "homeAction": {
-          "id": "home",
-          "data": {
-            "url": "#/",
-            "text": "首页"
-          },
-          "type": "MLink"
-        },
         "userActions": [],
         "guestActions": [],
         "utilityControls": [
