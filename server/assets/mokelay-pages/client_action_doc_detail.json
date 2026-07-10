@@ -1,6 +1,7 @@
 {
   "uuid":"client_action_doc_detail",
   "name":"客户端 Action 文档详情",
+  "layoutUuid":"mokelay_layout",
   "dataSources":[{"key":"doc","type":"datasource","ds":{"type":"API","domain":"mokelay","path":"/api/mokelay/read_client_action_doc","method":"GET","headerData":[],"bodyData":[],"queryData":[{"key":"uuid","value":{"mode":"variable","source":"MPage","pageId":"client_action_doc_detail","variable":"context.route.query.uuid"}}],"schemaSelections":[{"path":"data.doc","label":"Action 文档","type":"object"}],"matchingExternalFields":[{"label":"Action 文档","variable":"doc","matchFieldPath":"data.doc"}]}}],
   "blocks":[
     {"id":"client-action-detail-back","type":"MButton","data":{"label":"返回 Action 文档","variant":"secondary","align":"left","bare":true},"events":[{"event":"click","actions":[{"uuid":"client_action_detail_back","action":"jump_url","inputs":{"url":"/#/docs"},"outputs":[],"nextAction":null}]}]},

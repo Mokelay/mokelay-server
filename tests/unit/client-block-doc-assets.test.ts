@@ -260,6 +260,7 @@ describe('client block document assets', () => {
     const datasource = page.dataSources?.find((source) => source.key === 'doc')
     const uuidQuery = datasource?.ds?.queryData?.find((item) => item.key === 'uuid')
     const recordList = page.blocks?.find((block) => block.id === 'block-doc-detail-records')
+    const playground = page.blocks?.find((block) => block.id === 'block-doc-detail-playground')
     const propertiesTable = page.blocks?.find((block) => block.id === 'block-doc-detail-properties-table')
     const eventsTable = page.blocks?.find((block) => block.id === 'block-doc-detail-events-table')
     const methodsTable = page.blocks?.find((block) => block.id === 'block-doc-detail-methods-table')
@@ -295,6 +296,21 @@ describe('client block document assets', () => {
         'source_refs',
         'raw_meta',
       ]),
+    })
+    expect(playground).toMatchObject({
+      type: 'MBlockPlayground',
+      data: {
+        title: 'Block 展示',
+        initialSource: 'example',
+        jsonRows: 12,
+        emptyText: '未找到对应的 Block 文档。',
+        doc: {
+          mode: 'variable',
+          source: 'MPage',
+          pageId: 'block_component_doc_detail',
+          variable: 'dataSources.doc.doc',
+        },
+      },
     })
     expect(propertiesTable).toMatchObject({
       type: 'MAdvanceTable',

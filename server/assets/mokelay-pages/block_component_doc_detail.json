@@ -167,6 +167,22 @@
       }
     },
     {
+      "id": "block-doc-detail-playground",
+      "type": "MBlockPlayground",
+      "data": {
+        "title": "Block 展示",
+        "doc": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "block_component_doc_detail",
+          "variable": "dataSources.doc.doc"
+        },
+        "initialSource": "example",
+        "jsonRows": 12,
+        "emptyText": "未找到对应的 Block 文档。"
+      }
+    },
+    {
       "id": "block-doc-detail-json-config-title",
       "type": "MHeading",
       "data": {

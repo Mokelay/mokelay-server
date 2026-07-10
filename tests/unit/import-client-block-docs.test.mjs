@@ -139,8 +139,9 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(47)
+    expect(docs).toHaveLength(48)
     expect(blockTypes).toContain('MButton')
+    expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
     expect(blockTypes).toContain('MJson')
     expect(blockTypes).toContain('MLayoutPreview')
@@ -162,6 +163,15 @@ describe('collectClientBlockDocs', () => {
         height: 360,
         expandDepth: 1,
       },
+    })
+    expect(docs.find((doc) => doc.block_type === 'MBlockPlayground')).toMatchObject({
+      uuid: 'mokelay-editor-MBlockPlayground',
+      source_kind: 'mokelay-editor',
+      component_name: 'MBlockPlayground',
+      tool_symbol: 'mBlockPlaygroundTool',
+      editor_enabled: true,
+      toolbox_visible: false,
+      sort_order: 82,
     })
     expect(docs).not.toContainEqual(expect.objectContaining({ source_kind: 'layout' }))
     expect(docs.some((doc) => doc.source_file.includes('/src/layouts/'))).toBe(false)

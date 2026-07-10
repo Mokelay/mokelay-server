@@ -61,11 +61,13 @@ describe('client Action and Processor documentation assets', () => {
     ['mokelay-pages/client_processor_doc_detail.json', '/api/mokelay/read_client_processor_doc'],
   ])('binds detail page %s to route UUID and the correct API', async (fileName, apiPath) => {
     const page = await readJsonAsset<{
+      layoutUuid?: string
       dataSources: Array<{ ds?: { path?: string, queryData?: Array<{ key?: string, value?: { variable?: string } }> } }>
       blocks: Array<{ type?: string, data?: { value?: { variable?: string }, hiddenFields?: string[] } }>
     }>(fileName)
     const datasource = page.dataSources[0]?.ds
 
+    expect(page.layoutUuid).toBe('mokelay_layout')
     expect(datasource?.path).toBe(apiPath)
     expect(datasource?.queryData).toContainEqual({
       key: 'uuid',
