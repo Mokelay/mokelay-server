@@ -229,6 +229,63 @@ export const serverProcessorDocs = pgTable('docs_server_processor', {
   index('idx_docs_server_processor_source_kind').on(table.sourceKind),
 ])
 
+export const clientActionDocs = pgTable('docs_client_action', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  actionName: varchar('action_name', { length: 128 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 120 }).notNull(),
+  actionType: varchar('action_type', { length: 32 }).notNull().default('action'),
+  category: varchar('category', { length: 64 }).notNull().default('custom'),
+  sourceKind: varchar('source_kind', { length: 64 }).notNull(),
+  sourcePackage: varchar('source_package', { length: 128 }).notNull(),
+  sourceFile: text('source_file').notNull().default(''),
+  executorName: varchar('executor_name', { length: 128 }).notNull(),
+  description: text('description').notNull().default(''),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  inputSchema: jsonb('input_schema').$type<unknown[]>().notNull().default([]),
+  outputSchema: jsonb('output_schema').$type<unknown[]>().notNull().default([]),
+  errorSchema: jsonb('error_schema').$type<unknown[]>().notNull().default([]),
+  configSchema: jsonb('config_schema').$type<unknown[]>().notNull().default([]),
+  nodeSchema: jsonb('node_schema').$type<unknown[]>().notNull().default([]),
+  runtimeSchema: jsonb('runtime_schema').$type<unknown[]>().notNull().default([]),
+  examples: jsonb('examples').$type<unknown[]>().notNull().default([]),
+  sourceRefs: jsonb('source_refs').$type<unknown[]>().notNull().default([]),
+  rawMeta: jsonb('raw_meta').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_docs_client_action_category').on(table.category),
+  index('idx_docs_client_action_source_kind').on(table.sourceKind),
+])
+
+export const clientProcessorDocs = pgTable('docs_client_processor', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: varchar('uuid', { length: 128 }).notNull().unique(),
+  processorName: varchar('processor_name', { length: 128 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 120 }).notNull(),
+  category: varchar('category', { length: 64 }).notNull().default('custom'),
+  sourceKind: varchar('source_kind', { length: 64 }).notNull(),
+  sourcePackage: varchar('source_package', { length: 128 }).notNull(),
+  sourceFile: text('source_file').notNull().default(''),
+  executorName: varchar('executor_name', { length: 128 }).notNull(),
+  description: text('description').notNull().default(''),
+  status: varchar('status', { length: 32 }).notNull().default('active'),
+  inputSchema: jsonb('input_schema').$type<unknown[]>().notNull().default([]),
+  paramSchema: jsonb('param_schema').$type<unknown[]>().notNull().default([]),
+  outputSchema: jsonb('output_schema').$type<unknown[]>().notNull().default([]),
+  errorSchema: jsonb('error_schema').$type<unknown[]>().notNull().default([]),
+  configSchema: jsonb('config_schema').$type<unknown[]>().notNull().default([]),
+  runtimeSchema: jsonb('runtime_schema').$type<unknown[]>().notNull().default([]),
+  examples: jsonb('examples').$type<unknown[]>().notNull().default([]),
+  sourceRefs: jsonb('source_refs').$type<unknown[]>().notNull().default([]),
+  rawMeta: jsonb('raw_meta').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_docs_client_processor_category').on(table.category),
+  index('idx_docs_client_processor_source_kind').on(table.sourceKind),
+])
+
 export type EnterpriseRecord = typeof enterprise.$inferSelect
 export type NewEnterpriseRecord = typeof enterprise.$inferInsert
 export type EmployeeRecord = typeof employees.$inferSelect
@@ -259,3 +316,7 @@ export type ServerControllerDocRecord = typeof serverControllerDocs.$inferSelect
 export type NewServerControllerDocRecord = typeof serverControllerDocs.$inferInsert
 export type ServerProcessorDocRecord = typeof serverProcessorDocs.$inferSelect
 export type NewServerProcessorDocRecord = typeof serverProcessorDocs.$inferInsert
+export type ClientActionDocRecord = typeof clientActionDocs.$inferSelect
+export type NewClientActionDocRecord = typeof clientActionDocs.$inferInsert
+export type ClientProcessorDocRecord = typeof clientProcessorDocs.$inferSelect
+export type NewClientProcessorDocRecord = typeof clientProcessorDocs.$inferInsert

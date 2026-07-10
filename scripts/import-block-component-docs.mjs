@@ -276,7 +276,7 @@ function extractRegistryEntries(sourceFile, importMap) {
   const entries = []
 
   visit(sourceFile, (node) => {
-    if (!ts.isPropertyAssignment(node) || !ts.isObjectLiteralExpression(node.initializer)) return
+    if (!ts.isPropertyAssignment(node)) return
 
     let blockType = ''
     if (ts.isIdentifier(node.name)) {
@@ -293,6 +293,43 @@ function extractRegistryEntries(sourceFile, importMap) {
     }
 
     if (!blockType) return
+
+    if (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) {
+      const dynamicModules = []
+      let toolSymbol = ''
+
+      visit(node.initializer, (child) => {
+        if (ts.isCallExpression(child) && child.expression.kind === ts.SyntaxKind.ImportKeyword) {
+          const argument = child.arguments[0]
+          if (argument && ts.isStringLiteral(argument)) dynamicModules.push(argument.text)
+        }
+
+        if (ts.isSpreadAssignment(child) && ts.isIdentifier(child.expression)) {
+          toolSymbol = child.expression.text
+        }
+
+        if (ts.isSpreadAssignment(child) && ts.isPropertyAccessExpression(child.expression)) {
+          toolSymbol = child.expression.name.text
+        }
+      })
+
+      if (!toolSymbol || dynamicModules.length === 0) return
+      const componentModule = dynamicModules.find((modulePath) => modulePath.endsWith(`/blocks/${blockType}.vue`))
+        ?? dynamicModules[0]
+      const toolModule = dynamicModules.find((modulePath) => (
+        modulePath.replace(/^.*\//, '').replace(/\.(ts|js|vue)$/, '') === toolSymbol
+      )) ?? componentModule
+
+      entries.push({
+        blockType,
+        toolSymbol,
+        toolModule,
+        componentModule,
+      })
+      return
+    }
+
+    if (!ts.isObjectLiteralExpression(node.initializer)) return
 
     const spread = node.initializer.properties.find((property) => (
       ts.isSpreadAssignment(property)

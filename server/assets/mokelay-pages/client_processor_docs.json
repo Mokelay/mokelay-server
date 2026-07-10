@@ -1,0 +1,40 @@
+{
+  "uuid":"client_processor_docs",
+  "name":"客户端 Processor 文档",
+  "blocks":[
+    {"id":"client-processor-docs-title","type":"MHeading","data":{"text":"客户端 Processor 文档","level":"1","align":"left"}},
+    {"id":"client-processor-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-editor/src/processors 中注册的客户端 Processor 文档。文档由源码中的 @clientProcessorDoc 注释扫描同步而来。"}},
+    {
+      "id":"client-processor-docs-table",
+      "type":"MAdvanceTable",
+      "data":{
+        "index":true,
+        "selection":false,
+        "showPageBreak":true,
+        "columns":[
+          {"columnName":"Processor","fieldVariable":"processor_name","fieldDataType":"string","width":190,"fixed":"left","columnContent":[{"id":"client-processor-name","type":"paragraph","data":{"text":"{{processor_name}}"}}]},
+          {"columnName":"名称","fieldVariable":"display_name","fieldDataType":"string","width":180,"columnContent":[{"id":"client-processor-display-name","type":"paragraph","data":{"text":"{{display_name}}"}}]},
+          {"columnName":"分类","fieldVariable":"category","fieldDataType":"string","width":150,"columnContent":[{"id":"client-processor-category","type":"paragraph","data":{"text":"{{category}}"}}]},
+          {"columnName":"说明","fieldVariable":"description","fieldDataType":"string","width":420,"columnContent":[{"id":"client-processor-description","type":"paragraph","data":{"text":"{{description}}"}}]},
+          {"columnName":"源码","fieldVariable":"source_file","fieldDataType":"string","width":360,"columnContent":[{"id":"client-processor-source","type":"paragraph","data":{"text":"{{source_file}}"}}]},
+          {"columnName":"操作","fieldVariable":"uuid","fieldDataType":"string","width":110,"fixed":"right","columnContent":[{"id":"client-processor-detail-{{uuid}}","type":"MButton","data":{"label":"查看详情","variant":"secondary","align":"left","bare":true},"events":[{"event":"click","actions":[{"uuid":"client_processor_open_detail","action":"jump_url","inputs":{"url":{"template":"/#/client_processor_doc_detail?uuid={{uuid}}"}},"outputs":[],"nextAction":null}]}]}]}
+        ],
+        "ds":{
+          "type":"API",
+          "domain":"mokelay",
+          "path":"/api/mokelay/list_client_processor_docs",
+          "method":"GET",
+          "headerData":[],
+          "bodyData":[],
+          "queryData":[
+            {"key":"page","value":{"mode":"variable","blockId":"client-processor-docs-table","blockType":"MAdvanceTable","variable":"page"}},
+            {"key":"pageSize","value":{"mode":"variable","blockId":"client-processor-docs-table","blockType":"MAdvanceTable","variable":"pageSize"}},
+            {"key":"status","value":"active"}
+          ],
+          "schemaSelections":[{"path":"data.docs[]","label":"docs","type":"array"},{"path":"data.pagination.page","label":"page","type":"number"},{"path":"data.pagination.pageSize","label":"pageSize","type":"number"},{"path":"data.pagination.total","label":"total","type":"number"}],
+          "matchingExternalFields":[{"label":"数据","variable":"data","type":"array","matchFieldPath":"data.docs[]"},{"label":"页码","variable":"page","type":"number","matchFieldPath":"data.pagination.page"},{"label":"每页数量","variable":"pageSize","type":"number","matchFieldPath":"data.pagination.pageSize"},{"label":"总数","variable":"total","type":"number","matchFieldPath":"data.pagination.total"}]
+        }
+      }
+    }
+  ]
+}

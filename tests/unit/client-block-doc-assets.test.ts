@@ -397,11 +397,25 @@ describe('client block document assets', () => {
       pageUUID: 'client_docs',
       pageSource: 'system',
     })
-    expect(blockDocs).toEqual([{
-      id: 'client-block-docs',
-      name: 'Block文档',
-      pageUUID: 'block_component_docs',
-      pageSource: 'system',
-    }])
+    expect(blockDocs).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'client-block-docs',
+        name: 'Block文档',
+        pageUUID: 'block_component_docs',
+        pageSource: 'system',
+      }),
+      expect.objectContaining({
+        id: 'client-action-docs',
+        name: 'Action文档',
+        pageUUID: 'client_action_docs',
+        pageSource: 'system',
+      }),
+      expect.objectContaining({
+        id: 'client-processor-docs',
+        name: 'Processor文档',
+        pageUUID: 'client_processor_docs',
+        pageSource: 'system',
+      }),
+    ]))
   })
 })
