@@ -481,7 +481,7 @@
         },
         "columns": [
           {
-            "columnName": "事件",
+            "columnName": "标识",
             "fieldVariable": "event",
             "fieldDataType": "string",
             "width": 180,
@@ -490,6 +490,18 @@
               "id": "block-doc-detail-event-name",
               "type": "paragraph",
               "data": { "text": "{{event}}" }
+            }]
+          },
+          {
+            "columnName": "名称",
+            "fieldVariable": "label",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-event-label",
+              "type": "paragraph",
+              "data": { "text": "{{label}}" }
             }]
           },
           {
@@ -558,7 +570,7 @@
         },
         "columns": [
           {
-            "columnName": "方法",
+            "columnName": "标识",
             "fieldVariable": "name",
             "fieldDataType": "string",
             "width": 180,
@@ -567,6 +579,18 @@
               "id": "block-doc-detail-method-name",
               "type": "paragraph",
               "data": { "text": "{{name}}" }
+            }]
+          },
+          {
+            "columnName": "名称",
+            "fieldVariable": "label",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [{
+              "id": "block-doc-detail-method-label",
+              "type": "paragraph",
+              "data": { "text": "{{label}}" }
             }]
           },
           {

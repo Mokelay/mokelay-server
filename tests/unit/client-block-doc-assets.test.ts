@@ -335,6 +335,12 @@ describe('client block document assets', () => {
         rows: expect.objectContaining({ variable: 'dataSources.doc.doc.method_schema' }),
       },
     })
+    expect(eventsTable?.data?.columns as Array<Record<string, unknown>> | undefined).toEqual(expect.arrayContaining([
+      expect.objectContaining({ columnName: '名称', fieldVariable: 'label' }),
+    ]))
+    expect(methodsTable?.data?.columns as Array<Record<string, unknown>> | undefined).toEqual(expect.arrayContaining([
+      expect.objectContaining({ columnName: '名称', fieldVariable: 'label' }),
+    ]))
     expect(jsonConfigGrid).toMatchObject({
       type: 'MLayoutGrid',
       data: {

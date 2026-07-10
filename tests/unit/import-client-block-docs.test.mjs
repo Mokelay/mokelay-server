@@ -177,6 +177,21 @@ describe('collectClientBlockDocs', () => {
     expect(docs.some((doc) => doc.source_file.includes('/src/layouts/'))).toBe(false)
     expect(editorDocs.every((doc) => doc.description.trim().length >= 8)).toBe(true)
     expect(editorDocs.some((doc) => doc.description.includes('属性、事件、方法由当前 mokelay-editor 源码自动抽取'))).toBe(false)
+    expect(docs.flatMap((doc) => (
+      doc.property_schema
+        .filter((property) => typeof property.label !== 'string' || property.label.trim() === '')
+        .map((property) => `${doc.block_type}.${property.key}`)
+    ))).toEqual([])
+    expect(docs.flatMap((doc) => (
+      doc.event_schema
+        .filter((event) => typeof event.label !== 'string' || event.label.trim() === '')
+        .map((event) => `${doc.block_type}.${event.event}`)
+    ))).toEqual([])
+    expect(docs.flatMap((doc) => (
+      doc.method_schema
+        .filter((method) => typeof method.label !== 'string' || method.label.trim() === '')
+        .map((method) => `${doc.block_type}.${method.name}`)
+    ))).toEqual([])
   })
 
   it('normalizes a valid fixture doc', async () => {
