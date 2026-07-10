@@ -1,0 +1,165 @@
+{
+  "uuid": "mokelay_apis_system_page",
+  "createdAt": "2026-07-10T00:00:00.000Z",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "name": "系统内置 API",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-apis-system-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "rowKey": "uuid",
+        "pageSize": 100,
+        "showPageBreak": false,
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_mokelay_api_jsons",
+          "method": "GET",
+          "headerData": [],
+          "queryData": [],
+          "bodyData": [],
+          "schemaSelections": [
+            {
+              "path": "data.apis[]",
+              "type": "array",
+              "label": "系统 API 列表"
+            },
+            {
+              "path": "data.count",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "系统 API 列表",
+              "variable": "data",
+              "matchFieldPath": "data.apis[]"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.count"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "fixed": null,
+            "width": 240,
+            "columnName": "名称",
+            "columnContent": [
+              {
+                "id": "system-api-name-text-{{uuid}}",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{alias}}"
+                },
+                "events": []
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "alias"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "UUID",
+            "columnContent": [
+              {
+                "id": "system-api-uuid-text-{{uuid}}",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                },
+                "events": []
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": 100,
+            "columnName": "方法",
+            "columnContent": [
+              {
+                "id": "system-api-method-tag-{{uuid}}",
+                "type": "MTag",
+                "data": {
+                  "tagName": "{{method}}",
+                  "type": "info",
+                  "size": "small"
+                },
+                "events": []
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "method"
+          },
+          {
+            "fixed": null,
+            "width": 100,
+            "columnName": "状态",
+            "columnContent": [
+              {
+                "id": "system-api-source-tag-{{uuid}}",
+                "type": "MTag",
+                "data": {
+                  "tagName": "内置",
+                  "type": "success",
+                  "size": "small"
+                },
+                "events": []
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "source"
+          },
+          {
+            "fixed": "right",
+            "width": 100,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "open-system-api-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "打开",
+                  "variant": "secondary",
+                  "action": {
+                    "uuid": "{{uuid}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_api_system_open_detail",
+                        "action": "jump_url",
+                        "alias": "打开系统 API",
+                        "inputs": {
+                          "url": {
+                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system"
+                          }
+                        },
+                        "outputs": [],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          }
+        ]
+      },
+      "events": []
+    }
+  ]
+}

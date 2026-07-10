@@ -1,0 +1,389 @@
+{
+  "uuid": "mokelay_api_create_page",
+  "createdAt": "2026-07-10T00:00:00.000Z",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "name": "新建 API",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-api-create-form",
+      "type": "MForm",
+      "data": {
+        "values": {
+          "name": {
+            "mode": "variable",
+            "source": "MPage",
+            "variable": "context.name"
+          },
+          "method": {
+            "mode": "variable",
+            "source": "MPage",
+            "variable": "context.method"
+          },
+          "uuid": {
+            "mode": "flow",
+            "flow": {
+              "version": 1,
+              "nodes": [
+                {
+                  "id": "context_uuid",
+                  "type": "variable",
+                  "source": "MPage",
+                  "variable": "context.uuid"
+                },
+                {
+                  "id": "generate_uuid",
+                  "type": "processor",
+                  "processors": [
+                    {
+                      "processor": "random_id",
+                      "param": {
+                        "prefix": "api_",
+                        "length": 6,
+                        "when": "empty"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "output_uuid",
+                  "type": "output"
+                }
+              ],
+              "edges": [
+                {
+                  "id": "context_uuid-generate_uuid",
+                  "source": "context_uuid",
+                  "target": "generate_uuid"
+                },
+                {
+                  "id": "generate_uuid-output_uuid",
+                  "source": "generate_uuid",
+                  "target": "output_uuid"
+                }
+              ],
+              "layout": {
+                "context_uuid": {
+                  "x": 80,
+                  "y": 120
+                },
+                "generate_uuid": {
+                  "x": 330,
+                  "y": 120
+                },
+                "output_uuid": {
+                  "x": 590,
+                  "y": 120
+                }
+              },
+              "outputNodeId": "output_uuid"
+            }
+          }
+        },
+        "submit": {
+          "filterEmpty": false,
+          "includeDisabled": true,
+          "includeHidden": false
+        },
+        "items": [
+          {
+            "labelName": "接口名称",
+            "variableName": "name",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "api-create-name",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入接口名称",
+                "value": "",
+                "required": true,
+                "validationMessage": "请输入接口名称"
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "API 标识",
+            "variableName": "uuid",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "api-create-uuid",
+              "type": "MInput",
+              "data": {
+                "placeholder": "例如 api_list_customers",
+                "value": "",
+                "required": true,
+                "validationMessage": "请输入 API 标识"
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "请求方法",
+            "variableName": "method",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "api-create-method",
+              "type": "MSelectField",
+              "data": {
+                "placeholder": "请选择请求方法",
+                "value": "GET",
+                "required": true,
+                "options": [
+                  {
+                    "label": "GET",
+                    "value": "GET"
+                  },
+                  {
+                    "label": "POST",
+                    "value": "POST"
+                  }
+                ]
+              }
+            },
+            "events": []
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-api-create-preview",
+      "type": "paragraph",
+      "data": {
+        "text": "路径预览：/api/mokelay/{{blocks['api-create-uuid'].value}}"
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-api-create-actions",
+      "type": "MActionToolbar",
+      "data": {
+        "align": "right",
+        "buttons": [
+          {
+            "id": "cancel",
+            "label": "取消",
+            "variant": "secondary",
+            "events": [
+              {
+                "event": "click",
+                "actions": [
+                  {
+                    "uuid": "mokelay_api_create_cancel",
+                    "action": "close_dialog",
+                    "alias": "取消新建 API",
+                    "inputs": {
+                      "reason": "cancel"
+                    },
+                    "outputs": [
+                      "closed",
+                      "reason"
+                    ],
+                    "nextAction": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "save",
+            "label": "保存并打开",
+            "variant": "primary",
+            "events": [
+              {
+                "event": "click",
+                "actions": [
+                  {
+                    "uuid": "mokelay_api_create_submit_form",
+                    "action": "call_block_method",
+                    "alias": "提交 API 表单",
+                    "inputs": {
+                      "blockId": "mokelay-api-create-form",
+                      "method": "submit"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": "mokelay_api_create_if_valid"
+                  },
+                  {
+                    "uuid": "mokelay_api_create_if_valid",
+                    "action": "if_controller",
+                    "alias": "判断表单是否有效",
+                    "inputs": {
+                      "value": {
+                        "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.valid}}"
+                      }
+                    },
+                    "nodes": [
+                      {
+                        "uuid": "true",
+                        "value": true,
+                        "nextAction": "mokelay_api_create_execute_save"
+                      },
+                      {
+                        "uuid": "false",
+                        "value": false,
+                        "nextAction": null
+                      }
+                    ],
+                    "nextAction": null
+                  },
+                  {
+                    "uuid": "mokelay_api_create_execute_save",
+                    "action": "execute_ds",
+                    "alias": "保存 API",
+                    "inputs": {
+                      "dsConfig": {
+                        "type": "API",
+                        "domain": "mokelay",
+                        "path": "/api/mokelay/save_api",
+                        "method": "POST",
+                        "headerData": [],
+                        "queryData": [],
+                        "bodyData": [
+                          {
+                            "key": "uuid",
+                            "dataType": "string",
+                            "value": {
+                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}",
+                              "processors": [
+                                "trim",
+                                {
+                                  "processor": "random_id",
+                                  "param": {
+                                    "prefix": "api_",
+                                    "length": 6,
+                                    "when": "empty"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "key": "name",
+                            "dataType": "string",
+                            "value": {
+                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}",
+                              "processors": [
+                                "trim"
+                              ]
+                            }
+                          },
+                          {
+                            "key": "method",
+                            "dataType": "string",
+                            "value": {
+                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}",
+                              "processors": [
+                                "trim"
+                              ]
+                            }
+                          },
+                          {
+                            "key": "status",
+                            "dataType": "string",
+                            "value": "draft"
+                          },
+                          {
+                            "key": "apiJson",
+                            "dataType": "object",
+                            "value": {
+                              "uuid": {
+                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                              },
+                              "alias": {
+                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}"
+                              },
+                              "method": {
+                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}"
+                              },
+                              "request": {
+                                "header": [],
+                                "query": [],
+                                "body": []
+                              },
+                              "blocks": [
+                                {
+                                  "uuid": "starter",
+                                  "nextBlock": null
+                                }
+                              ],
+                              "response": {}
+                            }
+                          },
+                          {
+                            "key": "layout",
+                            "dataType": "object",
+                            "value": {
+                              "blocks": []
+                            }
+                          }
+                        ],
+                        "schemaSelections": [
+                          {
+                            "path": "data.api",
+                            "type": "object",
+                            "label": "已保存 API"
+                          }
+                        ],
+                        "matchingExternalFields": [
+                          {
+                            "label": "已保存 API",
+                            "variable": "api",
+                            "matchFieldPath": "data.api"
+                          }
+                        ]
+                      }
+                    },
+                    "outputs": [
+                      "rawResponse",
+                      "api"
+                    ],
+                    "nextAction": "mokelay_api_create_close_dialog"
+                  },
+                  {
+                    "uuid": "mokelay_api_create_close_dialog",
+                    "action": "close_dialog",
+                    "alias": "关闭新建 API 弹窗",
+                    "inputs": {
+                      "reason": "success",
+                      "result": {
+                        "api": {
+                          "template": "{{actions['mokelay_api_create_execute_save'].outputs.api}}"
+                        }
+                      }
+                    },
+                    "outputs": [
+                      "closed",
+                      "reason",
+                      "result"
+                    ],
+                    "nextAction": "mokelay_api_create_open_created_api"
+                  },
+                  {
+                    "uuid": "mokelay_api_create_open_created_api",
+                    "action": "jump_url",
+                    "alias": "打开新建 API",
+                    "inputs": {
+                      "url": {
+                        "template": "#/apis/{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                      }
+                    },
+                    "outputs": [],
+                    "nextAction": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "events": []
+    }
+  ]
+}

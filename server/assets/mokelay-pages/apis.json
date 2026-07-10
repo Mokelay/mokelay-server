@@ -1,0 +1,221 @@
+{
+  "uuid": "apis",
+  "createdAt": "2026-07-10T00:00:00.000Z",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "name": "接口",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-apis-kicker",
+      "type": "MTag",
+      "data": {
+        "tagName": "API Builder",
+        "type": "success",
+        "size": "small"
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-apis-title",
+      "type": "MHeading",
+      "data": {
+        "text": "可视化搭建内部数据 API",
+        "level": 2,
+        "align": "left"
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-apis-description",
+      "type": "paragraph",
+      "data": {
+        "text": "接口编排工作台。先把接口入口、请求参数、编排步骤和响应结构搭顺，再保存为 Mokelay Orchestration API JSON。"
+      },
+      "events": []
+    },
+    {
+      "id": "mokelay-apis-grid",
+      "type": "MLayoutGrid",
+      "data": {
+        "gap": 16,
+        "columns": "minmax(0, 1fr) 320px",
+        "responsive": {
+          "mobile": {
+            "columns": 1,
+            "areaOrder": [
+              "main",
+              "samples"
+            ]
+          }
+        },
+        "areas": [
+          {
+            "id": "main",
+            "name": "接口列表",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "mokelay-apis-tabs",
+                "type": "MTabs",
+                "data": {
+                  "activeTabId": "user-create",
+                  "tabs": [
+                    {
+                      "id": "user-create",
+                      "name": "用户创建",
+                      "pageUUID": "mokelay_apis_user_page",
+                      "pageSource": "system"
+                    },
+                    {
+                      "id": "system-built-in",
+                      "name": "系统内置",
+                      "pageUUID": "mokelay_apis_system_page",
+                      "pageSource": "system"
+                    }
+                  ]
+                },
+                "events": []
+              }
+            ]
+          },
+          {
+            "id": "samples",
+            "name": "内置样例",
+            "width": "320px",
+            "blocks": [
+              {
+                "id": "mokelay-api-samples-title",
+                "type": "MHeading",
+                "data": {
+                  "text": "内置样例",
+                  "level": 3,
+                  "align": "left"
+                },
+                "events": []
+              },
+              {
+                "id": "mokelay-api-samples-list",
+                "type": "MActionCardList",
+                "data": {
+                  "itemKey": "uuid",
+                  "titlePath": "title",
+                  "descriptionPath": "description",
+                  "activeKey": "login",
+                  "variant": "card",
+                  "size": "md",
+                  "emptyText": "暂无样例",
+                  "items": [
+                    {
+                      "uuid": "login",
+                      "title": "登录接口",
+                      "description": "读取用户、校验密码、写入 Session。",
+                      "method": "POST",
+                      "suggestedUuid": "login_users"
+                    },
+                    {
+                      "uuid": "register",
+                      "title": "注册接口",
+                      "description": "校验重复邮箱、创建用户、写入 Session。",
+                      "method": "POST",
+                      "suggestedUuid": "register_users"
+                    },
+                    {
+                      "uuid": "current-user",
+                      "title": "当前用户",
+                      "description": "读取 Session 并返回 loggedIn。",
+                      "method": "GET",
+                      "suggestedUuid": "current_user"
+                    },
+                    {
+                      "uuid": "logout",
+                      "title": "退出登录",
+                      "description": "清除 Session 并返回 success。",
+                      "method": "POST",
+                      "suggestedUuid": "logout"
+                    },
+                    {
+                      "uuid": "page-list",
+                      "title": "页面分页",
+                      "description": "分页查询 pages 并返回 pagination。",
+                      "method": "GET",
+                      "suggestedUuid": "list_pages"
+                    },
+                    {
+                      "uuid": "page-detail",
+                      "title": "页面详情",
+                      "description": "按 uuid 查询单个页面。",
+                      "method": "GET",
+                      "suggestedUuid": "get_page_by_uuid"
+                    },
+                    {
+                      "uuid": "page-create",
+                      "title": "创建页面",
+                      "description": "创建记录后读取完整数据。",
+                      "method": "POST",
+                      "suggestedUuid": "create_page"
+                    },
+                    {
+                      "uuid": "page-update",
+                      "title": "更新页面",
+                      "description": "更新 blocks 后读取最新页面。",
+                      "method": "POST",
+                      "suggestedUuid": "update_page"
+                    },
+                    {
+                      "uuid": "wallet-delete",
+                      "title": "删除钱包",
+                      "description": "按 id 删除钱包并返回 affected。",
+                      "method": "POST",
+                      "suggestedUuid": "delete_wallet"
+                    },
+                    {
+                      "uuid": "wallet-count",
+                      "title": "统计钱包",
+                      "description": "统计 BingX wallets 记录数量。",
+                      "method": "GET",
+                      "suggestedUuid": "count_wallets"
+                    }
+                  ]
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_api_sample_open_create_dialog",
+                        "action": "open_dialog",
+                        "alias": "使用内置样例创建 API",
+                        "inputs": {
+                          "title": "新建 API",
+                          "pageUUID": "mokelay_api_create_page",
+                          "pageSource": "system",
+                          "context": {
+                            "name": {
+                              "template": "{{event.item.title}}"
+                            },
+                            "uuid": {
+                              "template": "{{event.item.suggestedUuid}}"
+                            },
+                            "method": {
+                              "template": "{{event.item.method}}"
+                            },
+                            "status": "draft"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "events": []
+    }
+  ]
+}
