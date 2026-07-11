@@ -65,7 +65,7 @@ type Condition =
       group: false
       fieldName: string
       fieldValue: unknown
-      conditionType: 'GE' | 'GT' | 'LE' | 'LT' | 'NEQ' | 'EQ' | 'NOTIN' | 'IN'
+      conditionType: 'GE' | 'GT' | 'LE' | 'LT' | 'NEQ' | 'EQ' | 'NOTIN' | 'IN' | 'LIKE'
     }
   | {
       group: true
@@ -355,7 +355,7 @@ SQL 标识符规则：
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `group` | `false` | 是 | 普通条件固定为 `false`。 |
-| `conditionType` | `GE \| GT \| LE \| LT \| NEQ \| EQ \| NOTIN \| IN` | 是 | 条件类型。 |
+| `conditionType` | `GE \| GT \| LE \| LT \| NEQ \| EQ \| NOTIN \| IN \| LIKE` | 是 | 条件类型。 |
 | `fieldName` | `string` | 是 | 数据库字段名。 |
 | `fieldValue` | `unknown` | 是 | 比较值，允许使用模板。`IN` / `NOTIN` 必须是非空数组。 |
 
@@ -400,6 +400,7 @@ SQL 标识符规则：
 | `LE` | `field <= value` |
 | `IN` | `field IN (...)` |
 | `NOTIN` | `field NOT IN (...)` |
+| `LIKE` | `LOWER(field) LIKE LOWER('%value%')` |
 
 ## orderBy
 

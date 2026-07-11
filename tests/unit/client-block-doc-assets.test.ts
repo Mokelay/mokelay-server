@@ -141,7 +141,10 @@ describe('client block document assets', () => {
     const api = await readJsonAsset<ClientBlockDocsApi>(fileName)
 
     expect(api.request.query.slice(0, 2)).toEqual([defaultPageRequestField, 'pageSize'])
-    expect(api.request.query.slice(2)).toEqual(optionalFilters.map((key) => ({ key })))
+    expect(api.request.query.slice(2)).toEqual([
+      { key: 'blockType', processors: ['trim'] },
+      ...optionalFilters.map((key) => ({ key })),
+    ])
   })
 
   it('loads only active client blocks on the documentation page', async () => {
@@ -153,6 +156,10 @@ describe('client block document assets', () => {
       value: 'active',
     })
     expect(datasource?.queryData).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        key: 'blockType',
+        value: expect.objectContaining({ variable: 'search.blockType' }),
+      }),
       expect.objectContaining({
         key: 'editorEnabled',
         value: expect.objectContaining({ variable: 'search.editorEnabled' }),
@@ -195,6 +202,7 @@ describe('client block document assets', () => {
       ?.find((column) => column.columnName === '工具箱')
 
     expect(searchForm?.items?.map((item) => item.variableName)).toEqual([
+      'blockType',
       'editorEnabled',
       'toolboxVisible',
       'category',
@@ -210,6 +218,12 @@ describe('client block document assets', () => {
         { label: '布局', value: 'layout' },
         { label: '页面', value: 'page' },
       ]))
+    expect(searchForm?.items?.find((item) => item.variableName === 'blockType')?.editor).toMatchObject({
+      type: 'MInput',
+      data: {
+        placeholder: '请输入 BlockType',
+      },
+    })
     expect(toolboxColumn?.columnContent?.map((block) => block.id)).toEqual(expect.arrayContaining([
       'block-docs-disable-{{uuid}}',
       'block-docs-enable-{{uuid}}',
@@ -233,6 +247,8 @@ describe('client block document assets', () => {
     const detailAction = actionColumn?.columnContent?.[0]?.events?.[0]?.actions?.[0]
 
     expect(columns?.map((column) => column.columnName)).not.toEqual(expect.arrayContaining([
+      '源码',
+      '注册',
       '属性',
       '事件',
       '方法',

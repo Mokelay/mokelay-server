@@ -15,6 +15,12 @@
       },
       "pageSize",
       {
+        "key": "blockType",
+        "processors": [
+          "trim"
+        ]
+      },
+      {
         "key": "status"
       },
       {
@@ -95,6 +101,15 @@
           }
         ],
         "conditions": [
+          {
+            "group": false,
+            "optional": true,
+            "conditionType": "LIKE",
+            "fieldName": "block_type",
+            "fieldValue": {
+              "template": "{{request.query.blockType}}"
+            }
+          },
           {
             "group": false,
             "optional": true,

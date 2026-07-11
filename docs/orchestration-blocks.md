@@ -233,6 +233,7 @@ BingX_DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DBNAME
 | `LE` | `field <= value` |
 | `IN` | `field IN (...)`，`fieldValue` 必须是非空数组 |
 | `NOTIN` | `field NOT IN (...)`，`fieldValue` 必须是非空数组 |
+| `LIKE` | `LOWER(field) LIKE LOWER('%value%')` |
 
 ### 条件组
 

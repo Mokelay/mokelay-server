@@ -26,6 +26,21 @@
         "layout": "Horizontal",
         "items": [
           {
+            "labelName": "BlockType",
+            "variableName": "blockType",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "block-docs-search-block-type",
+              "type": "MInput",
+              "data": {
+                "placeholder": "请输入 BlockType",
+                "value": ""
+              }
+            },
+            "events": []
+          },
+          {
             "labelName": "启用",
             "variableName": "editorEnabled",
             "fieldDataType": "string",
@@ -290,38 +305,6 @@
                 "type": "paragraph",
                 "data": {
                   "text": "{{description}}"
-                }
-              }
-            ]
-          },
-          {
-            "columnName": "源码",
-            "fieldVariable": "source_file",
-            "fieldDataType": "string",
-            "width": 280,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "block-docs-col-source",
-                "type": "paragraph",
-                "data": {
-                  "text": "{{source_file}}"
-                }
-              }
-            ]
-          },
-          {
-            "columnName": "注册",
-            "fieldVariable": "component_name",
-            "fieldDataType": "string",
-            "width": 220,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "block-docs-col-component-name",
-                "type": "paragraph",
-                "data": {
-                  "text": "{{component_name}} / {{tool_symbol}}"
                 }
               }
             ]
@@ -832,6 +815,15 @@
                 "blockId": "block-docs-table",
                 "blockType": "MAdvanceTable",
                 "variable": "pageSize"
+              }
+            },
+            {
+              "key": "blockType",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.blockType"
               }
             },
             {
