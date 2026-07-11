@@ -139,7 +139,7 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(49)
+    expect(docs).toHaveLength(50)
     expect(blockTypes).toContain('MButton')
     expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
@@ -178,6 +178,19 @@ describe('collectClientBlockDocs', () => {
         multiline: false,
         readonly: false,
         placeholder: '',
+      },
+    })
+    expect(docs.find((doc) => doc.block_type === 'MChartDataEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MChartDataEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MChartDataEditor',
+      tool_symbol: 'mChartDataEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      sort_order: 171,
+      default_data: {
+        chartType: 'line',
+        readonly: false,
       },
     })
     expect(docs.find((doc) => doc.block_type === 'MBlockPlayground')).toMatchObject({
