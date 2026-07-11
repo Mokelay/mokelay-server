@@ -35,6 +35,7 @@ const propertyComponentNames = new Set([
   'MAdvanceTableColumnsEditor',
   'MDatasourceEditor',
   'MFormItemsEditor',
+  'MVariableValueEditor',
 ])
 
 dotenv.config({ path: path.join(serverRoot, '.env'), quiet: true })

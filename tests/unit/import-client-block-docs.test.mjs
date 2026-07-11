@@ -139,7 +139,7 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(48)
+    expect(docs).toHaveLength(49)
     expect(blockTypes).toContain('MButton')
     expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
@@ -162,6 +162,22 @@ describe('collectClientBlockDocs', () => {
       default_data: {
         height: 360,
         expandDepth: 1,
+      },
+    })
+    expect(docs.find((doc) => doc.block_type === 'MVariableValueEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MVariableValueEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MVariableValueEditor',
+      tool_symbol: 'mVariableValueEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      sort_order: 170,
+      default_data: {
+        value: '',
+        valueType: 'string',
+        multiline: false,
+        readonly: false,
+        placeholder: '',
       },
     })
     expect(docs.find((doc) => doc.block_type === 'MBlockPlayground')).toMatchObject({
