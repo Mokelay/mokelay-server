@@ -57,6 +57,7 @@ type ClientBlockDocSettingsApi = {
 }
 
 type ClientBlockDocsPageData = {
+  itemWidthMode?: string
   items?: Array<{
     variableName?: string
     editor?: {
@@ -246,6 +247,7 @@ describe('client block document assets', () => {
       'editorBlock',
       'category',
     ])
+    expect(searchForm?.itemWidthMode).toBe('compact')
     expect(searchForm?.actionBar?.buttons?.map((button) => button.id)).toEqual(['search', 'reset'])
     expect(searchForm?.items?.find((item) => item.variableName === 'category')?.editor?.data?.options)
       .toEqual(expect.arrayContaining([

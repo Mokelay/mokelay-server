@@ -24,6 +24,7 @@
       "type": "MForm",
       "data": {
         "layout": "Horizontal",
+        "itemWidthMode": "compact",
         "items": [
           {
             "labelName": "BlockType",
@@ -99,7 +100,8 @@
           {
             "labelName": "编辑器 Block",
             "variableName": "editorBlock",
-            "layout": "Vertical",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
             "editor": {
               "id": "block-docs-filter-editor-block-field",
               "type": "MSelectField",
