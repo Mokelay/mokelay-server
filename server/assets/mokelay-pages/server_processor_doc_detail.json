@@ -5,90 +5,778 @@
   "dataSources": [
     {
       "key": "doc",
-      "type": "context"
+      "type": "datasource",
+      "ds": {
+        "type": "API",
+        "domain": "mokelay",
+        "path": "/api/mokelay/read_server_processor_doc",
+        "method": "GET",
+        "headerData": [],
+        "bodyData": [],
+        "queryData": [
+          {
+            "key": "uuid",
+            "value": {
+              "mode": "variable",
+              "source": "MPage",
+              "pageId": "server_processor_doc_detail",
+              "variable": "context.route.query.uuid"
+            }
+          }
+        ],
+        "schemaSelections": [
+          {
+            "path": "data.doc",
+            "label": "Processor 文档",
+            "type": "object"
+          }
+        ],
+        "matchingExternalFields": [
+          {
+            "label": "Processor 文档",
+            "variable": "doc",
+            "matchFieldPath": "data.doc"
+          }
+        ]
+      }
     }
   ],
   "blocks": [
     {
-      "id": "server-processor-doc-detail-title",
+      "id": "server-processor-detail-back",
+      "type": "MButton",
+      "data": {
+        "label": "返回服务端 Processor 文档",
+        "variant": "secondary",
+        "align": "left",
+        "bare": true
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "server_processor_detail_back",
+              "action": "jump_url",
+              "alias": "返回服务端 Processor 文档",
+              "inputs": {
+                "url": "/#/docs"
+              },
+              "outputs": [],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "server-processor-detail-title",
       "type": "MHeading",
       "data": {
-        "text": "详情",
-        "level": "2",
+        "text": "服务端 Processor 文档详情",
+        "level": "1",
         "align": "left"
       }
     },
     {
-      "id": "server-processor-doc-detail-list",
+      "id": "server-processor-detail-record",
       "type": "MRecordList",
       "data": {
         "items": {
           "mode": "variable",
           "source": "MPage",
           "pageId": "server_processor_doc_detail",
-          "variable": "context.items"
-        },
-        "count": {
-          "mode": "variable",
-          "source": "MPage",
-          "pageId": "server_processor_doc_detail",
-          "variable": "context.count"
+          "variable": "dataSources.doc.doc"
         },
         "displayName": {
           "mode": "variable",
           "source": "MPage",
           "pageId": "server_processor_doc_detail",
-          "variable": "context.display_name"
+          "variable": "dataSources.doc.doc.display_name"
         },
         "blockType": {
           "mode": "variable",
           "source": "MPage",
           "pageId": "server_processor_doc_detail",
-          "variable": "context.function_name"
+          "variable": "dataSources.doc.doc.function_name"
         },
-        "emptyText": "暂无文档信息",
-        "showCount": true,
+        "emptyText": "未找到对应的服务端 Processor 文档。",
+        "showCount": false,
         "titleFields": [
-          "key",
-          "title",
-          "code",
-          "file",
-          "symbol"
+          "display_name",
+          "function_name",
+          "uuid"
         ],
         "fieldOrder": [
-          "key",
-          "title",
-          "type",
-          "required",
-          "defaultValue",
-          "value",
-          "enum",
-          "code",
-          "file",
-          "symbol",
-          "reason",
+          "uuid",
+          "function_name",
+          "display_name",
+          "category",
           "description",
-          "processor",
-          "input",
-          "output"
+          "status",
+          "source_kind",
+          "source_package",
+          "source_file",
+          "executor_name",
+          "created_at",
+          "updated_at"
         ],
         "fieldLabels": {
-          "key": "标识",
-          "title": "标题",
-          "type": "类型",
-          "required": "必填",
-          "defaultValue": "默认值",
-          "value": "值",
-          "enum": "可选值",
-          "code": "错误码",
-          "file": "文件",
-          "symbol": "符号",
-          "reason": "原因",
+          "uuid": "UUID",
+          "function_name": "Function",
+          "display_name": "名称",
+          "category": "分类",
           "description": "说明",
-          "processor": "示例 Processor",
-          "input": "示例输入",
-          "output": "示例输出"
-        }
+          "status": "状态",
+          "source_kind": "来源类型",
+          "source_package": "来源包",
+          "source_file": "源码",
+          "executor_name": "执行器",
+          "requires_datasource": "数据源",
+          "created_at": "创建时间",
+          "updated_at": "更新时间"
+        },
+        "hiddenFields": [
+          "input_schema",
+          "param_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples",
+          "source_refs",
+          "raw_meta"
+        ]
+      }
+    },
+    {
+      "id": "server-processor-detail-input_schema-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "输入",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-detail-input_schema-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "dataSources.doc.doc.input_schema"
+        },
+        "columns": [
+          {
+            "columnName": "标识",
+            "fieldVariable": "key",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-key",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{key}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "标题",
+            "fieldVariable": "title",
+            "fieldDataType": "string",
+            "width": 180,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-title",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{title}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "类型",
+            "fieldVariable": "type",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{type}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "必填",
+            "fieldVariable": "required",
+            "fieldDataType": "boolean",
+            "width": 90,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-required",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{required}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "默认值",
+            "fieldVariable": "defaultValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-default",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{defaultValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "值",
+            "fieldVariable": "value",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{value}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "节点类型",
+            "fieldVariable": "typeValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-type-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{typeValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "可选值",
+            "fieldVariable": "enum",
+            "fieldDataType": "string",
+            "width": 220,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-enum",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{enum}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "说明",
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 460,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-input_schema-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "server-processor-detail-param_schema-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "参数",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-detail-param_schema-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "dataSources.doc.doc.param_schema"
+        },
+        "columns": [
+          {
+            "columnName": "标识",
+            "fieldVariable": "key",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-key",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{key}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "标题",
+            "fieldVariable": "title",
+            "fieldDataType": "string",
+            "width": 180,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-title",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{title}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "类型",
+            "fieldVariable": "type",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{type}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "必填",
+            "fieldVariable": "required",
+            "fieldDataType": "boolean",
+            "width": 90,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-required",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{required}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "默认值",
+            "fieldVariable": "defaultValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-default",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{defaultValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "值",
+            "fieldVariable": "value",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{value}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "节点类型",
+            "fieldVariable": "typeValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-type-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{typeValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "可选值",
+            "fieldVariable": "enum",
+            "fieldDataType": "string",
+            "width": 220,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-enum",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{enum}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "说明",
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 460,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-param_schema-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "server-processor-detail-output_schema-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "输出",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-detail-output_schema-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "rows": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "dataSources.doc.doc.output_schema"
+        },
+        "columns": [
+          {
+            "columnName": "标识",
+            "fieldVariable": "key",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-key",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{key}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "标题",
+            "fieldVariable": "title",
+            "fieldDataType": "string",
+            "width": 180,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-title",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{title}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "类型",
+            "fieldVariable": "type",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{type}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "必填",
+            "fieldVariable": "required",
+            "fieldDataType": "boolean",
+            "width": 90,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-required",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{required}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "默认值",
+            "fieldVariable": "defaultValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-default",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{defaultValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "值",
+            "fieldVariable": "value",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{value}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "节点类型",
+            "fieldVariable": "typeValue",
+            "fieldDataType": "string",
+            "width": 160,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-type-value",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{typeValue}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "可选值",
+            "fieldVariable": "enum",
+            "fieldDataType": "string",
+            "width": 220,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-enum",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{enum}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "说明",
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 460,
+            "columnContent": [
+              {
+                "id": "server-processor-detail-output_schema-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "server-processor-detail-json-heading",
+      "type": "MHeading",
+      "data": {
+        "text": "配置与示例",
+        "level": "2",
+        "align": "left"
+      }
+    },
+    {
+      "id": "server-processor-detail-json-grid",
+      "type": "MLayoutGrid",
+      "data": {
+        "gap": 16,
+        "columns": "minmax(0, 1fr) minmax(0, 1fr)",
+        "responsive": {
+          "mobile": {
+            "columns": 1,
+            "areaOrder": [
+              "primary",
+              "secondary"
+            ]
+          }
+        },
+        "areas": [
+          {
+            "id": "primary",
+            "name": "配置",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "server-processor-detail-config-json",
+                "type": "MJson",
+                "data": {
+                  "label": "配置",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.config_schema"
+                  },
+                  "height": 300,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "server-processor-detail-error-json",
+                "type": "MJson",
+                "data": {
+                  "label": "错误",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.error_schema"
+                  },
+                  "height": 300,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "server-processor-detail-runtime-json",
+                "type": "MJson",
+                "data": {
+                  "label": "运行时",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.runtime_schema"
+                  },
+                  "height": 300,
+                  "expandDepth": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "secondary",
+            "name": "示例与源码",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "server-processor-detail-examples-json",
+                "type": "MJson",
+                "data": {
+                  "label": "示例",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.examples"
+                  },
+                  "height": 300,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "server-processor-detail-source-refs-json",
+                "type": "MJson",
+                "data": {
+                  "label": "源码引用",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.source_refs"
+                  },
+                  "height": 280,
+                  "expandDepth": 1
+                }
+              },
+              {
+                "id": "server-processor-detail-raw-meta-json",
+                "type": "MJson",
+                "data": {
+                  "label": "原始元数据",
+                  "value": {
+                    "mode": "variable",
+                    "source": "MPage",
+                    "pageId": "server_processor_doc_detail",
+                    "variable": "dataSources.doc.doc.raw_meta"
+                  },
+                  "height": 280,
+                  "expandDepth": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "server-processor-detail-raw-json",
+      "type": "MJson",
+      "data": {
+        "label": "只读文档数据",
+        "value": {
+          "mode": "variable",
+          "source": "MPage",
+          "pageId": "server_processor_doc_detail",
+          "variable": "dataSources.doc.doc"
+        },
+        "height": 560,
+        "expandDepth": 1
       }
     }
   ]

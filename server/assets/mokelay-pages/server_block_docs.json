@@ -117,17 +117,17 @@
             ]
           },
           {
-            "columnName": "输入",
-            "fieldVariable": "input_schema",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
+            "columnName": "操作",
+            "fieldVariable": "uuid",
+            "fieldDataType": "string",
+            "width": 112,
+            "fixed": "right",
             "columnContent": [
               {
-                "id": "server-block-docs-open-inputs",
+                "id": "server-block-docs-open-detail-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "查看",
+                  "label": "查看详情",
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -137,241 +137,15 @@
                     "event": "click",
                     "actions": [
                       {
-                        "uuid": "server_block_docs_open_inputs",
-                        "action": "open_dialog",
-                        "alias": "打开输入详情",
+                        "uuid": "server_block_docs_open_detail",
+                        "action": "jump_url",
+                        "alias": "查看服务端 Block 文档详情",
                         "inputs": {
-                          "title": "{{display_name}} · 输入",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{input_schema}}",
-                            "count": "{{raw_meta.counts.inputs}}"
+                          "url": {
+                            "template": "/#/server_block_doc_detail?uuid={{uuid}}"
                           }
                         },
-                        "outputs": ["close_result"],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "输出",
-            "fieldVariable": "output_schema",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-open-outputs",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "server_block_docs_open_outputs",
-                        "action": "open_dialog",
-                        "alias": "打开输出详情",
-                        "inputs": {
-                          "title": "{{display_name}} · 输出",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{output_schema}}",
-                            "count": "{{raw_meta.counts.outputs}}"
-                          }
-                        },
-                        "outputs": ["close_result"],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "错误",
-            "fieldVariable": "error_schema",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-open-errors",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "server_block_docs_open_errors",
-                        "action": "open_dialog",
-                        "alias": "打开错误详情",
-                        "inputs": {
-                          "title": "{{display_name}} · 错误",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{error_schema}}",
-                            "count": "{{raw_meta.counts.errors}}"
-                          }
-                        },
-                        "outputs": ["close_result"],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "配置",
-            "fieldVariable": "config_schema",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-open-config",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "server_block_docs_open_config",
-                        "action": "open_dialog",
-                        "alias": "打开配置详情",
-                        "inputs": {
-                          "title": "{{display_name}} · 配置",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{config_schema}}",
-                            "count": "{{raw_meta.counts.config}}"
-                          }
-                        },
-                        "outputs": ["close_result"],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "运行",
-            "fieldVariable": "runtime_schema",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-open-runtime",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "server_block_docs_open_runtime",
-                        "action": "open_dialog",
-                        "alias": "打开运行详情",
-                        "inputs": {
-                          "title": "{{display_name}} · 运行",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{runtime_schema}}",
-                            "count": "{{raw_meta.counts.runtime}}"
-                          }
-                        },
-                        "outputs": ["close_result"],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "columnName": "示例",
-            "fieldVariable": "examples",
-            "fieldDataType": "array",
-            "width": 90,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-open-examples",
-                "type": "MButton",
-                "data": {
-                  "label": "查看",
-                  "variant": "secondary",
-                  "align": "left",
-                  "bare": true
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "server_block_docs_open_examples",
-                        "action": "open_dialog",
-                        "alias": "打开示例详情",
-                        "inputs": {
-                          "title": "{{display_name}} · 示例",
-                          "pageUUID": "server_block_doc_detail",
-                          "pageSource": "system",
-                          "context": {
-                            "function_name": "{{function_name}}",
-                            "display_name": "{{display_name}}",
-                            "items": "{{examples}}",
-                            "count": "{{raw_meta.counts.examples}}"
-                          }
-                        },
-                        "outputs": ["close_result"],
+                        "outputs": [],
                         "nextAction": null
                       }
                     ]

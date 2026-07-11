@@ -1,0 +1,70 @@
+{
+  "uuid": "read_server_processor_doc",
+  "alias": "读取服务端 Processor 文档接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "uuid"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "read_server_processor_doc_block"
+    },
+    {
+      "uuid": "read_server_processor_doc_block",
+      "alias": "读取服务端 Processor 文档 Block",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_server_processor",
+        "fields": [
+          "id",
+          "uuid",
+          "function_name",
+          "display_name",
+          "category",
+          "source_kind",
+          "source_package",
+          "source_file",
+          "executor_name",
+          "description",
+          "status",
+          "input_schema",
+          "param_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples",
+          "source_refs",
+          "raw_meta",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{request.query.uuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_server_processor_doc_block": {
+      "doc": {
+        "template": "{{blocks['read_server_processor_doc_block'].outputs.data}}"
+      }
+    }
+  }
+}
