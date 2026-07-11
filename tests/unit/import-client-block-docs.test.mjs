@@ -60,6 +60,7 @@ const editorBlockTypes = [
   'MEditorSelector',
   'MFieldsEditor',
   'MFormItemsEditor',
+  'MTabsConfigEditor',
   'MVariableValueEditor',
 ]
 
@@ -159,7 +160,7 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(53)
+    expect(docs).toHaveLength(54)
     expect(blockTypes).toContain('MButton')
     expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
@@ -254,6 +255,16 @@ describe('collectClientBlockDocs', () => {
       toolbox_visible: false,
       editor_block: true,
       sort_order: 174,
+    })
+    expect(docs.find((doc) => doc.block_type === 'MTabsConfigEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MTabsConfigEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MTabsConfigEditor',
+      tool_symbol: 'mTabsConfigEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      editor_block: true,
+      sort_order: 1010,
     })
     expect(docs.find((doc) => doc.block_type === 'MBlockPlayground')).toMatchObject({
       uuid: 'mokelay-editor-MBlockPlayground',
