@@ -34,6 +34,9 @@
       },
       {
         "key": "toolboxVisible"
+      },
+      {
+        "key": "editorBlock"
       }
     ]
   },
@@ -64,6 +67,7 @@
           "status",
           "editor_enabled",
           "toolbox_visible",
+          "editor_block",
           "sort_order",
           "registration",
           "toolbox",
@@ -153,6 +157,15 @@
             "fieldName": "toolbox_visible",
             "fieldValue": {
               "template": "{{request.query.toolboxVisible}}"
+            }
+          },
+          {
+            "group": false,
+            "optional": true,
+            "conditionType": "EQ",
+            "fieldName": "editor_block",
+            "fieldValue": {
+              "template": "{{request.query.editorBlock}}"
             }
           }
         ]

@@ -19,6 +19,11 @@ type ClientBlockDocsApi = {
       }>
     }>
   }
+  blocks: Array<{
+    inputs?: {
+      fields?: string[]
+    }
+  }>
 }
 
 type ClientBlockDocsPage = {
@@ -123,6 +128,7 @@ const optionalFilters = [
   'category',
   'editorEnabled',
   'toolboxVisible',
+  'editorBlock',
 ]
 
 const defaultPageRequestField = {
@@ -145,6 +151,32 @@ describe('client block document assets', () => {
       { key: 'blockType', processors: ['trim'] },
       ...optionalFilters.map((key) => ({ key })),
     ])
+    expect(api.blocks.find((block) => block.inputs?.fields)?.inputs?.fields).toContain('editor_block')
+  })
+
+  it.each([
+    'mokelay-apis/list_client_block_docs.json',
+    'mokelay-apis/list_block_component_docs.json',
+    'mokelay-apis/read_block_component_doc.json',
+  ])('returns the editor_block field in %s', async (fileName) => {
+    const api = await readJsonAsset<ClientBlockDocsApi>(fileName)
+
+    expect(api.blocks.find((block) => block.inputs?.fields)?.inputs?.fields).toContain('editor_block')
+  })
+
+  it('keeps database migrations and schema dumps in sync for the editor Block flag', async () => {
+    const mysqlMigration = await readFile(resolve(process.cwd(), 'data/mysql_migrations/0024_client_block_editor_block.sql'), 'utf8')
+    const mysqlSchema = await readFile(resolve(process.cwd(), 'data/mysql_schema.sql'), 'utf8')
+    const postgresMigration = await readFile(resolve(process.cwd(), 'server/database/migrations/0024_client_block_editor_block.sql'), 'utf8')
+    const postgresSchema = await readFile(resolve(process.cwd(), 'data/postgres_schema.sql'), 'utf8')
+
+    expect(mysqlMigration).toContain('ADD COLUMN `editor_block` tinyint(1) NOT NULL DEFAULT 0')
+    expect(mysqlMigration).toContain('idx_docs_client_block_editor_block')
+    expect(mysqlSchema).toContain('`editor_block` tinyint(1) NOT NULL DEFAULT 0')
+    expect(mysqlSchema).toContain('KEY `idx_docs_client_block_editor_block` (`editor_block`)')
+    expect(postgresMigration).toContain('ADD COLUMN IF NOT EXISTS "editor_block" boolean DEFAULT false NOT NULL')
+    expect(postgresSchema).toContain('editor_block boolean DEFAULT false NOT NULL')
+    expect(postgresSchema).toContain('CREATE INDEX idx_docs_client_block_editor_block ON public.docs_client_block USING btree (editor_block)')
   })
 
   it('loads only active client blocks on the documentation page', async () => {
@@ -167,6 +199,10 @@ describe('client block document assets', () => {
       expect.objectContaining({
         key: 'toolboxVisible',
         value: expect.objectContaining({ variable: 'search.toolboxVisible' }),
+      }),
+      expect.objectContaining({
+        key: 'editorBlock',
+        value: expect.objectContaining({ variable: 'search.editorBlock' }),
       }),
       expect.objectContaining({
         key: 'category',
@@ -200,11 +236,14 @@ describe('client block document assets', () => {
     const searchForm = page.blocks.find((block) => block.id === 'block-docs-search-form')?.data
     const toolboxColumn = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
       ?.find((column) => column.columnName === '工具箱')
+    const editorBlockColumn = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
+      ?.find((column) => column.columnName === '编辑器 Block')
 
     expect(searchForm?.items?.map((item) => item.variableName)).toEqual([
       'blockType',
       'editorEnabled',
       'toolboxVisible',
+      'editorBlock',
       'category',
     ])
     expect(searchForm?.actionBar?.buttons?.map((button) => button.id)).toEqual(['search', 'reset'])
@@ -224,6 +263,25 @@ describe('client block document assets', () => {
         placeholder: '请输入 BlockType',
       },
     })
+    expect(searchForm?.items?.find((item) => item.variableName === 'editorBlock')?.editor).toMatchObject({
+      type: 'MSelectField',
+      data: {
+        options: [
+          { label: '全部', value: '' },
+          { label: '是', value: '1' },
+          { label: '否', value: '0' },
+        ],
+      },
+    })
+    expect(editorBlockColumn).toMatchObject({
+      fieldVariable: 'editor_block',
+      width: 150,
+      wrap: true,
+    })
+    expect(editorBlockColumn?.columnContent?.map((block) => block.id)).toEqual(expect.arrayContaining([
+      'block-docs-editor-block-{{uuid}}',
+      'block-docs-runtime-block-{{uuid}}',
+    ]))
     expect(toolboxColumn?.columnContent?.map((block) => block.id)).toEqual(expect.arrayContaining([
       'block-docs-disable-{{uuid}}',
       'block-docs-enable-{{uuid}}',
@@ -298,6 +356,10 @@ describe('client block document assets', () => {
     expect(recordList?.type).toBe('MRecordList')
     expect(recordList?.data).toMatchObject({
       emptyText: '未找到对应的 Block 文档。',
+      fieldLabels: expect.objectContaining({
+        editor_block: '编辑器 Block',
+      }),
+      fieldOrder: expect.arrayContaining(['editor_block']),
       hiddenFields: expect.arrayContaining([
         'registration',
         'toolbox',
@@ -313,6 +375,7 @@ describe('client block document assets', () => {
         'raw_meta',
       ]),
     })
+    expect(recordList?.data?.hiddenFields).not.toContain('editor_block')
     expect(playground).toMatchObject({
       type: 'MBlockPlayground',
       data: {

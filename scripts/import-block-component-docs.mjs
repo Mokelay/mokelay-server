@@ -507,6 +507,7 @@ function normalizeDoc(entry, doc, tool, registryFile, index) {
 
   const editorEnabled = normalizeBoolean(registration.editorEnabled, true)
   const toolboxVisible = normalizeBoolean(registration.toolboxVisible, editorEnabled)
+  const editorBlock = normalizeBoolean(doc.editorBlock, false)
   const sortOrder = normalizeInteger(registration.sortOrder, (index + 1) * 10)
   const defaultData = isRecord(doc.defaultData) ? doc.defaultData : {}
 
@@ -522,6 +523,7 @@ function normalizeDoc(entry, doc, tool, registryFile, index) {
     tool_symbol: entry.toolSymbol,
     description: doc.description,
     status: typeof doc.status === 'string' && doc.status.trim() ? doc.status.trim() : 'active',
+    editor_block: editorBlock,
     editor_enabled: editorEnabled,
     toolbox_visible: toolboxVisible,
     sort_order: sortOrder,
@@ -538,6 +540,7 @@ function normalizeDoc(entry, doc, tool, registryFile, index) {
     source_refs: sourceRefs,
     raw_meta: {
       version: doc.version,
+      editorBlock,
       managedBy: 'import-block-component-docs.mjs',
       sourceKind: registration.sourceKind ?? 'mokelay-editor',
       registryFile: workspaceRelative(registryFile),
@@ -561,9 +564,11 @@ function normalizeManualDoc(doc) {
   return {
     initial_props: doc.default_data ?? {},
     save_schema: doc.save_schema ?? [],
+    editor_block: doc.editor_block === true,
     ...doc,
     raw_meta: {
       ...(doc.raw_meta ?? {}),
+      editorBlock: doc.editor_block === true,
       counts: {
         properties: doc.property_schema?.length ?? 0,
         events: doc.event_schema?.length ?? 0,
@@ -695,6 +700,7 @@ async function ensureMysqlTable(connection) {
       status varchar(32) NOT NULL DEFAULT 'active',
       editor_enabled tinyint(1) NOT NULL DEFAULT 1,
       toolbox_visible tinyint(1) NOT NULL DEFAULT 1,
+      editor_block tinyint(1) NOT NULL DEFAULT 0,
       sort_order int NOT NULL DEFAULT 0,
       registration json NOT NULL,
       toolbox json NOT NULL,
@@ -716,7 +722,8 @@ async function ensureMysqlTable(connection) {
       KEY idx_docs_client_block_category (category),
       KEY idx_docs_client_block_source_kind (source_kind),
       KEY idx_docs_client_block_editor_enabled (editor_enabled),
-      KEY idx_docs_client_block_toolbox_visible (toolbox_visible)
+      KEY idx_docs_client_block_toolbox_visible (toolbox_visible),
+      KEY idx_docs_client_block_editor_block (editor_block)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='客户端 Block 文档表'
   `)
 
@@ -725,12 +732,14 @@ async function ensureMysqlTable(connection) {
   await ensureMysqlColumn(connection, 'tool_symbol', "tool_symbol varchar(128) NOT NULL DEFAULT ''")
   await ensureMysqlColumn(connection, 'editor_enabled', 'editor_enabled tinyint(1) NOT NULL DEFAULT 1')
   await ensureMysqlColumn(connection, 'toolbox_visible', 'toolbox_visible tinyint(1) NOT NULL DEFAULT 1')
+  await ensureMysqlColumn(connection, 'editor_block', 'editor_block tinyint(1) NOT NULL DEFAULT 0')
   await ensureMysqlColumn(connection, 'sort_order', 'sort_order int NOT NULL DEFAULT 0')
   await ensureMysqlJsonColumn(connection, 'registration', 'registration json NULL', 'JSON_OBJECT()')
   await ensureMysqlJsonColumn(connection, 'default_data', 'default_data json NULL', 'COALESCE(initial_props, JSON_OBJECT())')
   await ensureMysqlJsonColumn(connection, 'save_schema', 'save_schema json NULL', 'JSON_ARRAY()')
   await ensureMysqlIndex(connection, 'idx_docs_client_block_editor_enabled', 'CREATE INDEX idx_docs_client_block_editor_enabled ON docs_client_block (editor_enabled)')
   await ensureMysqlIndex(connection, 'idx_docs_client_block_toolbox_visible', 'CREATE INDEX idx_docs_client_block_toolbox_visible ON docs_client_block (toolbox_visible)')
+  await ensureMysqlIndex(connection, 'idx_docs_client_block_editor_block', 'CREATE INDEX idx_docs_client_block_editor_block ON docs_client_block (editor_block)')
 }
 
 async function ensurePostgresTable(sql) {
@@ -750,6 +759,7 @@ async function ensurePostgresTable(sql) {
       status varchar(32) NOT NULL DEFAULT 'active',
       editor_enabled boolean NOT NULL DEFAULT true,
       toolbox_visible boolean NOT NULL DEFAULT true,
+      editor_block boolean NOT NULL DEFAULT false,
       sort_order integer NOT NULL DEFAULT 0,
       registration jsonb NOT NULL DEFAULT '{}'::jsonb,
       toolbox jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -772,6 +782,7 @@ async function ensurePostgresTable(sql) {
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS tool_symbol varchar(128) NOT NULL DEFAULT ''`
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS editor_enabled boolean NOT NULL DEFAULT true`
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS toolbox_visible boolean NOT NULL DEFAULT true`
+  await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS editor_block boolean NOT NULL DEFAULT false`
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0`
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS registration jsonb NOT NULL DEFAULT '{}'::jsonb`
   await sql`ALTER TABLE docs_client_block ADD COLUMN IF NOT EXISTS default_data jsonb NOT NULL DEFAULT '{}'::jsonb`
@@ -780,6 +791,7 @@ async function ensurePostgresTable(sql) {
   await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_source_kind ON docs_client_block (source_kind)`
   await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_editor_enabled ON docs_client_block (editor_enabled)`
   await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_toolbox_visible ON docs_client_block (toolbox_visible)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_docs_client_block_editor_block ON docs_client_block (editor_block)`
 }
 
 function docParams(doc, encodeJson) {
@@ -797,6 +809,7 @@ function docParams(doc, encodeJson) {
     doc.status,
     doc.editor_enabled ? 1 : 0,
     doc.toolbox_visible ? 1 : 0,
+    doc.editor_block ? 1 : 0,
     doc.sort_order,
     encodeJson(doc.registration),
     encodeJson(doc.toolbox),
@@ -817,10 +830,10 @@ async function upsertMysql(connection, docs) {
   const query = `
     INSERT INTO docs_client_block (
       uuid, block_type, display_name, category, source_kind, source_package, source_file,
-      component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, sort_order,
+      component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, editor_block, sort_order,
       registration, toolbox, initial_props, default_data, property_schema, event_schema, method_schema,
       data_fields_schema, save_schema, examples, source_refs, raw_meta
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       block_type = VALUES(block_type),
       display_name = VALUES(display_name),
@@ -832,6 +845,7 @@ async function upsertMysql(connection, docs) {
       tool_symbol = VALUES(tool_symbol),
       description = VALUES(description),
       status = VALUES(status),
+      editor_block = VALUES(editor_block),
       registration = VALUES(registration),
       toolbox = VALUES(toolbox),
       initial_props = VALUES(initial_props),
@@ -857,13 +871,13 @@ async function upsertPostgres(sql, docs) {
     await sql`
       INSERT INTO docs_client_block (
         uuid, block_type, display_name, category, source_kind, source_package, source_file,
-        component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, sort_order,
+        component_name, tool_symbol, description, status, editor_enabled, toolbox_visible, editor_block, sort_order,
         registration, toolbox, initial_props, default_data, property_schema, event_schema, method_schema,
         data_fields_schema, save_schema, examples, source_refs, raw_meta
       ) VALUES (
         ${doc.uuid}, ${doc.block_type}, ${doc.display_name}, ${doc.category}, ${doc.source_kind},
         ${doc.source_package}, ${doc.source_file}, ${doc.component_name}, ${doc.tool_symbol},
-        ${doc.description}, ${doc.status}, ${doc.editor_enabled}, ${doc.toolbox_visible}, ${doc.sort_order},
+        ${doc.description}, ${doc.status}, ${doc.editor_enabled}, ${doc.toolbox_visible}, ${doc.editor_block}, ${doc.sort_order},
         ${sql.json(doc.registration)}, ${sql.json(doc.toolbox)}, ${sql.json(doc.initial_props)},
         ${sql.json(doc.default_data)}, ${sql.json(doc.property_schema)}, ${sql.json(doc.event_schema)},
         ${sql.json(doc.method_schema)}, ${sql.json(doc.data_fields_schema)}, ${sql.json(doc.save_schema)},
@@ -880,6 +894,7 @@ async function upsertPostgres(sql, docs) {
         tool_symbol = excluded.tool_symbol,
         description = excluded.description,
         status = excluded.status,
+        editor_block = excluded.editor_block,
         registration = excluded.registration,
         toolbox = excluded.toolbox,
         initial_props = excluded.initial_props,

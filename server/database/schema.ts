@@ -123,6 +123,7 @@ export const blockComponentDocs = pgTable('docs_client_block', {
   status: varchar('status', { length: 32 }).notNull().default('active'),
   editorEnabled: boolean('editor_enabled').notNull().default(true),
   toolboxVisible: boolean('toolbox_visible').notNull().default(true),
+  editorBlock: boolean('editor_block').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   registration: jsonb('registration').$type<Record<string, unknown>>().notNull().default({}),
   toolbox: jsonb('toolbox').$type<Record<string, unknown>>().notNull().default({}),
@@ -143,6 +144,7 @@ export const blockComponentDocs = pgTable('docs_client_block', {
   index('idx_docs_client_block_source_kind').on(table.sourceKind),
   index('idx_docs_client_block_editor_enabled').on(table.editorEnabled),
   index('idx_docs_client_block_toolbox_visible').on(table.toolboxVisible),
+  index('idx_docs_client_block_editor_block').on(table.editorBlock),
 ])
 
 export const serverBlockDocs = pgTable('docs_server_block', {

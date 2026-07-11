@@ -97,6 +97,32 @@
             "events": []
           },
           {
+            "labelName": "编辑器 Block",
+            "variableName": "editorBlock",
+            "layout": "Vertical",
+            "editor": {
+              "id": "block-docs-filter-editor-block-field",
+              "type": "MSelectField",
+              "data": {
+                "value": "",
+                "options": [
+                  {
+                    "label": "全部",
+                    "value": ""
+                  },
+                  {
+                    "label": "是",
+                    "value": "1"
+                  },
+                  {
+                    "label": "否",
+                    "value": "0"
+                  }
+                ]
+              }
+            }
+          },
+          {
             "labelName": "分类",
             "variableName": "category",
             "fieldDataType": "string",
@@ -305,6 +331,37 @@
                 "type": "paragraph",
                 "data": {
                   "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": "编辑器 Block",
+            "fieldVariable": "editor_block",
+            "fieldDataType": "boolean",
+            "width": 150,
+            "wrap": true,
+            "columnContent": [
+              {
+                "id": "block-docs-editor-block-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "编辑器 Block",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "visible": "{{editor_block}}"
+                }
+              },
+              {
+                "id": "block-docs-runtime-block-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": "业务 Block",
+                  "variant": "text",
+                  "align": "left",
+                  "bare": true,
+                  "hidden": "{{editor_block}}"
                 }
               }
             ]
@@ -846,6 +903,15 @@
                 "blockId": "block-docs-table",
                 "blockType": "MAdvanceTable",
                 "variable": "search.toolboxVisible"
+              }
+            },
+            {
+              "key": "editorBlock",
+              "value": {
+                "mode": "variable",
+                "blockId": "block-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.editorBlock"
               }
             },
             {

@@ -112,6 +112,7 @@ CREATE TABLE `docs_client_block` (
   `status` varchar(32) NOT NULL DEFAULT 'active' COMMENT '状态',
   `editor_enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否可注册到编辑器',
   `toolbox_visible` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否显示在工具箱',
+  `editor_block` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否为编辑器专用 Block',
   `sort_order` int NOT NULL DEFAULT 0 COMMENT '工具箱排序',
   `registration` json NOT NULL COMMENT '编辑器注册信息',
   `toolbox` json NOT NULL COMMENT '工具栏信息',
@@ -133,7 +134,8 @@ CREATE TABLE `docs_client_block` (
   KEY `idx_docs_client_block_category` (`category`),
   KEY `idx_docs_client_block_source_kind` (`source_kind`),
   KEY `idx_docs_client_block_editor_enabled` (`editor_enabled`),
-  KEY `idx_docs_client_block_toolbox_visible` (`toolbox_visible`)
+  KEY `idx_docs_client_block_toolbox_visible` (`toolbox_visible`),
+  KEY `idx_docs_client_block_editor_block` (`editor_block`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='客户端 Block 文档表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `docs_server_block`;

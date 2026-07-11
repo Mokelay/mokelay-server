@@ -51,6 +51,26 @@ function commentFor(doc = validDoc()) {
  */`
 }
 
+const editorBlockTypes = [
+  'MActionEditor',
+  'MActionToolBarEditor',
+  'MAdvanceTableColumnsEditor',
+  'MChartDataEditor',
+  'MDatasourceEditor',
+  'MEditorSelector',
+  'MFieldsEditor',
+  'MFormItemsEditor',
+  'MVariableValueEditor',
+]
+
+const runtimeBlockTypes = [
+  'MButton',
+  'MChart',
+  'paragraph',
+  'table',
+  'columns',
+]
+
 async function writeFixture({ comment = commentFor(), secondComment, secondToolSymbol = 'mSecondEditorTool', legacyMetadata = false, layoutEntry = false } = {}) {
   tempDir = await mkdtemp(join(tmpdir(), 'client-block-docs-'))
   await mkdir(join(tempDir, 'src/blocks'), { recursive: true })
@@ -139,12 +159,22 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(50)
+    expect(docs).toHaveLength(53)
     expect(blockTypes).toContain('MButton')
     expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
     expect(blockTypes).toContain('MJson')
     expect(blockTypes).toContain('MLayoutPreview')
+    editorBlockTypes.forEach((blockType) => {
+      expect(docs.find((doc) => doc.block_type === blockType)).toMatchObject({
+        editor_block: true,
+      })
+    })
+    runtimeBlockTypes.forEach((blockType) => {
+      expect(docs.find((doc) => doc.block_type === blockType)).toMatchObject({
+        editor_block: false,
+      })
+    })
     expect(docs.find((doc) => doc.block_type === 'MButton')).toMatchObject({
       source_kind: 'mokelay-editor',
       component_name: 'MButton',
@@ -171,6 +201,7 @@ describe('collectClientBlockDocs', () => {
       tool_symbol: 'mVariableValueEditorTool',
       editor_enabled: false,
       toolbox_visible: false,
+      editor_block: true,
       sort_order: 170,
       default_data: {
         value: '',
@@ -187,11 +218,42 @@ describe('collectClientBlockDocs', () => {
       tool_symbol: 'mChartDataEditorTool',
       editor_enabled: false,
       toolbox_visible: false,
+      editor_block: true,
       sort_order: 171,
       default_data: {
         chartType: 'line',
         readonly: false,
       },
+    })
+    expect(docs.find((doc) => doc.block_type === 'MActionToolBarEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MActionToolBarEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MActionToolBarEditor',
+      tool_symbol: 'mActionToolBarEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      editor_block: true,
+      sort_order: 172,
+    })
+    expect(docs.find((doc) => doc.block_type === 'MAdvanceTableColumnsEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MAdvanceTableColumnsEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MAdvanceTableColumnsEditor',
+      tool_symbol: 'mAdvanceTableColumnsEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      editor_block: true,
+      sort_order: 173,
+    })
+    expect(docs.find((doc) => doc.block_type === 'MFormItemsEditor')).toMatchObject({
+      uuid: 'mokelay-editor-MFormItemsEditor',
+      source_kind: 'mokelay-editor',
+      component_name: 'MFormItemsEditor',
+      tool_symbol: 'mFormItemsEditorTool',
+      editor_enabled: false,
+      toolbox_visible: false,
+      editor_block: true,
+      sort_order: 174,
     })
     expect(docs.find((doc) => doc.block_type === 'MBlockPlayground')).toMatchObject({
       uuid: 'mokelay-editor-MBlockPlayground',
@@ -200,6 +262,7 @@ describe('collectClientBlockDocs', () => {
       tool_symbol: 'mBlockPlaygroundTool',
       editor_enabled: true,
       toolbox_visible: false,
+      editor_block: false,
       sort_order: 82,
     })
     expect(docs).not.toContainEqual(expect.objectContaining({ source_kind: 'layout' }))
@@ -233,7 +296,11 @@ describe('collectClientBlockDocs', () => {
       block_type: 'MDemo',
       component_name: 'MDemo',
       tool_symbol: 'mDemoEditorTool',
+      editor_block: false,
       default_data: { label: 'Demo' },
+      raw_meta: expect.objectContaining({
+        editorBlock: false,
+      }),
     })
     expect(docs[0].raw_meta.counts.properties).toBe(1)
   })
@@ -322,6 +389,8 @@ describe('client block document persistence', () => {
     expect(source).not.toContain('editor_enabled = excluded.editor_enabled')
     expect(source).not.toContain('toolbox_visible = excluded.toolbox_visible')
     expect(source).not.toContain('sort_order = excluded.sort_order')
+    expect(source).toContain('editor_block = VALUES(editor_block)')
+    expect(source).toContain('editor_block = excluded.editor_block')
   })
 
   it('does not generate an editor-side document cache', async () => {

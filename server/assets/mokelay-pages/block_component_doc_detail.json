@@ -104,7 +104,11 @@
         },
         "emptyText": "未找到对应的 Block 文档。",
         "showCount": false,
-        "titleFields": ["display_name", "block_type", "uuid"],
+        "titleFields": [
+          "display_name",
+          "block_type",
+          "uuid"
+        ],
         "fieldOrder": [
           "uuid",
           "block_type",
@@ -119,6 +123,7 @@
           "tool_symbol",
           "editor_enabled",
           "toolbox_visible",
+          "editor_block",
           "sort_order",
           "created_at",
           "updated_at"
@@ -148,7 +153,8 @@
           "source_refs": "源码引用",
           "raw_meta": "原始元数据",
           "created_at": "创建时间",
-          "updated_at": "更新时间"
+          "updated_at": "更新时间",
+          "editor_block": "编辑器 Block"
         },
         "hiddenFields": [
           "registration",
@@ -200,7 +206,10 @@
         "responsive": {
           "mobile": {
             "columns": 1,
-            "areaOrder": ["primary", "secondary"]
+            "areaOrder": [
+              "primary",
+              "secondary"
+            ]
           }
         },
         "areas": [
@@ -385,11 +394,15 @@
             "fieldDataType": "string",
             "width": 160,
             "fixed": "left",
-            "columnContent": [{
-              "id": "block-doc-detail-property-key",
-              "type": "paragraph",
-              "data": { "text": "{{key}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-key",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{key}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "名称",
@@ -397,11 +410,15 @@
             "fieldDataType": "string",
             "width": 180,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-property-label",
-              "type": "paragraph",
-              "data": { "text": "{{label}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-label",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{label}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "类型",
@@ -410,11 +427,15 @@
             "width": 220,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-property-type",
-              "type": "paragraph",
-              "data": { "text": "{{type}} / {{tsType}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{type}} / {{tsType}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "默认值",
@@ -423,11 +444,15 @@
             "width": 180,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-property-default",
-              "type": "paragraph",
-              "data": { "text": "{{defaultValue}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-default",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{defaultValue}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "配置",
@@ -435,11 +460,15 @@
             "fieldDataType": "string",
             "width": 150,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-property-flags",
-              "type": "paragraph",
-              "data": { "text": "可配置 {{configurable}} / 可选 {{optional}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-flags",
+                "type": "paragraph",
+                "data": {
+                  "text": "可配置 {{configurable}} / 可选 {{optional}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "源码",
@@ -448,11 +477,15 @@
             "width": 320,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-property-source",
-              "type": "paragraph",
-              "data": { "text": "{{source}}:{{line}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-property-source",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{source}}:{{line}}"
+                }
+              }
+            ]
           }
         ]
       }
@@ -486,11 +519,15 @@
             "fieldDataType": "string",
             "width": 180,
             "fixed": "left",
-            "columnContent": [{
-              "id": "block-doc-detail-event-name",
-              "type": "paragraph",
-              "data": { "text": "{{event}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{event}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "名称",
@@ -498,11 +535,15 @@
             "fieldDataType": "string",
             "width": 180,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-event-label",
-              "type": "paragraph",
-              "data": { "text": "{{label}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-label",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{label}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "载荷",
@@ -511,11 +552,15 @@
             "width": 360,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-event-payload",
-              "type": "paragraph",
-              "data": { "text": "{{payload}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-payload",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{payload}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "触发方式",
@@ -524,11 +569,15 @@
             "width": 200,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-event-trigger",
-              "type": "paragraph",
-              "data": { "text": "{{trigger}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-trigger",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{trigger}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "源码",
@@ -537,11 +586,15 @@
             "width": 360,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-event-source",
-              "type": "paragraph",
-              "data": { "text": "{{source}}:{{line}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-source",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{source}}:{{line}}"
+                }
+              }
+            ]
           }
         ]
       }
@@ -575,11 +628,15 @@
             "fieldDataType": "string",
             "width": 180,
             "fixed": "left",
-            "columnContent": [{
-              "id": "block-doc-detail-method-name",
-              "type": "paragraph",
-              "data": { "text": "{{name}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "名称",
@@ -587,11 +644,15 @@
             "fieldDataType": "string",
             "width": 180,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-method-label",
-              "type": "paragraph",
-              "data": { "text": "{{label}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-label",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{label}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "参数",
@@ -600,11 +661,15 @@
             "width": 280,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-method-params",
-              "type": "paragraph",
-              "data": { "text": "{{params}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-params",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{params}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "返回值",
@@ -613,11 +678,15 @@
             "width": 180,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-method-returns",
-              "type": "paragraph",
-              "data": { "text": "{{returns}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-returns",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{returns}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "异步",
@@ -625,11 +694,15 @@
             "fieldDataType": "boolean",
             "width": 100,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-method-async",
-              "type": "paragraph",
-              "data": { "text": "{{async}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-async",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{async}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "暴露",
@@ -637,11 +710,15 @@
             "fieldDataType": "boolean",
             "width": 100,
             "fixed": null,
-            "columnContent": [{
-              "id": "block-doc-detail-method-exposed",
-              "type": "paragraph",
-              "data": { "text": "{{exposed}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-exposed",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{exposed}}"
+                }
+              }
+            ]
           },
           {
             "columnName": "源码",
@@ -650,11 +727,15 @@
             "width": 360,
             "fixed": null,
             "wrap": true,
-            "columnContent": [{
-              "id": "block-doc-detail-method-source",
-              "type": "paragraph",
-              "data": { "text": "{{source}}:{{line}}" }
-            }]
+            "columnContent": [
+              {
+                "id": "block-doc-detail-method-source",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{source}}:{{line}}"
+                }
+              }
+            ]
           }
         ]
       }

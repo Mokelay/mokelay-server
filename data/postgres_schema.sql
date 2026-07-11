@@ -205,6 +205,7 @@ CREATE TABLE public.docs_client_block (
     status character varying(32) DEFAULT 'active'::character varying NOT NULL,
     editor_enabled boolean DEFAULT true NOT NULL,
     toolbox_visible boolean DEFAULT true NOT NULL,
+    editor_block boolean DEFAULT false NOT NULL,
     sort_order integer DEFAULT 0 NOT NULL,
     registration jsonb DEFAULT '{}'::jsonb NOT NULL,
     toolbox jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -767,6 +768,13 @@ CREATE INDEX idx_docs_client_block_category ON public.docs_client_block USING bt
 --
 
 CREATE INDEX idx_docs_client_block_editor_enabled ON public.docs_client_block USING btree (editor_enabled);
+
+
+--
+-- Name: idx_docs_client_block_editor_block; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_docs_client_block_editor_block ON public.docs_client_block USING btree (editor_block);
 
 
 --
