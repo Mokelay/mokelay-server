@@ -39,7 +39,7 @@ const docKinds = [
     detailPage: 'mokelay-pages/server_block_doc_detail.json',
     readApi: 'mokelay-apis/read_server_block_doc.json',
     table: 'docs_server_block',
-    expectedColumns: ['Function', '名称', '分类', '数据源', '说明', '源码', '操作'],
+    expectedColumns: ['Function', '名称', '分类', '数据源', '说明', '操作'],
     detailPath: '/#/server_block_doc_detail?uuid={{uuid}}',
   },
   {
@@ -48,7 +48,7 @@ const docKinds = [
     detailPage: 'mokelay-pages/server_controller_doc_detail.json',
     readApi: 'mokelay-apis/read_server_controller_doc.json',
     table: 'docs_server_controller',
-    expectedColumns: ['Function', '名称', '分类', '说明', '源码', '操作'],
+    expectedColumns: ['Function', '名称', '分类', '说明', '操作'],
     detailPath: '/#/server_controller_doc_detail?uuid={{uuid}}',
   },
   {
@@ -57,7 +57,7 @@ const docKinds = [
     detailPage: 'mokelay-pages/server_processor_doc_detail.json',
     readApi: 'mokelay-apis/read_server_processor_doc.json',
     table: 'docs_server_processor',
-    expectedColumns: ['Processor', '名称', '分类', '说明', '源码', '操作'],
+    expectedColumns: ['Processor', '名称', '分类', '说明', '操作'],
     detailPath: '/#/server_processor_doc_detail?uuid={{uuid}}',
   },
 ]

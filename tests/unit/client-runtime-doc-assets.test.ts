@@ -78,4 +78,17 @@ describe('client Action and Processor documentation assets', () => {
       'input_schema', 'output_schema', 'error_schema', 'config_schema', 'examples', 'source_refs', 'raw_meta',
     ]))
   })
+
+  it.each([
+    ['mokelay-pages/client_action_docs.json', ['Action', '名称', '类型', '说明', '操作']],
+    ['mokelay-pages/client_processor_docs.json', ['Processor', '名称', '分类', '说明', '操作']],
+  ])('omits source file columns from list page %s', async (fileName, expectedColumns) => {
+    const page = await readJsonAsset<{
+      blocks: Array<{ type?: string, data?: { columns?: Array<{ columnName?: string, fieldVariable?: string }> } }>
+    }>(fileName)
+    const columns = page.blocks.find((block) => block.type === 'MAdvanceTable')?.data?.columns ?? []
+
+    expect(columns.map((column) => column.columnName)).toEqual(expectedColumns)
+    expect(columns.map((column) => column.fieldVariable)).not.toContain('source_file')
+  })
 })

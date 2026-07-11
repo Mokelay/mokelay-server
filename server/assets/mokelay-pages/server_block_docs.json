@@ -101,22 +101,6 @@
             ]
           },
           {
-            "columnName": "源码",
-            "fieldVariable": "source_file",
-            "fieldDataType": "string",
-            "width": 300,
-            "fixed": null,
-            "columnContent": [
-              {
-                "id": "server-block-docs-col-source",
-                "type": "paragraph",
-                "data": {
-                  "text": "{{source_file}}"
-                }
-              }
-            ]
-          },
-          {
             "columnName": "操作",
             "fieldVariable": "uuid",
             "fieldDataType": "string",

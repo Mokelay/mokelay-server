@@ -16,7 +16,6 @@
           {"columnName":"名称","fieldVariable":"display_name","fieldDataType":"string","width":180,"columnContent":[{"id":"client-processor-display-name","type":"paragraph","data":{"text":"{{display_name}}"}}]},
           {"columnName":"分类","fieldVariable":"category","fieldDataType":"string","width":150,"columnContent":[{"id":"client-processor-category","type":"paragraph","data":{"text":"{{category}}"}}]},
           {"columnName":"说明","fieldVariable":"description","fieldDataType":"string","width":420,"columnContent":[{"id":"client-processor-description","type":"paragraph","data":{"text":"{{description}}"}}]},
-          {"columnName":"源码","fieldVariable":"source_file","fieldDataType":"string","width":360,"columnContent":[{"id":"client-processor-source","type":"paragraph","data":{"text":"{{source_file}}"}}]},
           {"columnName":"操作","fieldVariable":"uuid","fieldDataType":"string","width":110,"fixed":"right","columnContent":[{"id":"client-processor-detail-{{uuid}}","type":"MButton","data":{"label":"查看详情","variant":"secondary","align":"left","bare":true},"events":[{"event":"click","actions":[{"uuid":"client_processor_open_detail","action":"jump_url","inputs":{"url":{"template":"/#/client_processor_doc_detail?uuid={{uuid}}"}},"outputs":[],"nextAction":null}]}]}]}
         ],
         "ds":{
