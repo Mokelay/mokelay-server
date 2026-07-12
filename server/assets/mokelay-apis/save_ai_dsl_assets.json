@@ -1,0 +1,54 @@
+{
+  "uuid": "save_ai_dsl_assets",
+  "alias": "保存 AI DSL 生成资产",
+  "method": "POST",
+  "request": {
+    "body": [
+      "generationResult",
+      {
+        "key": "knownPageUuids"
+      },
+      {
+        "key": "knownApiUuids"
+      },
+      {
+        "key": "apiStatus"
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "save_ai_dsl_assets_block"
+    },
+    {
+      "uuid": "save_ai_dsl_assets_block",
+      "functionName": "saveAiDslAssets",
+      "inputs": {
+        "datasource": "Mokelay",
+        "generationResult": {
+          "template": "{{request.body.generationResult}}"
+        },
+        "knownPageUuids": {
+          "template": "{{request.body.knownPageUuids}}"
+        },
+        "knownApiUuids": {
+          "template": "{{request.body.knownApiUuids}}"
+        },
+        "apiStatus": {
+          "template": "{{request.body.apiStatus}}"
+        },
+        "strategy": "create_or_update_known"
+      },
+      "outputs": [
+        "saveSummary"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "saveSummary": {
+      "template": "{{blocks['save_ai_dsl_assets_block'].outputs.saveSummary}}"
+    }
+  }
+}

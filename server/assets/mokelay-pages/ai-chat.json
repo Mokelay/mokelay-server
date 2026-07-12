@@ -1,0 +1,1027 @@
+{
+  "uuid": "ai-chat",
+  "createdAt": "2026-07-12T00:00:00.000Z",
+  "updatedAt": "2026-07-12T00:00:00.000Z",
+  "name": "AI DSL 生成",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [
+    {
+      "key": "apps",
+      "type": "datasource",
+      "ds": {
+        "type": "API",
+        "domain": "mokelay",
+        "path": "/api/mokelay/list_apps",
+        "method": "GET",
+        "headerData": [],
+        "bodyData": [],
+        "queryData": [
+          {
+            "key": "page",
+            "value": "1"
+          },
+          {
+            "key": "pageSize",
+            "value": "1000"
+          }
+        ],
+        "schemaSelections": [
+          {
+            "path": "data.apps[]",
+            "type": "array",
+            "label": "APP 列表"
+          }
+        ],
+        "matchingExternalFields": [
+          {
+            "label": "APP 列表",
+            "variable": "apps",
+            "matchFieldPath": "data.apps[]"
+          }
+        ]
+      }
+    },
+    {
+      "key": "datasources",
+      "type": "datasource",
+      "ds": {
+        "type": "API",
+        "domain": "mokelay",
+        "path": "/api/mokelay/list_datasources",
+        "method": "GET",
+        "headerData": [],
+        "bodyData": [],
+        "queryData": [
+          {
+            "key": "page",
+            "value": "1"
+          },
+          {
+            "key": "pageSize",
+            "value": "1000"
+          }
+        ],
+        "schemaSelections": [
+          {
+            "path": "data.datasources[]",
+            "type": "array",
+            "label": "数据源列表"
+          }
+        ],
+        "matchingExternalFields": [
+          {
+            "label": "数据源列表",
+            "variable": "datasources",
+            "matchFieldPath": "data.datasources[]"
+          }
+        ]
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "id": "ai-chat-state",
+      "type": "MPageState",
+      "data": {
+        "initialState": {
+          "turns": [],
+          "knownPageUuids": [],
+          "knownApiUuids": [],
+          "requestDefaults": {
+            "requirementDocument": "",
+            "projectContext": {
+              "app": "",
+              "datasource": ""
+            }
+          },
+          "requestPayload": null,
+          "generationResult": null,
+          "saveSummary": null,
+          "isGenerating": false,
+          "error": ""
+        },
+        "visibleInPreview": false,
+        "readonly": false,
+        "debugLabel": "AI Chat State"
+      },
+      "events": []
+    },
+    {
+      "id": "ai-chat-workspace",
+      "type": "MLayoutGrid",
+      "data": {
+        "gap": 20,
+        "columns": "minmax(340px, 420px) minmax(0, 1fr)",
+        "responsive": {
+          "mobile": {
+            "columns": 1,
+            "areaOrder": [
+              "request",
+              "result"
+            ]
+          }
+        },
+        "areas": [
+          {
+            "id": "request",
+            "name": "生成请求",
+            "width": "minmax(340px, 420px)",
+            "blocks": [
+              {
+                "id": "ai-chat-request-form",
+                "type": "MForm",
+                "data": {
+                  "layout": "Vertical",
+                  "items": [
+                    {
+                      "labelName": "用户需求",
+                      "variableName": "requirementDocument",
+                      "fieldDataType": "string",
+                      "layout": "Vertical",
+                      "editor": {
+                        "id": "ai-chat-requirement-document",
+                        "type": "MTextareaField",
+                        "data": {
+                          "placeholder": "描述要生成的页面、数据和交互，例如：生成一个 CRM，包含客户列表、新增、编辑和删除。",
+                          "value": "生成一个CRM：包括客户管理，列表，添加，修改，删除",
+                          "rows": 18,
+                          "required": true,
+                          "maxLength": 50000
+                        }
+                      }
+                    },
+                    {
+                      "labelName": "APP",
+                      "variableName": "app",
+                      "fieldDataType": "string",
+                      "layout": "Vertical",
+                      "editor": {
+                        "id": "ai-chat-app-select",
+                        "type": "MSelectField",
+                        "data": {
+                          "placeholder": "请选择 APP",
+                          "value": "",
+                          "options": {
+                            "mode": "variable",
+                            "source": "MPage",
+                            "pageId": "ai-chat",
+                            "variable": "dataSources.apps.apps"
+                          },
+                          "optionLabelField": "alias",
+                          "optionValueField": "alias",
+                          "required": true
+                        }
+                      }
+                    },
+                    {
+                      "labelName": "数据源",
+                      "variableName": "datasource",
+                      "fieldDataType": "string",
+                      "layout": "Vertical",
+                      "editor": {
+                        "id": "ai-chat-datasource-select",
+                        "type": "MSelectField",
+                        "data": {
+                          "placeholder": "请选择数据源",
+                          "value": "",
+                          "options": {
+                            "mode": "variable",
+                            "source": "MPage",
+                            "pageId": "ai-chat",
+                            "variable": "dataSources.datasources.datasources"
+                          },
+                          "optionLabelField": "alias",
+                          "optionValueField": "alias",
+                          "required": true
+                        }
+                      }
+                    }
+                  ],
+                  "submit": {
+                    "filterEmpty": false,
+                    "includeDisabled": true,
+                    "includeHidden": false
+                  }
+                },
+                "events": []
+              },
+              {
+                "id": "ai-chat-actions",
+                "type": "MActionToolbar",
+                "data": {
+                  "align": "space-between",
+                  "size": "medium",
+                  "mode": "inline",
+                  "buttons": [
+                    {
+                      "id": "generate",
+                      "label": "AI生成",
+                      "loadingLabel": "生成中...",
+                      "showLoading": true,
+                      "variant": "primary",
+                      "align": "left",
+                      "events": [
+                        {
+                          "event": "click",
+                          "actions": [
+                            {
+                              "uuid": "ai_chat_submit_request",
+                              "action": "call_block_method",
+                              "alias": "校验并读取生成请求",
+                              "inputs": {
+                                "blockId": "ai-chat-request-form",
+                                "method": "submit"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_validate_request"
+                            },
+                            {
+                              "uuid": "ai_chat_validate_request",
+                              "action": "if_controller",
+                              "type": "controller",
+                              "alias": "判断请求是否有效",
+                              "inputs": {
+                                "value": {
+                                  "template": "{{actions['ai_chat_submit_request'].outputs.returnData.valid}}"
+                                }
+                              },
+                              "nodes": [
+                                {
+                                  "uuid": "ai_chat_request_valid",
+                                  "alias": "有效",
+                                  "value": true,
+                                  "nextAction": "ai_chat_mark_generating"
+                                },
+                                {
+                                  "uuid": "ai_chat_request_invalid",
+                                  "alias": "无效",
+                                  "value": false,
+                                  "nextAction": null
+                                }
+                              ]
+                            },
+                            {
+                              "uuid": "ai_chat_mark_generating",
+                              "action": "call_block_method",
+                              "alias": "写入生成中状态",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "merge",
+                                "args": {
+                                  "value": {
+                                    "generationResult": null,
+                                    "saveSummary": null,
+                                    "isGenerating": true,
+                                    "error": ""
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_disable_clear"
+                            },
+                            {
+                              "uuid": "ai_chat_disable_clear",
+                              "action": "call_block_method",
+                              "alias": "生成期间禁用清空",
+                              "inputs": {
+                                "blockId": "ai-chat-actions",
+                                "method": "disable",
+                                "args": {
+                                  "buttonId": "clear"
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_clear_response"
+                            },
+                            {
+                              "uuid": "ai_chat_clear_response",
+                              "action": "call_block_method",
+                              "alias": "清空上次响应",
+                              "inputs": {
+                                "blockId": "ai-chat-response-json",
+                                "method": "clear"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_show_generating"
+                            },
+                            {
+                              "uuid": "ai_chat_show_generating",
+                              "action": "call_block_method",
+                              "alias": "显示生成状态",
+                              "inputs": {
+                                "blockId": "ai-chat-save-json",
+                                "method": "setValue",
+                                "args": {
+                                  "value": {
+                                    "status": "generating",
+                                    "message": "正在生成 DSL..."
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_build_payload"
+                            },
+                            {
+                              "uuid": "ai_chat_build_payload",
+                              "action": "call_block_method",
+                              "alias": "组装连续对话请求",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "setValue",
+                                "args": {
+                                  "path": "requestPayload",
+                                  "value": {
+                                    "template": "{{blocks['ai-chat-state'].requestDefaults}}",
+                                    "processors": [
+                                      {
+                                        "processor": "merge_data",
+                                        "param": {
+                                          "requirementDocument": {
+                                            "template": "{{actions['ai_chat_submit_request'].outputs.returnData.values.requirementDocument}}"
+                                          },
+                                          "projectContext": {
+                                            "app": {
+                                              "template": "{{actions['ai_chat_submit_request'].outputs.returnData.values.app}}"
+                                            },
+                                            "datasource": {
+                                              "template": "{{actions['ai_chat_submit_request'].outputs.returnData.values.datasource}}"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "processor": "ai_dsl_request_context",
+                                        "param": {
+                                          "history": {
+                                            "template": "{{blocks['ai-chat-state'].turns}}"
+                                          },
+                                          "historyOrder": "oldest_first",
+                                          "historyLimit": 5,
+                                          "includeHistoryInRequirement": true,
+                                          "includeHistoryInDslContext": false
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_generate_dsl"
+                            },
+                            {
+                              "uuid": "ai_chat_generate_dsl",
+                              "action": "execute_ds",
+                              "alias": "生成页面与接口 DSL",
+                              "inputs": {
+                                "dsConfig": {
+                                  "type": "API",
+                                  "domain": "mokelay",
+                                  "path": "/api/mokelay/ai-generate-dsl",
+                                  "method": "POST",
+                                  "headerData": [],
+                                  "bodyData": [
+                                    {
+                                      "key": "requirementDocument",
+                                      "dataType": "string",
+                                      "value": {
+                                        "template": "{{blocks['ai-chat-state'].requestPayload.requirementDocument}}"
+                                      }
+                                    },
+                                    {
+                                      "key": "projectContext",
+                                      "dataType": "object",
+                                      "value": {
+                                        "template": "{{blocks['ai-chat-state'].requestPayload.projectContext}}"
+                                      }
+                                    }
+                                  ],
+                                  "queryData": [],
+                                  "schemaSelections": [
+                                    {
+                                      "path": "data",
+                                      "type": "object",
+                                      "label": "AI DSL 生成结果"
+                                    }
+                                  ],
+                                  "matchingExternalFields": [
+                                    {
+                                      "label": "AI DSL 生成结果",
+                                      "variable": "generationResult",
+                                      "matchFieldPath": "data"
+                                    }
+                                  ]
+                                }
+                              },
+                              "outputs": [
+                                "rawResponse",
+                                "generationResult"
+                              ],
+                              "nextAction": "ai_chat_store_generation"
+                            },
+                            {
+                              "uuid": "ai_chat_store_generation",
+                              "action": "call_block_method",
+                              "alias": "保存生成结果状态",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "setValue",
+                                "args": {
+                                  "path": "generationResult",
+                                  "value": {
+                                    "template": "{{actions['ai_chat_generate_dsl'].outputs.generationResult}}"
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_render_generation"
+                            },
+                            {
+                              "uuid": "ai_chat_render_generation",
+                              "action": "call_block_method",
+                              "alias": "展示生成结果",
+                              "inputs": {
+                                "blockId": "ai-chat-response-json",
+                                "method": "setValue",
+                                "args": {
+                                  "value": {
+                                    "template": "{{actions['ai_chat_generate_dsl'].outputs.generationResult}}"
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_save_assets"
+                            },
+                            {
+                              "uuid": "ai_chat_save_assets",
+                              "action": "execute_ds",
+                              "alias": "保存生成资产",
+                              "inputs": {
+                                "dsConfig": {
+                                  "type": "API",
+                                  "domain": "mokelay",
+                                  "path": "/api/mokelay/save_ai_dsl_assets",
+                                  "method": "POST",
+                                  "headerData": [],
+                                  "bodyData": [
+                                    {
+                                      "key": "generationResult",
+                                      "dataType": "object",
+                                      "value": {
+                                        "template": "{{actions['ai_chat_generate_dsl'].outputs.generationResult}}"
+                                      }
+                                    },
+                                    {
+                                      "key": "knownPageUuids",
+                                      "dataType": "array",
+                                      "value": {
+                                        "template": "{{blocks['ai-chat-state'].knownPageUuids}}"
+                                      }
+                                    },
+                                    {
+                                      "key": "knownApiUuids",
+                                      "dataType": "array",
+                                      "value": {
+                                        "template": "{{blocks['ai-chat-state'].knownApiUuids}}"
+                                      }
+                                    },
+                                    {
+                                      "key": "apiStatus",
+                                      "dataType": "string",
+                                      "value": "draft"
+                                    }
+                                  ],
+                                  "queryData": [],
+                                  "schemaSelections": [
+                                    {
+                                      "path": "data.saveSummary",
+                                      "type": "object",
+                                      "label": "资产保存摘要"
+                                    }
+                                  ],
+                                  "matchingExternalFields": [
+                                    {
+                                      "label": "资产保存摘要",
+                                      "variable": "saveSummary",
+                                      "matchFieldPath": "data.saveSummary"
+                                    }
+                                  ]
+                                }
+                              },
+                              "outputs": [
+                                "rawResponse",
+                                "saveSummary"
+                              ],
+                              "nextAction": "ai_chat_store_save_summary"
+                            },
+                            {
+                              "uuid": "ai_chat_store_save_summary",
+                              "action": "call_block_method",
+                              "alias": "保存资产摘要状态",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "setValue",
+                                "args": {
+                                  "path": "saveSummary",
+                                  "value": {
+                                    "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary}}"
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_store_known_pages"
+                            },
+                            {
+                              "uuid": "ai_chat_store_known_pages",
+                              "action": "call_block_method",
+                              "alias": "更新已知页面 UUID",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "setValue",
+                                "args": {
+                                  "path": "knownPageUuids",
+                                  "value": {
+                                    "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.knownPageUuids}}"
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_store_known_apis"
+                            },
+                            {
+                              "uuid": "ai_chat_store_known_apis",
+                              "action": "call_block_method",
+                              "alias": "更新已知 API UUID",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "setValue",
+                                "args": {
+                                  "path": "knownApiUuids",
+                                  "value": {
+                                    "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.knownApiUuids}}"
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_render_save_summary"
+                            },
+                            {
+                              "uuid": "ai_chat_render_save_summary",
+                              "action": "call_block_method",
+                              "alias": "展示精简保存摘要",
+                              "inputs": {
+                                "blockId": "ai-chat-save-json",
+                                "method": "setValue",
+                                "args": {
+                                  "value": {
+                                    "status": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.status}}"
+                                    },
+                                    "savedCount": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.savedCount}}"
+                                    },
+                                    "failedCount": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.failedCount}}"
+                                    },
+                                    "failedPages": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.pages}}",
+                                      "processors": [
+                                        {
+                                          "processor": "filter",
+                                          "param": {
+                                            "type": "and",
+                                            "conditions": [
+                                              {
+                                                "variable": "status",
+                                                "condition": "eq",
+                                                "value": "error"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "failedApis": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary.apis}}",
+                                      "processors": [
+                                        {
+                                          "processor": "filter",
+                                          "param": {
+                                            "type": "and",
+                                            "conditions": [
+                                              {
+                                                "variable": "status",
+                                                "condition": "eq",
+                                                "value": "error"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_append_turn"
+                            },
+                            {
+                              "uuid": "ai_chat_append_turn",
+                              "action": "call_block_method",
+                              "alias": "追加成功会话",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "append",
+                                "args": {
+                                  "path": "turns",
+                                  "value": {
+                                    "status": "success",
+                                    "requirementDocument": {
+                                      "template": "{{actions['ai_chat_submit_request'].outputs.returnData.values.requirementDocument}}"
+                                    },
+                                    "response": {
+                                      "template": "{{actions['ai_chat_generate_dsl'].outputs.generationResult}}"
+                                    },
+                                    "saveSummary": {
+                                      "template": "{{actions['ai_chat_save_assets'].outputs.saveSummary}}"
+                                    }
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_finish_generation"
+                            },
+                            {
+                              "uuid": "ai_chat_finish_generation",
+                              "action": "call_block_method",
+                              "alias": "完成生成",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "merge",
+                                "args": {
+                                  "value": {
+                                    "isGenerating": false,
+                                    "error": ""
+                                  }
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_enable_clear"
+                            },
+                            {
+                              "uuid": "ai_chat_enable_clear",
+                              "action": "call_block_method",
+                              "alias": "恢复清空按钮",
+                              "inputs": {
+                                "blockId": "ai-chat-actions",
+                                "method": "enable",
+                                "args": {
+                                  "buttonId": "clear"
+                                }
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": null
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "clear",
+                      "label": "清空会话",
+                      "showLoading": false,
+                      "variant": "secondary",
+                      "align": "left",
+                      "events": [
+                        {
+                          "event": "click",
+                          "actions": [
+                            {
+                              "uuid": "ai_chat_clear_state",
+                              "action": "call_block_method",
+                              "alias": "重置会话状态",
+                              "inputs": {
+                                "blockId": "ai-chat-state",
+                                "method": "clear"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_clear_response_viewer"
+                            },
+                            {
+                              "uuid": "ai_chat_clear_response_viewer",
+                              "action": "call_block_method",
+                              "alias": "清空响应 JSON",
+                              "inputs": {
+                                "blockId": "ai-chat-response-json",
+                                "method": "clear"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "ai_chat_clear_save_viewer"
+                            },
+                            {
+                              "uuid": "ai_chat_clear_save_viewer",
+                              "action": "call_block_method",
+                              "alias": "清空保存状态",
+                              "inputs": {
+                                "blockId": "ai-chat-save-json",
+                                "method": "clear"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": null
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "events": [
+                  {
+                    "event": "execute-error",
+                    "actions": [
+                      {
+                        "uuid": "ai_chat_error_state",
+                        "action": "call_block_method",
+                        "alias": "记录生成错误",
+                        "inputs": {
+                          "blockId": "ai-chat-state",
+                          "method": "merge",
+                          "args": {
+                            "value": {
+                              "isGenerating": false,
+                              "error": {
+                                "template": "{{event.error.message}}"
+                              }
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": "ai_chat_error_view"
+                      },
+                      {
+                        "uuid": "ai_chat_error_view",
+                        "action": "call_block_method",
+                        "alias": "展示生成错误",
+                        "inputs": {
+                          "blockId": "ai-chat-save-json",
+                          "method": "setValue",
+                          "args": {
+                            "value": {
+                              "status": "error",
+                              "error": {
+                                "template": "{{event.error.message}}"
+                              }
+                            }
+                          }
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": "ai_chat_error_enable_clear"
+                      },
+                      {
+                        "uuid": "ai_chat_error_enable_clear",
+                        "action": "call_block_method",
+                        "alias": "错误后恢复清空按钮",
+                        "inputs": {
+                          "blockId": "ai-chat-actions",
+                          "method": "enable",
+                          "args": {
+                            "buttonId": "clear"
+                          }
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "result",
+            "name": "生成结果",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
+              {
+                "id": "ai-chat-result-heading",
+                "type": "MHeading",
+                "data": {
+                  "text": "生成结果",
+                  "level": "3",
+                  "align": "left"
+                },
+                "events": []
+              },
+              {
+                "id": "ai-chat-save-json",
+                "type": "MJson",
+                "data": {
+                  "label": "保存摘要",
+                  "value": null,
+                  "height": 240,
+                  "expandDepth": 3,
+                  "emptyText": "暂无保存结果。"
+                },
+                "events": []
+              },
+              {
+                "id": "ai-chat-saved-pages-heading",
+                "type": "MHeading",
+                "data": {
+                  "text": "已保存页面",
+                  "level": "3",
+                  "align": "left"
+                },
+                "events": []
+              },
+              {
+                "id": "ai-chat-saved-pages",
+                "type": "MActionCardList",
+                "data": {
+                  "items": {
+                    "mode": "variable",
+                    "source": "Block",
+                    "blockId": "ai-chat-state",
+                    "blockType": "MPageState",
+                    "variable": "saveSummary.pages",
+                    "processors": [
+                      {
+                        "processor": "filter",
+                        "param": {
+                          "type": "and",
+                          "conditions": [
+                            {
+                              "variable": "status",
+                              "condition": "eq",
+                              "value": "success"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "itemKey": "savedUuid",
+                  "titlePath": "title",
+                  "descriptionPath": "href",
+                  "variant": "compact",
+                  "size": "sm",
+                  "emptyText": "暂无已保存页面。"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "ai_chat_open_saved_page",
+                        "action": "jump_url",
+                        "alias": "打开已保存页面",
+                        "inputs": {
+                          "url": {
+                            "template": "{{event.item.href}}"
+                          },
+                          "openNew": false
+                        },
+                        "outputs": [],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ai-chat-saved-apis-heading",
+                "type": "MHeading",
+                "data": {
+                  "text": "已保存接口",
+                  "level": "3",
+                  "align": "left"
+                },
+                "events": []
+              },
+              {
+                "id": "ai-chat-saved-apis",
+                "type": "MActionCardList",
+                "data": {
+                  "items": {
+                    "mode": "variable",
+                    "source": "Block",
+                    "blockId": "ai-chat-state",
+                    "blockType": "MPageState",
+                    "variable": "saveSummary.apis",
+                    "processors": [
+                      {
+                        "processor": "filter",
+                        "param": {
+                          "type": "and",
+                          "conditions": [
+                            {
+                              "variable": "status",
+                              "condition": "eq",
+                              "value": "success"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "itemKey": "savedUuid",
+                  "titlePath": "title",
+                  "descriptionPath": "href",
+                  "variant": "compact",
+                  "size": "sm",
+                  "emptyText": "暂无已保存接口。"
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "ai_chat_open_saved_api",
+                        "action": "jump_url",
+                        "alias": "打开已保存接口",
+                        "inputs": {
+                          "url": {
+                            "template": "{{event.item.href}}"
+                          },
+                          "openNew": false
+                        },
+                        "outputs": [],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ai-chat-response-json",
+                "type": "MJson",
+                "data": {
+                  "label": "响应 JSON",
+                  "value": null,
+                  "height": 680,
+                  "expandDepth": 2,
+                  "emptyText": "暂无生成响应。"
+                },
+                "events": []
+              }
+            ]
+          }
+        ]
+      },
+      "events": []
+    }
+  ],
+  "apiDependencies": [
+    "list_apps",
+    "list_datasources",
+    "ai-generate-dsl",
+    "save_ai_dsl_assets"
+  ],
+  "notes": [
+    "页面完全由系统页面 DSL JSON 表达。",
+    "会话 history 按 oldest_first 存储，由 ai_dsl_request_context 选取最近五轮。",
+    "客户端仅提交用户需求与 APP/数据源组成的 projectContext；DSL 文档上下文与生成偏好由服务端提供。",
+    "生成成功后自动调用 save_ai_dsl_assets，并展示 partial-aware 保存摘要。"
+  ]
+}

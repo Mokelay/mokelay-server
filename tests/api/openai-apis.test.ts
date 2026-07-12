@@ -1,12 +1,18 @@
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { type SQL } from 'drizzle-orm'
+import { PgDialect } from 'drizzle-orm/pg-core'
 import { createApp, createRouter, toNodeListener } from 'h3'
+import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
+import type { DatabaseType, SqlExecutionResult } from 'mokelay-server-core/utils/db'
 import { maxOpenAIImageBytes } from 'mokelay-server-core/utils/blocks/openAI'
-import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
+import { serverBlockDefinitions } from '../../server/utils/blocks'
 
 const originalOpenAiApiKey = process.env.OPENAI_API_KEY
 const originalOpenAiModel = process.env.OPENAI_MODEL
+const originalMokelayDatabaseUrl = process.env.Mokelay_DATABASE_URL
+const pgDialect = new PgDialect()
 
 const openAiMocks = vi.hoisted(() => {
   const responsesCreate = vi.fn()
@@ -23,6 +29,18 @@ const openAiMocks = vi.hoisted(() => {
 
 vi.mock('openai', () => ({
   default: openAiMocks.OpenAI,
+}))
+
+vi.mock('nitropack/runtime', () => ({
+  useStorage: () => ({
+    getKeys: async () => [],
+    getItem: async (key: string) => {
+      const { readFile } = await import('node:fs/promises')
+      const { resolve } = await import('node:path')
+
+      return await readFile(resolve(process.cwd(), 'server/assets', key), 'utf8')
+    },
+  }),
 }))
 
 type TestServer = {
@@ -46,6 +64,10 @@ type MokelayErrorBody = {
 async function startServer(): Promise<TestServer> {
   const app = createApp()
   const router = createRouter()
+  const orchestrationHandler = createMokelayOrchestrationHandler({
+    blockDefinitions: serverBlockDefinitions,
+    executeSql: executeDocumentationSql,
+  })
 
   router.use('/api/mokelay/:apiJsonUuid', orchestrationHandler)
   app.use(router)
@@ -63,6 +85,107 @@ async function startServer(): Promise<TestServer> {
     close: () => new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()))
     }),
+  }
+}
+
+async function executeDocumentationSql<T extends Record<string, unknown> = Record<string, unknown>>(
+  query: SQL,
+  _datasource: string,
+  databaseType: DatabaseType,
+): Promise<SqlExecutionResult<T>> {
+  const sql = pgDialect.sqlToQuery(query).sql
+  const rowByTable: Record<string, Record<string, unknown>> = {
+    docs_client_block: {
+      block_type: 'MForm',
+      display_name: '表单',
+      category: 'container',
+      description: '表单容器',
+      status: 'active',
+      default_data: { items: [] },
+      property_schema: [],
+      event_schema: [],
+      method_schema: [{ name: 'submit' }],
+      data_fields_schema: [],
+      save_schema: [],
+      examples: [],
+    },
+    docs_client_action: {
+      action_name: 'execute_ds',
+      display_name: '执行数据源',
+      action_type: 'action',
+      category: 'datasource',
+      description: '执行 API 数据源',
+      status: 'active',
+      input_schema: [],
+      output_schema: [],
+      error_schema: [],
+      config_schema: [],
+      node_schema: [],
+      runtime_schema: [],
+      examples: [],
+    },
+    docs_client_processor: {
+      processor_name: 'trim',
+      display_name: '去除空白',
+      category: 'string',
+      description: '去除字符串两端空白',
+      status: 'active',
+      input_schema: [],
+      param_schema: [],
+      output_schema: [],
+      error_schema: [],
+      config_schema: [],
+      runtime_schema: [],
+      examples: [],
+    },
+    docs_server_block: {
+      function_name: 'page',
+      display_name: '分页查询',
+      category: 'database',
+      description: '分页读取数据',
+      status: 'active',
+      requires_datasource: true,
+      input_schema: [],
+      output_schema: [],
+      error_schema: [],
+      config_schema: [],
+      runtime_schema: [],
+      examples: [],
+    },
+    docs_server_controller: {
+      function_name: 'if_controller',
+      display_name: '条件控制',
+      category: 'flow',
+      description: '按布尔值选择分支',
+      status: 'active',
+      input_schema: [],
+      node_schema: [],
+      error_schema: [],
+      config_schema: [],
+      runtime_schema: [],
+      examples: [],
+    },
+    docs_server_processor: {
+      function_name: 'is_not_null',
+      display_name: '非空校验',
+      category: 'validation',
+      description: '校验值非空',
+      status: 'active',
+      input_schema: [],
+      param_schema: [],
+      output_schema: [],
+      error_schema: [],
+      config_schema: [],
+      runtime_schema: [],
+      examples: [],
+    },
+  }
+  const table = Object.keys(rowByTable).find((name) => sql.includes(name))
+
+  if (!table) throw new Error(`Unexpected documentation SQL: ${sql}`)
+  return {
+    databaseType,
+    rows: [rowByTable[table]] as T[],
   }
 }
 
@@ -123,6 +246,7 @@ describe('OpenAI orchestration APIs', () => {
     openAiMocks.OpenAI.mockClear()
     openAiMocks.responsesCreate.mockReset()
     process.env.OPENAI_API_KEY = 'test-api-key'
+    process.env.Mokelay_DATABASE_URL = 'postgres://ai-dsl-docs-test'
     delete process.env.OPENAI_MODEL
     testServer = await startServer()
   })
@@ -142,6 +266,12 @@ describe('OpenAI orchestration APIs', () => {
       delete process.env.OPENAI_MODEL
     } else {
       process.env.OPENAI_MODEL = originalOpenAiModel
+    }
+
+    if (originalMokelayDatabaseUrl === undefined) {
+      delete process.env.Mokelay_DATABASE_URL
+    } else {
+      process.env.Mokelay_DATABASE_URL = originalMokelayDatabaseUrl
     }
   })
 
@@ -413,8 +543,6 @@ describe('OpenAI orchestration APIs', () => {
       body: JSON.stringify({
         requirementDocument: '  需要生成客户列表页，支持分页查询、删除客户和导出客户。  ',
         projectContext: { app: 'crm' },
-        dslContext: { blocks: ['MAdvanceTable'], actions: ['execute_ds'] },
-        generationPreferences: { language: 'zh-CN' },
       }),
     })
 
@@ -429,20 +557,60 @@ describe('OpenAI orchestration APIs', () => {
           role: 'user',
           content: [{
             type: 'input_text',
-            text: JSON.stringify({
-              requirementDocument: '需要生成客户列表页，支持分页查询、删除客户和导出客户。',
-              projectContext: { app: 'crm' },
-              dslContext: { blocks: ['MAdvanceTable'], actions: ['execute_ds'] },
-              generationPreferences: { language: 'zh-CN' },
-            }),
+            text: expect.any(String),
           }],
         },
       ],
     }))
+    const userInputText = openAiMocks.responsesCreate.mock.calls[0]?.[0]?.input[1]?.content[0]?.text
+    const userInput = JSON.parse(userInputText) as Record<string, any>
+
+    expect(userInput).toMatchObject({
+      requirementDocument: '需要生成客户列表页，支持分页查询、删除客户和导出客户。',
+      projectContext: { app: 'crm' },
+      generationPreferences: { language: 'zh-CN', naming: 'snake_case' },
+    })
+    expect(userInput.dslSpecifications.pageApi).toMatchObject({
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $id: 'urn:mokelay:schema:page-api-dsl:1',
+      $defs: {
+        page: expect.any(Object),
+        api: expect.any(Object),
+      },
+    })
+    expect(userInput.dslSpecifications.response).toMatchObject({
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $id: 'urn:mokelay:schema:ai-dsl-generation-response:1',
+      required: expect.arrayContaining([
+        'version',
+        'status',
+        'summary',
+        'pages',
+        'apis',
+        'upgradePlan',
+        'traceability',
+        'assumptions',
+        'warnings',
+      ]),
+    })
+    expect(userInput.dslSpecifications.response.properties.pages.items.$ref)
+      .toBe('urn:mokelay:schema:page-api-dsl:1#/$defs/page')
+    expect(userInput.dslSpecifications.response.properties.apis.items.$ref)
+      .toBe('urn:mokelay:schema:page-api-dsl:1#/$defs/api')
+    expect(userInput.dslContext.client.blocks[0].block_type).toBe('MForm')
+    expect(userInput.dslContext.client.actions[0].action_name).toBe('execute_ds')
+    expect(userInput.dslContext.client.processors[0].processor_name).toBe('trim')
+    expect(userInput.dslContext.server.blocks[0].function_name).toBe('page')
+    expect(userInput.dslContext.server.controllers[0].function_name).toBe('if_controller')
+    expect(userInput.dslContext.server.processors[0].function_name).toBe('is_not_null')
     const prompt = openAiMocks.responsesCreate.mock.calls[0]?.[0]?.input[0]?.content
-    expect(prompt).toContain('"upgradePlan"')
+    expect(prompt).toContain('userInput.dslSpecifications.response')
     expect(prompt).toContain('页面 uuid 必须是合法 RFC UUID')
     expect(prompt).toContain('status 必须为 partial')
+    expect(prompt).toContain('DSL 文档是可用能力')
+    expect(prompt).not.toContain('DSL 基础结构')
+    expect(prompt).not.toContain('必须返回如下结构')
+    expect(prompt).not.toContain('"version": 1')
   })
 
   it('validates DSL generation requirement documents before calling OpenAI', async () => {

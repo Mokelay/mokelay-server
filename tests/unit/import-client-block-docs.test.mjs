@@ -160,11 +160,12 @@ describe('collectClientBlockDocs', () => {
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
 
-    expect(docs).toHaveLength(54)
+    expect(docs).toHaveLength(55)
     expect(blockTypes).toContain('MButton')
     expect(blockTypes).toContain('MBlockPlayground')
     expect(blockTypes).toContain('MForm')
     expect(blockTypes).toContain('MJson')
+    expect(blockTypes).toContain('MPageState')
     expect(blockTypes).toContain('MLayoutPreview')
     editorBlockTypes.forEach((blockType) => {
       expect(docs.find((doc) => doc.block_type === blockType)).toMatchObject({

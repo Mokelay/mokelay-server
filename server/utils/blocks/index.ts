@@ -1,4 +1,5 @@
 import type { BlockDefinition } from 'mokelay-server-core/utils/orchestration-schema'
+import { executeReadAiDslPromptAssetBlock } from './readAiDslPromptAsset'
 import { executeListMokelayApiJsonsBlock } from './listMokelayApiJsons'
 import { executeListMokelayLayoutJsonsBlock } from './listMokelayLayoutJsons'
 import { executeListMokelayPageJsonsBlock } from './listMokelayPageJsons'
@@ -6,12 +7,17 @@ import { executeReadMokelayApiJsonBlock } from './readMokelayApiJson'
 import { executeReadMokelayLayoutJsonBlock } from './readMokelayLayoutJson'
 import { executeReadMokelayPageJsonBlock } from './readMokelayPageJson'
 import { executeResolveLayoutBundleBlock } from './resolveLayoutBundle'
+import { executeSaveAiDslAssetsBlock } from './saveAiDslAssets'
 import {
   executeReadImageFromR2Block,
   executeSaveImageToR2Block,
 } from './r2Image'
 
 export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> = {
+  readAiDslPromptAsset: {
+    executor: executeReadAiDslPromptAssetBlock,
+    allowedOutputs: ['document'],
+  },
   listMokelayApiJsons: {
     executor: executeListMokelayApiJsonsBlock,
     allowedOutputs: ['apis', 'count'],
@@ -39,6 +45,11 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
   resolveLayoutBundle: {
     executor: executeResolveLayoutBundleBlock,
     allowedOutputs: ['page', 'layout'],
+    requiresDatasource: true,
+  },
+  saveAiDslAssets: {
+    executor: executeSaveAiDslAssetsBlock,
+    allowedOutputs: ['saveSummary'],
     requiresDatasource: true,
   },
   saveImageToR2: {

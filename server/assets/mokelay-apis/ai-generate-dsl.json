@@ -25,18 +25,282 @@
       },
       {
         "key": "projectContext"
-      },
-      {
-        "key": "dslContext"
-      },
-      {
-        "key": "generationPreferences"
       }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "read_page_api_dsl_schema"
+    },
+    {
+      "uuid": "read_page_api_dsl_schema",
+      "alias": "读取 Page 与 API DSL Schema",
+      "functionName": "readAiDslPromptAsset",
+      "inputs": {
+        "fileName": "page-api-dsl.schema.json"
+      },
+      "outputs": [
+        "document"
+      ],
+      "nextBlock": "read_generation_response_schema"
+    },
+    {
+      "uuid": "read_generation_response_schema",
+      "alias": "读取 AI DSL 响应 Schema",
+      "functionName": "readAiDslPromptAsset",
+      "inputs": {
+        "fileName": "generation-response.schema.json"
+      },
+      "outputs": [
+        "document"
+      ],
+      "nextBlock": "list_client_block_docs_context"
+    },
+    {
+      "uuid": "list_client_block_docs_context",
+      "alias": "读取客户端 Block 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_client_block",
+        "fields": [
+          "block_type",
+          "display_name",
+          "category",
+          "description",
+          "status",
+          "default_data",
+          "property_schema",
+          "event_schema",
+          "method_schema",
+          "data_fields_schema",
+          "save_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "sort_order",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "list_client_action_docs_context"
+    },
+    {
+      "uuid": "list_client_action_docs_context",
+      "alias": "读取客户端 Action 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_client_action",
+        "fields": [
+          "action_name",
+          "display_name",
+          "action_type",
+          "category",
+          "description",
+          "status",
+          "input_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "node_schema",
+          "runtime_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "action_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "list_client_processor_docs_context"
+    },
+    {
+      "uuid": "list_client_processor_docs_context",
+      "alias": "读取客户端 Processor 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_client_processor",
+        "fields": [
+          "processor_name",
+          "display_name",
+          "category",
+          "description",
+          "status",
+          "input_schema",
+          "param_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "processor_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "list_server_block_docs_context"
+    },
+    {
+      "uuid": "list_server_block_docs_context",
+      "alias": "读取服务端 Block 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_server_block",
+        "fields": [
+          "function_name",
+          "display_name",
+          "category",
+          "description",
+          "status",
+          "requires_datasource",
+          "input_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "function_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "list_server_controller_docs_context"
+    },
+    {
+      "uuid": "list_server_controller_docs_context",
+      "alias": "读取服务端 Controller 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_server_controller",
+        "fields": [
+          "function_name",
+          "display_name",
+          "category",
+          "description",
+          "status",
+          "input_schema",
+          "node_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "function_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "list_server_processor_docs_context"
+    },
+    {
+      "uuid": "list_server_processor_docs_context",
+      "alias": "读取服务端 Processor 文档",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "docs_server_processor",
+        "fields": [
+          "function_name",
+          "display_name",
+          "category",
+          "description",
+          "status",
+          "input_schema",
+          "param_schema",
+          "output_schema",
+          "error_schema",
+          "config_schema",
+          "runtime_schema",
+          "examples"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "status",
+            "fieldValue": "active"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "function_name",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
       "nextBlock": "openai_generate_dsl_block"
     },
     {
@@ -44,7 +308,7 @@
       "alias": "基于需求文档生成页面 DSL 和接口 DSL",
       "functionName": "openAI",
       "inputs": {
-        "prompt": "你是 Mokelay 的 AI DSL 架构师。根据用户输入的需求文档生成 Mokelay 页面 DSL 和对应服务端 API DSL。\n\n硬性规则：\n1. 不能生成任何定制化前端代码、后端代码、脚本、函数源码或伪代码；可交付物只能是 DSL JSON 或能力升级规格。\n2. 能用现有 DSL 表达的需求必须直接生成 DSL；不能为了方便而要求开发定制代码。\n3. 如果需求无法被现有 Processor、Block、Action、Control 或组件表达，不要伪造可运行能力；把缺口写入 upgradePlan，对应给出可实现该能力的 DSL 规格、输入输出、行为和示例 DSL。\n4. 所有 uuid、block id、变量名、API 路径都要稳定、可读、只使用字母、数字、下划线或连字符。页面 uuid 必须是合法 RFC UUID；API uuid 必须和路径末尾一致。\n5. 返回必须是一个合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外的内容。\n\n已知服务端 API DSL：ApiJson = {uuid, alias, method, request, blocks, response?, responses?}。blocks 必须包含 {uuid:\"starter\", nextBlock}; 普通 Block 形如 {uuid, alias?, functionName, inputs?, outputs?, nextBlock}; Control/Controller 形如 {uuid, alias?, functionName:\"if_controller\"|\"switch_controller\"|新 control 名, type:\"controller\", inputs?, nodes:[{uuid, alias?, type?, value?, nextBlock}]}; response/responses 中用 {\"template\":\"{{...}}\"} 引用 request、blocks、now。现有服务端 blocks 包括 list、page、count、read、create、update、upsert、delete、assertUnique、addSession、readSession、removeSession、saveJsonToR2、openAI、githubCommit、gitlabCommit、listApifoxProjects、listApifoxApis、listMokelayApiJsons、readMokelayApiJson、listMokelayPageJsons、readMokelayPageJson。现有服务端 processors 包括 trim、is_not_null、is_null、not_null、email_check、number_check、eq、equals、default_value、env_value、api_json_when_published、min、max、regex、string_array_check、hash_make、hash_check。\n\n已知客户端页面 DSL：页面对象形如 {uuid, name, blocks}，其中 uuid 必须是合法 RFC UUID，blocks 是 EditorJS block 数组：{id, type, data, events?}。可用 block type 包括 paragraph、table、MHeading、MRichText、MTextField、MEmailField、MPhoneField、MTextareaField、MSelectField、MRadioGroupField、MCheckboxGroupField、MImageChoiceField、MRatingField、MLinearScaleField、MMatrixField、MFileUploadField、MForm、MFormItem、MButton、MAdvanceTable、MChart、MImage、MEmbed、MLink、MTag、MDividerLine、MDatasourceEditor、MPage、MEditorSelector、MAdvanceInput、MFieldsEditor、MThankYouPage、MResultPage、MActionEditor。MForm.data.items 使用 {labelName, variableName, fieldDataType?, layout:\"Vertical\"|\"Horizontal\", editor:{id,type,data}, events?}。MButton.data 使用 {label, variant:\"primary\"|\"secondary\"|\"ghost\", align:\"left\"|\"center\"|\"right\", action:{type:\"submit\", ...}}。MAdvanceTable.data 可包含 columns 和 ds；columns[n].columnContent 可放页面 blocks。block.events 使用 [{event, actions}]，actions 使用客户端 Action DSL。\n\n已知客户端 Action DSL：execute_ds、confirm、open_dialog、jump_url、call_block_method；Control Action 包括 if_controller、switch_controller，结构使用 {uuid, action, type:\"controller\", inputs, nodes}。Action 模板可引用 {{sourceBlock.data...}}、{{blocks['blockId']...}}、{{actions['actionUuid'].outputs...}}。已知客户端 processors 包括 trim、merge_data、filter、date_time_format。\n\n必须返回如下结构，字段名不能改变：\n{\n  \"version\": 1,\n  \"status\": \"complete|partial\",\n  \"summary\": \"一句话说明生成结果\",\n  \"pages\": [\n    {\"uuid\":\"550e8400-e29b-41d4-a716-446655440000\",\"name\":\"页面名称\",\"blocks\":[],\"apiDependencies\":[\"api_uuid\"],\"notes\":[]}\n  ],\n  \"apis\": [\n    {\"uuid\":\"api_uuid\",\"alias\":\"接口名称\",\"method\":\"GET|POST\",\"request\":{\"header\":[],\"query\":[],\"body\":[]},\"blocks\":[],\"response\":null}\n  ],\n  \"upgradePlan\": {\n    \"processors\": [\n      {\"name\":\"processor_name\",\"layer\":\"server|client\",\"reason\":\"为什么需要\",\"inputTypes\":[],\"paramsSchema\":{},\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"blocks\": [\n      {\"functionName\":\"block_name\",\"layer\":\"server\",\"reason\":\"为什么需要\",\"inputsSchema\":{},\"outputs\":[],\"errors\":[],\"dslExample\":{}}\n    ],\n    \"actions\": [\n      {\"action\":\"action_name\",\"reason\":\"为什么需要\",\"inputsSchema\":{},\"outputs\":[],\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"controls\": [\n      {\"functionName\":\"control_name\",\"layer\":\"server|client\",\"reason\":\"为什么需要\",\"nodesSchema\":{},\"behavior\":\"行为说明\",\"dslExample\":{}}\n    ],\n    \"components\": [\n      {\"type\":\"ComponentType\",\"reason\":\"为什么需要\",\"propsSchema\":{},\"events\":[],\"methods\":[],\"dataFields\":[],\"dslExample\":{\"id\":\"example\",\"type\":\"ComponentType\",\"data\":{}}}\n    ]\n  },\n  \"traceability\": [\n    {\"requirement\":\"需求点\",\"status\":\"generated|requires_upgrade\",\"pageUuids\":[],\"apiUuids\":[],\"upgradeRefs\":[]}\n  ],\n  \"assumptions\": [],\n  \"warnings\": []\n}\n\n生成策略：优先生成可直接保存或发布的页面和 API DSL；列表页优先使用 MAdvanceTable + API ds；表单页优先使用 MForm + MButton click actions + execute_ds；删除、发布等危险操作必须用 confirm + if_controller；页面跳转用 jump_url；刷新列表用 call_block_method refresh。API DSL 必须有 starter，终点 block 必须能被 response 或 responses 覆盖。所有数组字段即使为空也要返回 []。如果 upgradePlan 任一数组非空，status 必须为 partial；否则为 complete。",
+        "prompt": "你是 Mokelay 的 AI DSL 架构师。根据用户需求、项目上下文、DSL 规范和服务端注入的能力文档生成 Mokelay 页面 DSL 与对应服务端 API DSL。\n\n硬性规则：\n1. 不能生成任何定制化前端代码、后端代码、脚本、函数源码或伪代码；可交付物只能是 DSL JSON 或能力升级规格。\n2. 能用现有 DSL 表达的需求必须直接生成 DSL；不能为了方便而要求开发定制代码。\n3. 如果需求无法被现有 Processor、Block、Action、Controller 或组件表达，不要伪造可运行能力；把缺口写入 upgradePlan，并给出输入输出、行为和示例 DSL。\n4. 所有 uuid、block id、变量名和 API 路径都要稳定、可读，只使用字母、数字、下划线或连字符。页面 uuid 必须是合法 RFC UUID；API uuid 必须和路径末尾一致。\n5. 返回必须是合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外内容。\n\n规范与能力上下文规则：\n1. userInput.dslSpecifications.pageApi 是 Page 与 API DSL 的基础 JSON Schema，生成的 pages 和 apis 必须遵守其中对应的定义及 x-mokelay-rules。\n2. userInput.dslSpecifications.response 是完整响应 JSON Schema，最终输出必须遵守其字段、类型、必填项、枚举、条件和 x-mokelay-rules。\n3. 响应 Schema 中指向 urn:mokelay:schema:page-api-dsl:1 的引用，必须使用 userInput.dslSpecifications.pageApi 中相同 $id 的定义解析。\n4. userInput.dslContext.client.blocks、actions、processors 分别来自当前 active 客户端 Block、Action、Processor 文档；userInput.dslContext.server.blocks、controllers、processors 分别来自当前 active 服务端 Block、Controller、Processor 文档。\n5. DSL 文档是可用能力、属性、输入输出、事件、方法、运行规则和示例的唯一权威来源。不要使用文档中不存在的类型、属性、方法、Action、Processor、Block 或 Controller。\n6. 生成组件 data、事件 actions、服务端 blocks 和 processors 时，必须遵守对应文档的 schema 与 examples；文档不足以表达需求时写入 upgradePlan。\n7. userInput.generationPreferences 由服务端固定提供，输出语言和命名必须遵守该配置。\n\n生成策略：\n1. 优先生成可直接保存或发布的页面和 API DSL。\n2. 危险操作必须使用文档提供的确认与条件控制能力。\n3. API DSL 必须有且只有一个 starter，所有 Block 必须可达，每个终点必须由 response 或 responses 覆盖。\n4. 所有响应数组字段即使为空也要返回 []。\n5. 如果 upgradePlan 任一数组非空，status 必须为 partial；否则为 complete。",
         "userInput": {
           "requirementDocument": {
             "template": "{{request.body.requirementDocument}}"
@@ -52,11 +316,41 @@
           "projectContext": {
             "template": "{{request.body.projectContext}}"
           },
+          "dslSpecifications": {
+            "pageApi": {
+              "template": "{{blocks['read_page_api_dsl_schema'].outputs.document}}"
+            },
+            "response": {
+              "template": "{{blocks['read_generation_response_schema'].outputs.document}}"
+            }
+          },
           "dslContext": {
-            "template": "{{request.body.dslContext}}"
+            "client": {
+              "blocks": {
+                "template": "{{blocks['list_client_block_docs_context'].outputs.datas}}"
+              },
+              "actions": {
+                "template": "{{blocks['list_client_action_docs_context'].outputs.datas}}"
+              },
+              "processors": {
+                "template": "{{blocks['list_client_processor_docs_context'].outputs.datas}}"
+              }
+            },
+            "server": {
+              "blocks": {
+                "template": "{{blocks['list_server_block_docs_context'].outputs.datas}}"
+              },
+              "controllers": {
+                "template": "{{blocks['list_server_controller_docs_context'].outputs.datas}}"
+              },
+              "processors": {
+                "template": "{{blocks['list_server_processor_docs_context'].outputs.datas}}"
+              }
+            }
           },
           "generationPreferences": {
-            "template": "{{request.body.generationPreferences}}"
+            "language": "zh-CN",
+            "naming": "snake_case"
           }
         }
       },

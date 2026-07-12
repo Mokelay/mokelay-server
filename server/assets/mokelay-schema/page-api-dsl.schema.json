@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mokelay:schema:page-api-dsl:1",
+  "title": "Mokelay Page and API DSL Schema",
+  "description": "AI 生成的 Mokelay 页面 DSL 与服务端 API DSL 基础结构。组件、Action、Processor、Block 和 Controller 的具体能力仍以运行时注入的 active 文档为准。",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/page"
+    },
+    {
+      "$ref": "#/$defs/api"
+    }
+  ],
+  "$defs": {
+    "processor": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "required": [
+            "processor"
+          ],
+          "properties": {
+            "processor": {
+              "type": "string",
+              "minLength": 1
+            },
+            "param": true
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "processableKey": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "processors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/processor"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "template": {
+      "type": "object",
+      "required": [
+        "template"
+      ],
+      "properties": {
+        "template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "processors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processor"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Action DSL。具体字段必须遵守运行时注入的客户端 Action 文档。"
+    },
+    "blockEvent": {
+      "type": "object",
+      "required": [
+        "event",
+        "actions"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "editorBlock": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "data"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data": {
+          "type": "object"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/blockEvent"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "page": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "name",
+        "blocks",
+        "apiDependencies",
+        "notes"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/editorBlock"
+          }
+        },
+        "apiDependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "uniqueItems": true
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "header",
+        "query",
+        "body"
+      ],
+      "properties": {
+        "header": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processableKey"
+          }
+        },
+        "query": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processableKey"
+          }
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processableKey"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "nextBlock": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "starterBlock": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "nextBlock"
+      ],
+      "properties": {
+        "uuid": {
+          "const": "starter"
+        },
+        "nextBlock": {
+          "$ref": "#/$defs/nextBlock"
+        }
+      },
+      "additionalProperties": false
+    },
+    "standardBlock": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "functionName",
+        "nextBlock"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "starter"
+          }
+        },
+        "alias": {
+          "type": "string"
+        },
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "not": {
+            "const": "controller"
+          }
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "outputs": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/processableKey"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nextBlock": {
+          "$ref": "#/$defs/nextBlock"
+        }
+      },
+      "additionalProperties": false
+    },
+    "controllerNode": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "nextBlock"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "type": {
+          "const": "DEFAULT"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "nextBlock": {
+          "$ref": "#/$defs/nextBlock"
+        }
+      },
+      "additionalProperties": false
+    },
+    "controller": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "functionName",
+        "type",
+        "nodes"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "starter"
+          }
+        },
+        "alias": {
+          "type": "string"
+        },
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "controller"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/controllerNode"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "orchestrationBlock": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/starterBlock"
+        },
+        {
+          "$ref": "#/$defs/standardBlock"
+        },
+        {
+          "$ref": "#/$defs/controller"
+        }
+      ]
+    },
+    "response": {
+      "oneOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "api": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "alias",
+        "method",
+        "request",
+        "blocks"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+        },
+        "alias": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "method": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{1,16}$"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/orchestrationBlock"
+          },
+          "contains": {
+            "$ref": "#/$defs/starterBlock"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        "response": {
+          "$ref": "#/$defs/response"
+        },
+        "responses": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/response"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "response"
+          ]
+        },
+        {
+          "required": [
+            "responses"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-mokelay-rules": [
+    "Page uuid 必须稳定且为合法 RFC UUID；同一页面内的 block id 必须唯一。",
+    "Page block 的 data、events 和 actions 必须遵守运行时注入的 active 客户端文档。",
+    "API uuid 必须与 API 路径末尾一致；所有 Block 与 Controller uuid 必须唯一。",
+    "API 必须且只能有一个 starter；所有 nextBlock 必须引用存在的 Block，并且所有 Block 都必须可达。",
+    "每个 API 终点必须由 response 或 responses 覆盖；模板只能引用 request、blocks、actions、sourceBlock 或 now 中存在的数据。"
+  ]
+}

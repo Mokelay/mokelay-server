@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mokelay:schema:ai-dsl-generation-response:1",
+  "title": "Mokelay AI DSL Generation Response Schema",
+  "description": "AI 页面与接口 DSL 生成接口的模型输出结构。",
+  "type": "object",
+  "required": [
+    "version",
+    "status",
+    "summary",
+    "pages",
+    "apis",
+    "upgradePlan",
+    "traceability",
+    "assumptions",
+    "warnings"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:mokelay:schema:page-api-dsl:1#/$defs/page"
+      }
+    },
+    "apis": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:mokelay:schema:page-api-dsl:1#/$defs/api"
+      }
+    },
+    "upgradePlan": {
+      "$ref": "#/$defs/upgradePlan"
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/traceabilityItem"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "upgradePlan"
+        ],
+        "properties": {
+          "upgradePlan": {
+            "anyOf": [
+              {
+                "required": [
+                  "processors"
+                ],
+                "properties": {
+                  "processors": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "blocks"
+                ],
+                "properties": {
+                  "blocks": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "actions"
+                ],
+                "properties": {
+                  "actions": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "controls"
+                ],
+                "properties": {
+                  "controls": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "components"
+                ],
+                "properties": {
+                  "components": {
+                    "minItems": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "status": {
+            "const": "complete"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "jsonObject": {
+      "type": "object"
+    },
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "processorUpgrade": {
+      "type": "object",
+      "required": [
+        "name",
+        "layer",
+        "reason",
+        "inputTypes",
+        "paramsSchema",
+        "behavior",
+        "dslExample"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "enum": [
+            "server",
+            "client"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputTypes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "paramsSchema": {
+          "$ref": "#/$defs/jsonObject"
+        },
+        "behavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dslExample": {
+          "$ref": "#/$defs/jsonObject"
+        }
+      },
+      "additionalProperties": false
+    },
+    "blockUpgrade": {
+      "type": "object",
+      "required": [
+        "functionName",
+        "layer",
+        "reason",
+        "inputsSchema",
+        "outputs",
+        "errors",
+        "dslExample"
+      ],
+      "properties": {
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "const": "server"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputsSchema": {
+          "$ref": "#/$defs/jsonObject"
+        },
+        "outputs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "dslExample": {
+          "$ref": "#/$defs/jsonObject"
+        }
+      },
+      "additionalProperties": false
+    },
+    "actionUpgrade": {
+      "type": "object",
+      "required": [
+        "action",
+        "reason",
+        "inputsSchema",
+        "outputs",
+        "behavior",
+        "dslExample"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputsSchema": {
+          "$ref": "#/$defs/jsonObject"
+        },
+        "outputs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "behavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dslExample": {
+          "$ref": "#/$defs/jsonObject"
+        }
+      },
+      "additionalProperties": false
+    },
+    "controlUpgrade": {
+      "type": "object",
+      "required": [
+        "functionName",
+        "layer",
+        "reason",
+        "nodesSchema",
+        "behavior",
+        "dslExample"
+      ],
+      "properties": {
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "enum": [
+            "server",
+            "client"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodesSchema": {
+          "$ref": "#/$defs/jsonObject"
+        },
+        "behavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dslExample": {
+          "$ref": "#/$defs/jsonObject"
+        }
+      },
+      "additionalProperties": false
+    },
+    "componentUpgrade": {
+      "type": "object",
+      "required": [
+        "type",
+        "reason",
+        "propsSchema",
+        "events",
+        "methods",
+        "dataFields",
+        "dslExample"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "propsSchema": {
+          "$ref": "#/$defs/jsonObject"
+        },
+        "events": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "methods": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "dataFields": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "dslExample": {
+          "$ref": "#/$defs/jsonObject"
+        }
+      },
+      "additionalProperties": false
+    },
+    "upgradePlan": {
+      "type": "object",
+      "required": [
+        "processors",
+        "blocks",
+        "actions",
+        "controls",
+        "components"
+      ],
+      "properties": {
+        "processors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processorUpgrade"
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/blockUpgrade"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actionUpgrade"
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/controlUpgrade"
+          }
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentUpgrade"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "traceabilityItem": {
+      "type": "object",
+      "required": [
+        "requirement",
+        "status",
+        "pageUuids",
+        "apiUuids",
+        "upgradeRefs"
+      ],
+      "properties": {
+        "requirement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "generated",
+            "requires_upgrade"
+          ]
+        },
+        "pageUuids": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "apiUuids": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "upgradeRefs": {
+          "$ref": "#/$defs/stringArray"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "x-mokelay-rules": [
+    "所有数组字段即使为空也必须返回空数组。",
+    "upgradePlan 任一数组非空时 status 必须为 partial；全部为空时 status 必须为 complete。",
+    "响应必须是单个合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外内容。"
+  ]
+}

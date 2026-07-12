@@ -81,7 +81,8 @@ describe('collectServerBlockDocs', () => {
     const docs = await collectServerBlockDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(33)
+    expect(docs).toHaveLength(34)
+    expect(functionNames).toContain('readAiDslPromptAsset')
     expect(functionNames).toContain('saveAiDslAssets')
     expect(functionNames).toContain('list')
     expect(functionNames).toContain('page')
