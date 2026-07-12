@@ -49,8 +49,17 @@ type PageAsset = {
                 dsConfig?: {
                   path?: string
                   bodyData?: Array<{ key?: string }>
+                  schemaSelections?: Array<{
+                    path?: string
+                    type?: string
+                  }>
+                  matchingExternalFields?: Array<{
+                    variable?: string
+                    matchFieldPath?: string
+                  }>
                 }
               }
+              outputs?: string[]
             }>
           }>
         }>
@@ -58,8 +67,51 @@ type PageAsset = {
       ds?: {
         path?: string
         queryData?: Array<{ key?: string }>
+        schemaSelections?: Array<{
+          path?: string
+          type?: string
+        }>
+        matchingExternalFields?: Array<{
+          variable?: string
+          matchFieldPath?: string
+        }>
       }
+      pageSize?: number
+      showPageBreak?: boolean
+      selection?: boolean
+      buttons?: Array<{
+        id?: string
+        label?: string
+        disabled?: boolean
+        events?: Array<{
+          actions?: Array<{
+            uuid?: string
+            action?: string
+            inputs?: {
+              blockId?: string
+              method?: string
+              buttonId?: string
+              dsConfig?: {
+                path?: string
+              }
+            }
+            outputs?: string[]
+          }>
+        }>
+      }>
     }
+    events?: Array<{
+      event?: string
+      actions?: Array<{
+        uuid?: string
+        action?: string
+        inputs?: {
+          blockId?: string
+          method?: string
+          buttonId?: string
+        }
+      }>
+    }>
   }>
 }
 
@@ -88,6 +140,7 @@ type ApiAsset = {
         }>
       }>
       conditions?: Array<{
+        conditionType?: string
         fieldName?: string
         fieldValue?: {
           template?: string
@@ -255,6 +308,94 @@ describe('setting assets', () => {
     })
   })
 
+  it('configures the API user list table for pagination and affected delete refresh', async () => {
+    const page = await readJsonAsset<PageAsset>('mokelay-pages/mokelay_apis_user_page.json')
+    const table = tableBlock(page, 'mokelay-apis-user-table')
+    const batchToolbar = page.blocks.find((block) => block.id === 'mokelay-apis-user-batch-actions')
+    const batchDeleteButton = batchToolbar?.data?.buttons?.find((button) => button.id === 'batchDelete')
+    const batchActions = batchDeleteButton?.events?.flatMap((event) => event.actions ?? []) ?? []
+    const batchExecuteAction = batchActions.find((action) => action.action === 'execute_ds')
+    const batchClearSelectionAction = batchActions.find((action) => action.uuid === 'mokelay_api_user_batch_delete_clear_selection')
+    const batchRefreshAction = batchActions.find((action) => action.uuid === 'mokelay_api_user_batch_delete_refresh_table')
+    const columns = table?.data?.columns ?? []
+    const deleteButton = columns
+      .flatMap((column) => column.columnContent ?? [])
+      .find((content) => content.type === 'MButton' && content.data?.label === '删除')
+    const actions = deleteButton?.events?.flatMap((event) => event.actions ?? []) ?? []
+    const executeAction = actions.find((action) => action.action === 'execute_ds')
+    const refreshAction = actions.find((action) => action.action === 'call_block_method')
+    const havingSelectedRowsAction = table?.events
+      ?.find((event) => event.event === 'havingSelectedRows')
+      ?.actions?.[0]
+    const emptySelectedRowAction = table?.events
+      ?.find((event) => event.event === 'emptySelectedRow')
+      ?.actions?.[0]
+
+    expect(table?.data?.showPageBreak).toBe(true)
+    expect(table?.data?.selection).toBe(true)
+    expect(table?.data?.pageSize).toBe(15)
+    expect(table?.data?.ds?.path).toBe('/api/mokelay/list_apis')
+    expect(table?.data?.ds?.queryData?.map((item) => item.key)).toEqual(['page', 'pageSize'])
+    expect(table?.data?.ds?.matchingExternalFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        variable: 'total',
+        matchFieldPath: 'data.pagination.total',
+      }),
+    ]))
+    expect(executeAction?.inputs?.dsConfig?.path).toBe('/api/mokelay/delete_api_by_uuid')
+    expect(executeAction?.inputs?.dsConfig?.schemaSelections).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: 'data.affected',
+        type: 'number',
+      }),
+    ]))
+    expect(executeAction?.inputs?.dsConfig?.matchingExternalFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        variable: 'affected',
+        matchFieldPath: 'data.affected',
+      }),
+    ]))
+    expect(executeAction?.outputs).toContain('affected')
+    expect(executeAction?.outputs).not.toContain('deleted')
+    expect(refreshAction?.inputs).toMatchObject({
+      blockId: 'mokelay-apis-user-table',
+      method: 'refresh',
+    })
+    expect(batchToolbar?.type).toBe('MActionToolbar')
+    expect(batchDeleteButton).toMatchObject({
+      id: 'batchDelete',
+      label: '批量删除',
+      disabled: true,
+    })
+    expect(batchActions.map((action) => action.action)).toEqual([
+      'confirm',
+      'if_controller',
+      'call_block_method',
+      'execute_ds',
+      'call_block_method',
+      'call_block_method',
+    ])
+    expect(batchExecuteAction?.inputs?.dsConfig?.path).toBe('/api/mokelay/batch_delete_apis')
+    expect(batchClearSelectionAction?.inputs).toMatchObject({
+      blockId: 'mokelay-apis-user-table',
+      method: 'clearSelection',
+    })
+    expect(batchRefreshAction?.inputs).toMatchObject({
+      blockId: 'mokelay-apis-user-table',
+      method: 'refresh',
+    })
+    expect(havingSelectedRowsAction?.inputs).toMatchObject({
+      blockId: 'mokelay-apis-user-batch-actions',
+      method: 'enable',
+      buttonId: 'batchDelete',
+    })
+    expect(emptySelectedRowAction?.inputs).toMatchObject({
+      blockId: 'mokelay-apis-user-batch-actions',
+      method: 'disable',
+      buttonId: 'batchDelete',
+    })
+  })
+
   it.each(listApis)('declares a paginated list API asset for $table', async ({
     apiFile,
     table,
@@ -328,5 +469,34 @@ describe('setting assets', () => {
     expect(deleteBlock?.inputs?.table).toBe(table)
     expect(condition?.fieldName).toBe(conditionField)
     expect(condition?.fieldValue?.template).toBe(`{{request.body.${bodyKey}}}`)
+  })
+
+  it('declares a batch delete API asset for user APIs', async () => {
+    const api = await readJsonAsset<ApiAsset>('mokelay-apis/batch_delete_apis.json')
+    const deleteBlock = api.blocks.find((block) => block.functionName === 'delete')
+    const condition = deleteBlock?.inputs?.conditions?.[0]
+
+    expect(api.method).toBe('POST')
+    expect(api.request.body).toEqual([
+      expect.objectContaining({
+        key: 'uuids',
+        processors: expect.arrayContaining([
+          'is_not_null',
+          'string_array_check',
+          expect.objectContaining({
+            processor: 'min',
+            param: [1],
+          }),
+        ]),
+      }),
+    ])
+    expect(deleteBlock?.inputs?.table).toBe('apis')
+    expect(condition).toMatchObject({
+      conditionType: 'IN',
+      fieldName: 'uuid',
+      fieldValue: {
+        template: '{{request.body.uuids}}',
+      },
+    })
   })
 })

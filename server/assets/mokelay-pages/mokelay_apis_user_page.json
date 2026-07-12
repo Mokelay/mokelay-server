@@ -1,7 +1,7 @@
 {
   "uuid": "mokelay_apis_user_page",
   "createdAt": "2026-07-10T00:00:00.000Z",
-  "updatedAt": "2026-07-10T00:00:00.000Z",
+  "updatedAt": "2026-07-12T06:05:00.000Z",
   "name": "用户创建 API",
   "layoutUuid": "mokelay_layout",
   "blocks": [
@@ -62,12 +62,144 @@
       "events": []
     },
     {
+      "id": "mokelay-apis-user-batch-actions",
+      "type": "MActionToolbar",
+      "data": {
+        "align": "right",
+        "size": "small",
+        "mode": "inline",
+        "buttons": [
+          {
+            "id": "batchDelete",
+            "label": "批量删除",
+            "variant": "danger",
+            "disabled": true,
+            "events": [
+              {
+                "event": "click",
+                "actions": [
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_confirm",
+                    "action": "confirm",
+                    "alias": "确认批量删除 API",
+                    "inputs": {
+                      "title": "确认批量删除 API",
+                      "content": "确定要删除选中的 API 吗？此操作不可恢复。"
+                    },
+                    "outputs": [
+                      "result"
+                    ],
+                    "nextAction": "mokelay_api_user_batch_delete_confirm_route"
+                  },
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_confirm_route",
+                    "action": "if_controller",
+                    "type": "controller",
+                    "alias": "确认结果",
+                    "inputs": {
+                      "value": {
+                        "template": "{{actions['mokelay_api_user_batch_delete_confirm'].outputs.result}}"
+                      }
+                    },
+                    "nodes": [
+                      {
+                        "uuid": "mokelay_api_user_batch_delete_confirm_true",
+                        "alias": "确认",
+                        "value": true,
+                        "nextAction": "mokelay_api_user_batch_delete_get_selected_uuids"
+                      },
+                      {
+                        "uuid": "mokelay_api_user_batch_delete_confirm_false",
+                        "alias": "取消",
+                        "value": false,
+                        "nextAction": null
+                      }
+                    ]
+                  },
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_get_selected_uuids",
+                    "action": "call_block_method",
+                    "alias": "获取选中 API UUID",
+                    "inputs": {
+                      "blockId": "mokelay-apis-user-table",
+                      "method": "getSelectedValues",
+                      "field": "uuid"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": "mokelay_api_user_batch_delete_execute_ds"
+                  },
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_execute_ds",
+                    "action": "execute_ds",
+                    "alias": "批量删除 API",
+                    "inputs": {
+                      "dsConfig": {
+                        "type": "API",
+                        "domain": "mokelay",
+                        "path": "/api/mokelay/batch_delete_apis",
+                        "method": "POST",
+                        "headerData": [],
+                        "bodyData": [
+                          {
+                            "key": "uuids",
+                            "dataType": "array",
+                            "value": {
+                              "template": "{{actions['mokelay_api_user_batch_delete_get_selected_uuids'].outputs.returnData}}"
+                            }
+                          }
+                        ],
+                        "queryData": []
+                      }
+                    },
+                    "outputs": [
+                      "rawResponse"
+                    ],
+                    "nextAction": "mokelay_api_user_batch_delete_clear_selection"
+                  },
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_clear_selection",
+                    "action": "call_block_method",
+                    "alias": "清空选中 API",
+                    "inputs": {
+                      "blockId": "mokelay-apis-user-table",
+                      "method": "clearSelection"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": "mokelay_api_user_batch_delete_refresh_table"
+                  },
+                  {
+                    "uuid": "mokelay_api_user_batch_delete_refresh_table",
+                    "action": "call_block_method",
+                    "alias": "刷新 API 列表",
+                    "inputs": {
+                      "blockId": "mokelay-apis-user-table",
+                      "method": "refresh"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "events": []
+    },
+    {
       "id": "mokelay-apis-user-table",
       "type": "MAdvanceTable",
       "data": {
         "rowKey": "uuid",
+        "selection": true,
         "pageSize": 15,
-        "showPageBreak": false,
+        "showPageBreak": true,
         "ds": {
           "type": "API",
           "domain": "mokelay",
@@ -345,23 +477,23 @@
                             ],
                             "schemaSelections": [
                               {
-                                "path": "data.deleted",
-                                "type": "object",
-                                "label": "删除结果"
+                                "path": "data.affected",
+                                "type": "number",
+                                "label": "影响行数"
                               }
                             ],
                             "matchingExternalFields": [
                               {
-                                "label": "删除结果",
-                                "variable": "deleted",
-                                "matchFieldPath": "data.deleted"
+                                "label": "影响行数",
+                                "variable": "affected",
+                                "matchFieldPath": "data.affected"
                               }
                             ]
                           }
                         },
                         "outputs": [
                           "rawResponse",
-                          "deleted"
+                          "affected"
                         ],
                         "nextAction": "mokelay_api_user_refresh_after_delete"
                       },
@@ -388,7 +520,46 @@
           }
         ]
       },
-      "events": []
+      "events": [
+        {
+          "event": "havingSelectedRows",
+          "actions": [
+            {
+              "uuid": "mokelay_api_user_enable_batch_delete",
+              "action": "call_block_method",
+              "alias": "启用批量删除",
+              "inputs": {
+                "blockId": "mokelay-apis-user-batch-actions",
+                "method": "enable",
+                "buttonId": "batchDelete"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        },
+        {
+          "event": "emptySelectedRow",
+          "actions": [
+            {
+              "uuid": "mokelay_api_user_disable_batch_delete",
+              "action": "call_block_method",
+              "alias": "禁用批量删除",
+              "inputs": {
+                "blockId": "mokelay-apis-user-batch-actions",
+                "method": "disable",
+                "buttonId": "batchDelete"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
     }
   ]
 }

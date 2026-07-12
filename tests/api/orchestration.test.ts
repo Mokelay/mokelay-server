@@ -1171,6 +1171,15 @@ class FakeSqlExecutor {
       return [...this.apis]
     }
 
+    const whereText = queryText.split(' WHERE ')[1]?.toLowerCase() ?? ''
+
+    if (whereText.includes('"uuid" in')) {
+      const uuids = new Set(params
+        .flatMap((param) => (Array.isArray(param) ? param : [param]))
+        .map((param) => String(param)))
+      return this.apis.filter((api) => uuids.has(api.uuid))
+    }
+
     if (queryText.includes('"uuid" =') && queryText.includes('"uuid" <>')) {
       const [uuid, ignoredUuid] = params
       return this.apis.filter((api) => api.uuid === uuid && api.uuid !== ignoredUuid)
@@ -3182,6 +3191,48 @@ describe('mokelay orchestration API', () => {
       affected: 0,
       message: '删除成功',
     })
+
+    for (const uuid of ['batch_delete_api_one', 'batch_delete_api_two']) {
+      const batchSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+        uuid,
+        name: uuid,
+        method: 'GET',
+        status: 'draft',
+        apiJson: {
+          uuid,
+          alias: uuid,
+          method: 'GET',
+          request: {
+            header: [],
+            query: [],
+            body: [],
+          },
+          blocks: [],
+          response: null,
+        },
+      })
+
+      expect(batchSaveResponse.status).toBe(200)
+    }
+
+    const batchDeleteResponse = await postJson(testServer.baseUrl, 'batch_delete_apis', {
+      uuids: ['batch_delete_api_one', 'batch_delete_api_two'],
+    })
+    const batchDeleteBody = await readMokelayData<Record<string, unknown>>(batchDeleteResponse)
+
+    expect(batchDeleteResponse.status).toBe(200)
+    expect(batchDeleteBody).toEqual({
+      affected: 2,
+      message: '批量删除成功',
+    })
+
+    const afterBatchDeleteResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apis?page=1&pageSize=100`)
+    const afterBatchDeleteBody = await readMokelayData<ApiListResponse>(afterBatchDeleteResponse)
+
+    expect(afterBatchDeleteBody.apis.map((api) => api.uuid)).not.toEqual(expect.arrayContaining([
+      'batch_delete_api_one',
+      'batch_delete_api_two',
+    ]))
   })
 
   it('lists active API builder samples with pagination and full API JSON', async () => {
