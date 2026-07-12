@@ -388,33 +388,60 @@ function requireDatabaseType(value: DatabaseType | undefined): DatabaseType {
  *   "functionName": "saveAiDslAssets",
  *   "displayName": "保存 AI DSL 生成资产",
  *   "category": "ai",
- *   "description": "按 create_or_update_known 策略保存 AI 生成的 APIs 和 Pages，为 API 创建快照，并返回逐项 partial-aware 摘要。",
+ *   "description": "把 AI 生成响应中的 APIs 和 Pages 批量保存到 Mokelay 数据库，并返回不会因单项失败而中断的逐项摘要。固定策略 create_or_update_known 会创建新 uuid、更新当前会话 known 列表中的既有 uuid，并拒绝覆盖会话外同名资产；API 保存后同步创建快照，但不会发布 JSON 到 R2。",
  *   "inputs": [
- *     { "key": "datasource", "type": "string", "required": true, "description": "数据源名称，通常为 Mokelay。" },
- *     { "key": "generationResult", "type": "object", "required": true, "description": "AI DSL 生成响应，读取 pages 和 apis 数组。" },
- *     { "key": "knownPageUuids", "type": "string[]", "required": false, "defaultValue": [], "description": "当前会话已保存的页面 uuid。" },
- *     { "key": "knownApiUuids", "type": "string[]", "required": false, "defaultValue": [], "description": "当前会话已保存的 API uuid。" },
- *     { "key": "apiStatus", "type": "draft|published", "required": false, "defaultValue": "draft", "description": "写入 apis 和快照的状态；不会发布到 R2。" },
- *     { "key": "strategy", "type": "create_or_update_known", "required": false, "defaultValue": "create_or_update_known", "description": "新 uuid 创建、已知 uuid 更新、未知冲突逐项失败。" }
+ *     { "key": "datasource", "type": "string", "required": true, "description": "数据源名称，通常为 Mokelay；Block 注册为 requiresDatasource=true。" },
+ *     {
+ *       "key": "generationResult",
+ *       "type": "object",
+ *       "required": true,
+ *       "description": "AI DSL 生成响应。缺失或非 object 属于顶层输入错误；pages/apis 缺失或非数组时分别按空数组处理。",
+ *       "fields": [
+ *         { "key": "pages", "type": "unknown[]", "required": false, "defaultValue": [], "description": "页面项至少需要合法 RFC UUID、1 到 120 字符的 name 和 blocks 数组。" },
+ *         { "key": "apis", "type": "unknown[]", "required": false, "defaultValue": [], "description": "API 项至少需要安全 uuid、1 到 16 位字母 method；alias/name 可选，layout 非 object 时按 {}。" }
+ *       ]
+ *     },
+ *     { "key": "knownPageUuids", "type": "string[]", "required": false, "defaultValue": [], "description": "当前会话允许更新的页面 uuid；非法值和重复值被忽略，成功创建/更新后追加到输出。" },
+ *     { "key": "knownApiUuids", "type": "string[]", "required": false, "defaultValue": [], "description": "当前会话允许更新的 API uuid；非法值和重复值被忽略，成功创建/更新后追加到输出。" },
+ *     { "key": "apiStatus", "type": "draft|published", "required": false, "defaultValue": "draft", "description": "写入 apis 与 apis_snapshot 的数据库状态。即使为 published，本 Block 也不会调用 R2 发布。" },
+ *     { "key": "strategy", "type": "create_or_update_known", "required": false, "defaultValue": "create_or_update_known", "description": "v1 唯一策略：不存在则创建，存在且位于 known 列表则更新，存在但未知则记录单项冲突。" }
  *   ],
  *   "outputs": [
- *     { "key": "saveSummary", "type": "SaveAiDslAssetsSummary", "description": "逐项结果、汇总状态、成功/失败计数及更新后的 known uuid。" }
+ *     {
+ *       "key": "saveSummary",
+ *       "type": "SaveAiDslAssetsSummary",
+ *       "description": "逐项结果、汇总状态、成功/失败计数及更新后的 known uuid。",
+ *       "fields": [
+ *         { "key": "status", "type": "complete|partial|error", "description": "无失败为 complete；成功和失败并存为 partial；全部失败为 error。空输入结果为 complete。" },
+ *         { "key": "pages", "type": "SaveAiDslAssetItem[]", "description": "与 generationResult.pages 顺序一致的页面保存结果。" },
+ *         { "key": "apis", "type": "SaveAiDslAssetItem[]", "description": "与 generationResult.apis 顺序一致的 API 保存结果。" },
+ *         { "key": "savedCount", "type": "number", "description": "status=success 的页面和 API 总数。" },
+ *         { "key": "failedCount", "type": "number", "description": "status=error 的页面和 API 总数。" },
+ *         { "key": "knownPageUuids", "type": "string[]", "description": "规范化输入 known 列表与本次成功页面 uuid 的去重合集。" },
+ *         { "key": "knownApiUuids", "type": "string[]", "description": "规范化输入 known 列表与本次成功 API uuid 的去重合集。" }
+ *       ],
+ *       "itemShape": { "type": "page|api", "title": "string", "sourceUuid": "string", "savedUuid": "string?", "href": "string?", "status": "success|error", "error": "string?" }
+ *     }
  *   ],
  *   "errors": [
- *     { "code": "BLOCK_AI_INPUT_INVALID", "description": "generationResult、strategy 或 apiStatus 整体输入非法；消息包含 AI_DSL_ASSETS_INVALID_RESULT。" },
- *     { "code": "AI_DSL_PAGE_UUID_INVALID", "description": "单个页面 uuid 非法，写入 item.error。" },
- *     { "code": "AI_DSL_API_UUID_INVALID", "description": "单个 API uuid 非法，写入 item.error。" },
- *     { "code": "AI_DSL_ASSET_UUID_EXISTS", "description": "uuid 已存在但不在 known 列表，写入 item.error。" },
- *     { "code": "AI_DSL_ASSET_SAVE_FAILED", "description": "单项结构或数据库写入失败，写入 item.error。" }
+ *     { "code": "BLOCK_AI_INPUT_INVALID", "description": "generationResult、strategy 或 apiStatus 顶层输入非法；消息以 AI_DSL_ASSETS_INVALID_RESULT 开头，Block 直接失败且不处理资产。" },
+ *     { "code": "BLOCK_DATASOURCE_UNSUPPORTED_DATABASE", "description": "执行器未获得 postgres 或 mysql 数据库类型，Block 直接失败。" },
+ *     { "code": "AI_DSL_PAGE_UUID_INVALID", "description": "单个页面 uuid 非法；不是 HTTP 顶层错误，而是写入对应 item.error 后继续。" },
+ *     { "code": "AI_DSL_API_UUID_INVALID", "description": "单个 API uuid 非法；写入对应 item.error 后继续。" },
+ *     { "code": "AI_DSL_ASSET_UUID_EXISTS", "description": "uuid 已存在但不在对应 known 列表；拒绝覆盖并写入 item.error。" },
+ *     { "code": "AI_DSL_ASSET_SAVE_FAILED", "description": "单项结构、JSON 序列化或数据库写入失败；写入 item.error 后继续同批其他项。" }
  *   ],
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "需要 datasource，仅访问固定 pages、apis、apis_snapshot 表。" },
  *     { "key": "partialSuccess", "type": "boolean", "value": true, "description": "单项失败不会中断同批其他资产。" },
- *     { "key": "globalTransaction", "type": "boolean", "value": false, "description": "v1 不使用跨资产全局事务。" }
+ *     { "key": "processingOrder", "type": "string", "value": "apis_then_pages", "description": "按输入顺序串行保存全部 API，再按输入顺序串行保存全部 Page。" },
+ *     { "key": "globalTransaction", "type": "boolean", "value": false, "description": "v1 不使用跨资产全局事务；API 主记录写入后若快照失败，该项会报错但已发生的主记录写入不会自动回滚。" },
+ *     { "key": "r2Publish", "type": "boolean", "value": false, "description": "不调用 saveJsonToR2；apiStatus 只影响数据库记录和快照。" }
  *   ],
  *   "examples": [
- *     { "title": "保存 AI 生成资产", "block": { "uuid": "save_ai_dsl_assets_block", "functionName": "saveAiDslAssets", "inputs": { "datasource": "Mokelay", "generationResult": { "template": "{{request.body.generationResult}}" }, "knownPageUuids": { "template": "{{request.body.knownPageUuids}}" }, "knownApiUuids": { "template": "{{request.body.knownApiUuids}}" }, "apiStatus": "draft", "strategy": "create_or_update_known" }, "outputs": ["saveSummary"], "nextBlock": null } }
+ *     { "title": "保存 AI 生成资产", "block": { "uuid": "save_ai_dsl_assets_block", "functionName": "saveAiDslAssets", "inputs": { "datasource": "Mokelay", "generationResult": { "template": "{{request.body.generationResult}}" }, "knownPageUuids": { "template": "{{request.body.knownPageUuids}}" }, "knownApiUuids": { "template": "{{request.body.knownApiUuids}}" }, "apiStatus": "draft", "strategy": "create_or_update_known" }, "outputs": ["saveSummary"], "nextBlock": null } },
+ *     { "title": "允许更新当前会话已保存资产", "input": { "generationResult": { "pages": [{ "uuid": "550e8400-e29b-41d4-a716-446655440000", "name": "客户列表", "blocks": [] }], "apis": [] }, "knownPageUuids": ["550e8400-e29b-41d4-a716-446655440000"], "knownApiUuids": [], "apiStatus": "draft", "strategy": "create_or_update_known" }, "result": "若页面已存在则更新；若不在 knownPageUuids 中则返回单项 AI_DSL_ASSET_UUID_EXISTS。" }
  *   ]
  * }
  */
