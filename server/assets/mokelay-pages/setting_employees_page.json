@@ -1,0 +1,317 @@
+{
+  "uuid": "setting_employees_page",
+  "createdAt": "2026-07-12T00:00:00.000Z",
+  "updatedAt": "2026-07-12T00:00:00.000Z",
+  "name": "员工设置",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "setting-employees-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "ID",
+            "columnContent": [
+              {
+                "id": "setting-employees-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{id}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "id"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "企业 UUID",
+            "columnContent": [
+              {
+                "id": "setting-employees-enterprise-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{enterprise_uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "enterprise_uuid"
+          },
+          {
+            "fixed": null,
+            "width": 160,
+            "columnName": "姓名",
+            "columnContent": [
+              {
+                "id": "setting-employees-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "name"
+          },
+          {
+            "fixed": null,
+            "width": 240,
+            "columnName": "邮箱",
+            "columnContent": [
+              {
+                "id": "setting-employees-email",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{email}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "email"
+          },
+          {
+            "fixed": null,
+            "width": 100,
+            "columnName": "套餐",
+            "columnContent": [
+              {
+                "id": "setting-employees-plan",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{plan}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "plan"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "创建时间",
+            "columnContent": [
+              {
+                "id": "setting-employees-created-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{created_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "created_at"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "更新时间",
+            "columnContent": [
+              {
+                "id": "setting-employees-updated-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{updated_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "updated_at"
+          },
+          {
+            "fixed": "right",
+            "width": 100,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "setting-employees-delete-button",
+                "type": "MButton",
+                "data": {
+                  "label": "删除",
+                  "variant": "ghost",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "id": "{{id}}",
+                    "name": "{{name}}",
+                    "email": "{{email}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "setting_employees_delete_confirm",
+                        "action": "confirm",
+                        "alias": "确认删除员工",
+                        "inputs": {
+                          "title": "确认删除员工",
+                          "content": {
+                            "template": "确定要删除员工「{{sourceBlock.data.action.name}}」吗？"
+                          }
+                        },
+                        "outputs": [
+                          "result"
+                        ],
+                        "nextAction": "setting_employees_delete_confirm_route"
+                      },
+                      {
+                        "uuid": "setting_employees_delete_confirm_route",
+                        "action": "if_controller",
+                        "type": "controller",
+                        "alias": "确认结果",
+                        "inputs": {
+                          "value": {
+                            "template": "{{actions['setting_employees_delete_confirm'].outputs.result}}"
+                          }
+                        },
+                        "nodes": [
+                          {
+                            "uuid": "setting_employees_delete_confirm_true",
+                            "alias": "确认",
+                            "value": true,
+                            "nextAction": "setting_employees_delete_execute_ds"
+                          },
+                          {
+                            "uuid": "setting_employees_delete_confirm_false",
+                            "alias": "取消",
+                            "value": false,
+                            "nextAction": null
+                          }
+                        ]
+                      },
+                      {
+                        "uuid": "setting_employees_delete_execute_ds",
+                        "action": "execute_ds",
+                        "alias": "删除员工",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/delete_employee_by_id",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "id",
+                                "dataType": "string",
+                                "value": {
+                                  "template": "{{sourceBlock.data.action.id}}"
+                                }
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "setting_employees_delete_refresh_table"
+                      },
+                      {
+                        "uuid": "setting_employees_delete_refresh_table",
+                        "action": "call_block_method",
+                        "alias": "刷新员工列表",
+                        "inputs": {
+                          "blockId": "setting-employees-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_employees",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-employees-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-employees-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.employees[]",
+              "type": "array",
+              "label": "员工列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.employees[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}

@@ -1,0 +1,333 @@
+{
+  "uuid": "setting_employee_auth_identities_page",
+  "createdAt": "2026-07-12T00:00:00.000Z",
+  "updatedAt": "2026-07-12T00:00:00.000Z",
+  "name": "员工授权设置",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "setting-employee-auth-identities-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "ID",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{id}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "id"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "员工 ID",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-employee-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{employee_id}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "employee_id"
+          },
+          {
+            "fixed": null,
+            "width": 140,
+            "columnName": "Provider",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-provider",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{provider}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "provider"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "Provider User ID",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-provider-user-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{provider_user_id}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "provider_user_id"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "Provider Email",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-provider-email",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{provider_email}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "provider_email"
+          },
+          {
+            "fixed": null,
+            "width": 120,
+            "columnName": "邮箱已验证",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-email-verified",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{email_verified}}"
+                }
+              }
+            ],
+            "fieldDataType": "boolean",
+            "fieldVariable": "email_verified"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "创建时间",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-created-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{created_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "created_at"
+          },
+          {
+            "fixed": null,
+            "width": 220,
+            "columnName": "更新时间",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-updated-at",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{updated_at}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "updated_at"
+          },
+          {
+            "fixed": "right",
+            "width": 100,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "setting-employee-auth-identities-delete-button",
+                "type": "MButton",
+                "data": {
+                  "label": "删除",
+                  "variant": "ghost",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "id": "{{id}}",
+                    "provider": "{{provider}}",
+                    "providerEmail": "{{provider_email}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "setting_employee_auth_identities_delete_confirm",
+                        "action": "confirm",
+                        "alias": "确认删除员工授权",
+                        "inputs": {
+                          "title": "确认删除员工授权",
+                          "content": {
+                            "template": "确定要删除员工授权「{{sourceBlock.data.action.provider}} / {{sourceBlock.data.action.providerEmail}}」吗？"
+                          }
+                        },
+                        "outputs": [
+                          "result"
+                        ],
+                        "nextAction": "setting_employee_auth_identities_delete_confirm_route"
+                      },
+                      {
+                        "uuid": "setting_employee_auth_identities_delete_confirm_route",
+                        "action": "if_controller",
+                        "type": "controller",
+                        "alias": "确认结果",
+                        "inputs": {
+                          "value": {
+                            "template": "{{actions['setting_employee_auth_identities_delete_confirm'].outputs.result}}"
+                          }
+                        },
+                        "nodes": [
+                          {
+                            "uuid": "setting_employee_auth_identities_delete_confirm_true",
+                            "alias": "确认",
+                            "value": true,
+                            "nextAction": "setting_employee_auth_identities_delete_execute_ds"
+                          },
+                          {
+                            "uuid": "setting_employee_auth_identities_delete_confirm_false",
+                            "alias": "取消",
+                            "value": false,
+                            "nextAction": null
+                          }
+                        ]
+                      },
+                      {
+                        "uuid": "setting_employee_auth_identities_delete_execute_ds",
+                        "action": "execute_ds",
+                        "alias": "删除员工授权",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/delete_employee_auth_identity_by_id",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "id",
+                                "dataType": "string",
+                                "value": {
+                                  "template": "{{sourceBlock.data.action.id}}"
+                                }
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "setting_employee_auth_identities_delete_refresh_table"
+                      },
+                      {
+                        "uuid": "setting_employee_auth_identities_delete_refresh_table",
+                        "action": "call_block_method",
+                        "alias": "刷新员工授权列表",
+                        "inputs": {
+                          "blockId": "setting-employee-auth-identities-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_employee_auth_identities",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-employee-auth-identities-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-employee-auth-identities-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.employee_auth_identities[]",
+              "type": "array",
+              "label": "员工授权列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.employee_auth_identities[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}

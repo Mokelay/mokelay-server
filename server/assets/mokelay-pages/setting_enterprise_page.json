@@ -1,0 +1,252 @@
+{
+  "uuid": "setting_enterprise_page",
+  "createdAt": "2026-07-12T00:00:00.000Z",
+  "updatedAt": "2026-07-12T00:00:00.000Z",
+  "name": "企业设置",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "setting-enterprise-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "fixed": null,
+            "width": 80,
+            "columnName": "ID",
+            "columnContent": [
+              {
+                "id": "setting-enterprise-id",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{id}}"
+                }
+              }
+            ],
+            "fieldDataType": "number",
+            "fieldVariable": "id"
+          },
+          {
+            "fixed": null,
+            "width": 260,
+            "columnName": "UUID",
+            "columnContent": [
+              {
+                "id": "setting-enterprise-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "uuid"
+          },
+          {
+            "fixed": null,
+            "width": null,
+            "columnName": "企业名称",
+            "columnContent": [
+              {
+                "id": "setting-enterprise-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "name"
+          },
+          {
+            "fixed": "right",
+            "width": 100,
+            "columnName": "操作",
+            "columnContent": [
+              {
+                "id": "setting-enterprise-delete-button",
+                "type": "MButton",
+                "data": {
+                  "label": "删除",
+                  "variant": "ghost",
+                  "align": "left",
+                  "action": {
+                    "type": "submit",
+                    "uuid": "{{uuid}}",
+                    "name": "{{name}}"
+                  }
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "setting_enterprise_delete_confirm",
+                        "action": "confirm",
+                        "alias": "确认删除企业",
+                        "inputs": {
+                          "title": "确认删除企业",
+                          "content": {
+                            "template": "确定要删除企业「{{sourceBlock.data.action.name}}」吗？"
+                          }
+                        },
+                        "outputs": [
+                          "result"
+                        ],
+                        "nextAction": "setting_enterprise_delete_confirm_route"
+                      },
+                      {
+                        "uuid": "setting_enterprise_delete_confirm_route",
+                        "action": "if_controller",
+                        "type": "controller",
+                        "alias": "确认结果",
+                        "inputs": {
+                          "value": {
+                            "template": "{{actions['setting_enterprise_delete_confirm'].outputs.result}}"
+                          }
+                        },
+                        "nodes": [
+                          {
+                            "uuid": "setting_enterprise_delete_confirm_true",
+                            "alias": "确认",
+                            "value": true,
+                            "nextAction": "setting_enterprise_delete_execute_ds"
+                          },
+                          {
+                            "uuid": "setting_enterprise_delete_confirm_false",
+                            "alias": "取消",
+                            "value": false,
+                            "nextAction": null
+                          }
+                        ]
+                      },
+                      {
+                        "uuid": "setting_enterprise_delete_execute_ds",
+                        "action": "execute_ds",
+                        "alias": "删除企业",
+                        "inputs": {
+                          "dsConfig": {
+                            "type": "API",
+                            "domain": "mokelay",
+                            "path": "/api/mokelay/delete_enterprise_by_uuid",
+                            "method": "POST",
+                            "headerData": [],
+                            "bodyData": [
+                              {
+                                "key": "uuid",
+                                "dataType": "string",
+                                "value": {
+                                  "template": "{{sourceBlock.data.action.uuid}}"
+                                }
+                              }
+                            ],
+                            "queryData": []
+                          }
+                        },
+                        "outputs": [
+                          "rawResponse"
+                        ],
+                        "nextAction": "setting_enterprise_delete_refresh_table"
+                      },
+                      {
+                        "uuid": "setting_enterprise_delete_refresh_table",
+                        "action": "call_block_method",
+                        "alias": "刷新企业列表",
+                        "inputs": {
+                          "blockId": "setting-enterprise-table",
+                          "method": "refresh"
+                        },
+                        "outputs": [
+                          "returnData"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "action"
+          }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_enterprise",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-enterprise-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "setting-enterprise-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            }
+          ],
+          "schemaSelections": [
+            {
+              "path": "data.enterprises[]",
+              "type": "array",
+              "label": "企业列表"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "列表数据",
+              "variable": "data",
+              "matchFieldPath": "data.enterprises[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
+        }
+      },
+      "events": []
+    }
+  ]
+}

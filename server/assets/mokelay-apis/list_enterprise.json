@@ -1,0 +1,80 @@
+{
+  "uuid": "list_enterprise",
+  "alias": "企业列表接口",
+  "method": "GET",
+  "request": {
+    "query": [
+      "page",
+      "pageSize"
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "list_enterprise_block"
+    },
+    {
+      "uuid": "list_enterprise_block",
+      "alias": "企业分页 Block",
+      "functionName": "page",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "enterprise",
+        "fields": [
+          "id",
+          "uuid",
+          "name"
+        ],
+        "page": {
+          "template": "{{request.query.page}}"
+        },
+        "pageSize": {
+          "template": "{{request.query.pageSize}}"
+        },
+        "orderBy": [
+          {
+            "fieldName": "id",
+            "direction": "DESC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas",
+        "total",
+        "totalPages",
+        "page",
+        "pageSize",
+        "hasPreviousPage",
+        "hasNextPage"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "list_enterprise_block": {
+      "enterprises": {
+        "template": "{{blocks['list_enterprise_block'].outputs.datas}}"
+      },
+      "pagination": {
+        "page": {
+          "template": "{{blocks['list_enterprise_block'].outputs.page}}"
+        },
+        "pageSize": {
+          "template": "{{blocks['list_enterprise_block'].outputs.pageSize}}"
+        },
+        "total": {
+          "template": "{{blocks['list_enterprise_block'].outputs.total}}"
+        },
+        "totalPages": {
+          "template": "{{blocks['list_enterprise_block'].outputs.totalPages}}"
+        },
+        "hasPreviousPage": {
+          "template": "{{blocks['list_enterprise_block'].outputs.hasPreviousPage}}"
+        },
+        "hasNextPage": {
+          "template": "{{blocks['list_enterprise_block'].outputs.hasNextPage}}"
+        }
+      }
+    }
+  }
+}

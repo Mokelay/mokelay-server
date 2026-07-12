@@ -1,0 +1,36 @@
+{
+  "uuid": "setting",
+  "createdAt": "2026-07-12T00:00:00.000Z",
+  "updatedAt": "2026-07-12T00:00:00.000Z",
+  "name": "设置",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "setting-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "enterprise",
+        "tabs": [
+          {
+            "id": "enterprise",
+            "name": "企业",
+            "pageUUID": "setting_enterprise_page",
+            "pageSource": "system"
+          },
+          {
+            "id": "employees",
+            "name": "员工",
+            "pageUUID": "setting_employees_page",
+            "pageSource": "system"
+          },
+          {
+            "id": "employee-auth-identities",
+            "name": "员工授权",
+            "pageUUID": "setting_employee_auth_identities_page",
+            "pageSource": "system"
+          }
+        ]
+      }
+    }
+  ]
+}
