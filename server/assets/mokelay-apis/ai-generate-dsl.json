@@ -55,6 +55,35 @@
       "outputs": [
         "document"
       ],
+      "nextBlock": "read_requirement_datasource_model"
+    },
+    {
+      "uuid": "read_requirement_datasource_model",
+      "alias": "读取需求对应的数据模型",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fields": [
+          "uuid",
+          "alias",
+          "description",
+          "schema_data"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "alias",
+            "fieldValue": {
+              "template": "{{request.body.projectContext.datasource}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
       "nextBlock": "list_client_block_docs_context"
     },
     {
@@ -308,13 +337,16 @@
       "alias": "基于需求文档生成页面 DSL 和接口 DSL",
       "functionName": "openAI",
       "inputs": {
-        "prompt": "你是 Mokelay 的 AI DSL 架构师。根据用户需求、项目上下文、DSL 规范和服务端注入的能力文档生成 Mokelay 页面 DSL 与对应服务端 API DSL。\n\n硬性规则：\n1. 不能生成任何定制化前端代码、后端代码、脚本、函数源码或伪代码；可交付物只能是 DSL JSON 或能力升级规格。\n2. 能用现有 DSL 表达的需求必须直接生成 DSL；不能为了方便而要求开发定制代码。\n3. 如果需求无法被现有 Processor、Block、Action、Controller 或组件表达，不要伪造可运行能力；把缺口写入 upgradePlan，并给出输入输出、行为和示例 DSL。\n4. 所有 uuid、block id、变量名和 API 路径都要稳定、可读，只使用字母、数字、下划线或连字符。页面 uuid 必须是合法 RFC UUID；API uuid 必须和路径末尾一致。\n5. 返回必须是合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外内容。\n\n规范与能力上下文规则：\n1. userInput.dslSpecifications.pageApi 是 Page 与 API DSL 的基础 JSON Schema，生成的 pages 和 apis 必须遵守其中对应的定义及 x-mokelay-rules。\n2. userInput.dslSpecifications.response 是完整响应 JSON Schema，最终输出必须遵守其字段、类型、必填项、枚举、条件和 x-mokelay-rules。\n3. 响应 Schema 中指向 urn:mokelay:schema:page-api-dsl:1 的引用，必须使用 userInput.dslSpecifications.pageApi 中相同 $id 的定义解析。\n4. userInput.dslContext.client.blocks、actions、processors 分别来自当前 active 客户端 Block、Action、Processor 文档；userInput.dslContext.server.blocks、controllers、processors 分别来自当前 active 服务端 Block、Controller、Processor 文档。\n5. DSL 文档是可用能力、属性、输入输出、事件、方法、运行规则和示例的唯一权威来源。不要使用文档中不存在的类型、属性、方法、Action、Processor、Block 或 Controller。\n6. 生成组件 data、事件 actions、服务端 blocks 和 processors 时，必须遵守对应文档的 schema 与 examples；文档不足以表达需求时写入 upgradePlan。\n7. userInput.generationPreferences 由服务端固定提供，输出语言和命名必须遵守该配置。\n\n生成策略：\n1. 优先生成可直接保存或发布的页面和 API DSL。\n2. 危险操作必须使用文档提供的确认与条件控制能力。\n3. API DSL 必须有且只有一个 starter，所有 Block 必须可达，每个终点必须由 response 或 responses 覆盖。\n4. 所有响应数组字段即使为空也要返回 []。\n5. 如果 upgradePlan 任一数组非空，status 必须为 partial；否则为 complete。",
+        "prompt": "你是 Mokelay 的 AI DSL 架构师。根据用户需求、项目上下文、需求对应的数据模型、DSL 规范和服务端注入的能力文档生成 Mokelay 页面 DSL 与对应服务端 API DSL。\n\n硬性规则：\n1. 不能生成任何定制化前端代码、后端代码、脚本、函数源码或伪代码；可交付物只能是 DSL JSON 或能力升级规格。\n2. 能用现有 DSL 表达的需求必须直接生成 DSL；不能为了方便而要求开发定制代码。\n3. 如果需求无法被现有 Processor、Block、Action、Controller 或组件表达，不要伪造可运行能力；把缺口写入 upgradePlan，并给出输入输出、行为和示例 DSL。\n4. 所有 uuid、block id、变量名和 API 路径都要稳定、可读，只使用字母、数字、下划线或连字符。页面 uuid 必须是合法 RFC UUID；API uuid 必须和路径末尾一致。\n5. 返回必须是合法 JSON object，不能包含 Markdown、代码块、解释文字或 JSON 外内容。\n\n需求模型数据规则：\n1. userInput.requirementDataModel 是根据浏览器传入的 userInput.projectContext.datasource 从数据库读取的数据源记录；其中 schema_data 是当前需求所对应的真实模型数据。\n2. 生成页面字段、表单字段和 API 的 table、fields、conditions、orderBy 等数据库结构时，必须优先且准确使用 schema_data 中已有的表名、字段名、字段类型及明确提供的关系，不得发明与模型冲突的表或字段。\n3. 生成需要 datasource 的服务端数据库 Block 时，其 inputs.datasource 必须使用 userInput.requirementDataModel.uuid，不得使用仅供展示的数据源 alias。\n4. requirementDataModel 为 null、schema_data 为空或模型不足以支撑需求时，必须在 assumptions 或 warnings 中明确说明；无法可靠生成可运行 DSL 时应写入 upgradePlan，不得声称已基于真实模型完成。\n\n规范与能力上下文规则：\n1. userInput.dslSpecifications.pageApi 是 Page 与 API DSL 的基础 JSON Schema，生成的 pages 和 apis 必须遵守其中对应的定义及 x-mokelay-rules。\n2. userInput.dslSpecifications.response 是完整响应 JSON Schema，最终输出必须遵守其字段、类型、必填项、枚举、条件和 x-mokelay-rules。\n3. 响应 Schema 中指向 urn:mokelay:schema:page-api-dsl:1 的引用，必须使用 userInput.dslSpecifications.pageApi 中相同 $id 的定义解析。\n4. userInput.dslContext.client.blocks、actions、processors 分别来自当前 active 客户端 Block、Action、Processor 文档；userInput.dslContext.server.blocks、controllers、processors 分别来自当前 active 服务端 Block、Controller、Processor 文档。\n5. DSL 文档是可用能力、属性、输入输出、事件、方法、运行规则和示例的唯一权威来源。不要使用文档中不存在的类型、属性、方法、Action、Processor、Block 或 Controller。\n6. 生成组件 data、事件 actions、服务端 blocks 和 processors 时，必须遵守对应文档的 schema 与 examples；文档不足以表达需求时写入 upgradePlan。\n7. userInput.generationPreferences 由服务端固定提供，输出语言和命名必须遵守该配置。\n\n生成策略：\n1. 优先生成可直接保存或发布的页面和 API DSL。\n2. 危险操作必须使用文档提供的确认与条件控制能力。\n3. API DSL 必须有且只有一个 starter，所有 Block 必须可达，每个终点必须由 response 或 responses 覆盖。\n4. 所有响应数组字段即使为空也要返回 []。\n5. 如果 upgradePlan 任一数组非空，status 必须为 partial；否则为 complete。",
         "userInput": {
           "requirementDocument": {
             "template": "{{request.body.requirementDocument}}"
           },
           "projectContext": {
             "template": "{{request.body.projectContext}}"
+          },
+          "requirementDataModel": {
+            "template": "{{blocks['read_requirement_datasource_model'].outputs.data}}"
           },
           "dslSpecifications": {
             "pageApi": {

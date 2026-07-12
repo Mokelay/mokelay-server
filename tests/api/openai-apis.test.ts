@@ -13,6 +13,22 @@ const originalOpenAiApiKey = process.env.OPENAI_API_KEY
 const originalOpenAiModel = process.env.OPENAI_MODEL
 const originalMokelayDatabaseUrl = process.env.Mokelay_DATABASE_URL
 const pgDialect = new PgDialect()
+const requirementDatasourceModel = {
+  uuid: 'crm_db',
+  alias: 'CRM 数据源',
+  description: '客户关系管理数据模型',
+  schema_data: [
+    {
+      name: 'customers',
+      columns: [
+        { name: 'id', type: 'uuid', dataType: 'uuid' },
+        { name: 'name', type: 'varchar(120)', dataType: 'varchar(120)' },
+        { name: 'email', type: 'varchar(255)', dataType: 'varchar(255)' },
+        { name: 'created_at', type: 'timestamp', dataType: 'timestamp' },
+      ],
+    },
+  ],
+}
 
 const openAiMocks = vi.hoisted(() => {
   const responsesCreate = vi.fn()
@@ -95,6 +111,7 @@ async function executeDocumentationSql<T extends Record<string, unknown> = Recor
 ): Promise<SqlExecutionResult<T>> {
   const sql = pgDialect.sqlToQuery(query).sql
   const rowByTable: Record<string, Record<string, unknown>> = {
+    datasources: requirementDatasourceModel,
     docs_client_block: {
       block_type: 'MForm',
       display_name: '表单',
@@ -489,7 +506,7 @@ describe('OpenAI orchestration APIs', () => {
             {
               uuid: 'page_customers',
               functionName: 'page',
-              inputs: { datasource: 'Mokelay', table: 'customers' },
+              inputs: { datasource: 'crm_db', table: 'customers' },
               outputs: ['datas', 'total'],
               nextBlock: null,
             },
@@ -542,7 +559,7 @@ describe('OpenAI orchestration APIs', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         requirementDocument: '  需要生成客户列表页，支持分页查询、删除客户和导出客户。  ',
-        projectContext: { app: 'crm' },
+        projectContext: { app: 'crm', datasource: 'CRM 数据源' },
       }),
     })
 
@@ -567,7 +584,8 @@ describe('OpenAI orchestration APIs', () => {
 
     expect(userInput).toMatchObject({
       requirementDocument: '需要生成客户列表页，支持分页查询、删除客户和导出客户。',
-      projectContext: { app: 'crm' },
+      projectContext: { app: 'crm', datasource: 'CRM 数据源' },
+      requirementDataModel: requirementDatasourceModel,
       generationPreferences: { language: 'zh-CN', naming: 'snake_case' },
     })
     expect(userInput.dslSpecifications.pageApi).toMatchObject({
@@ -608,6 +626,8 @@ describe('OpenAI orchestration APIs', () => {
     expect(prompt).toContain('页面 uuid 必须是合法 RFC UUID')
     expect(prompt).toContain('status 必须为 partial')
     expect(prompt).toContain('DSL 文档是可用能力')
+    expect(prompt).toContain('schema_data 是当前需求所对应的真实模型数据')
+    expect(prompt).toContain('inputs.datasource 必须使用 userInput.requirementDataModel.uuid')
     expect(prompt).not.toContain('DSL 基础结构')
     expect(prompt).not.toContain('必须返回如下结构')
     expect(prompt).not.toContain('"version": 1')
@@ -652,7 +672,10 @@ describe('OpenAI orchestration APIs', () => {
     const incompleteDslResponse = await fetch(apiUrl(testServer.baseUrl, 'ai-generate-dsl'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ requirementDocument: '需要生成客户列表页，支持分页查询和删除客户。' }),
+      body: JSON.stringify({
+        requirementDocument: '需要生成客户列表页，支持分页查询和删除客户。',
+        projectContext: { app: 'crm', datasource: 'CRM 数据源' },
+      }),
     })
 
     await expectMokelayError(invalidJsonResponse, 'BLOCK_AI_OUTPUT_INVALID')
