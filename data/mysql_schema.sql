@@ -245,9 +245,11 @@ CREATE TABLE `datasources` (
   `uuid` varchar(8) NOT NULL COMMENT '数据源唯一ID及数据库连接标识',
   `alias` varchar(120) NOT NULL COMMENT '数据源名称',
   `description` text NOT NULL COMMENT '数据源描述',
+  `enterprise_uuid` char(36) DEFAULT NULL COMMENT '所属企业 UUID',
   `schema` json NOT NULL DEFAULT (json_array()) COMMENT '数据库表和字段 Schema JSON',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_datasources_uuid` (`uuid`)
+  UNIQUE KEY `uk_datasources_uuid` (`uuid`),
+  KEY `idx_datasources_enterprise_uuid` (`enterprise_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='数据源定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `layouts`;

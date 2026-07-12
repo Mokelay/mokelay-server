@@ -65,8 +65,11 @@ export const datasources = pgTable('datasources', {
   uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
+  enterpriseUuid: uuid('enterprise_uuid').references(() => enterprise.uuid, { onDelete: 'set null' }),
   schemaData: jsonb('schema_data').$type<unknown[]>().notNull().default([]),
-})
+}, (table) => [
+  index('idx_datasources_enterprise_uuid').on(table.enterpriseUuid),
+])
 
 export const apiDomains = pgTable('api_domains', {
   uuid: varchar('uuid', { length: 128 }).primaryKey(),

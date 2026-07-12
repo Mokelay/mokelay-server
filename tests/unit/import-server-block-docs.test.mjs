@@ -81,10 +81,12 @@ describe('collectServerBlockDocs', () => {
     const docs = await collectServerBlockDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(30)
+    expect(docs).toHaveLength(32)
     expect(functionNames).toContain('list')
     expect(functionNames).toContain('page')
     expect(functionNames).toContain('read')
+    expect(functionNames).toContain('createSchema')
+    expect(functionNames).toContain('randomId')
     expect(functionNames).toContain('resolveLayoutBundle')
     expect(docs.find((doc) => doc.function_name === 'list')).toMatchObject({
       requires_datasource: true,

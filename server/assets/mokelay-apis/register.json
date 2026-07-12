@@ -218,6 +218,88 @@
       "outputs": [
         "data"
       ],
+      "nextBlock": "generate_free_schema_name"
+    },
+    {
+      "uuid": "generate_free_schema_name",
+      "alias": "生成企业免费 Schema 名",
+      "functionName": "randomId",
+      "inputs": {
+        "prefix": "e_",
+        "length": 5,
+        "alphabet": "abcdefghijklmnopqrstuvwxyz0123456789",
+        "lowerCase": true
+      },
+      "outputs": [
+        "value"
+      ],
+      "nextBlock": "assert_free_datasource_uuid_unique"
+    },
+    {
+      "uuid": "assert_free_datasource_uuid_unique",
+      "alias": "校验免费数据源 UUID 唯一",
+      "functionName": "assertUnique",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "fieldName": "uuid",
+        "value": {
+          "template": "{{blocks['generate_free_schema_name'].outputs.value}}"
+        },
+        "message": "免费数据源标识已存在，请重试注册。"
+      },
+      "outputs": [],
+      "nextBlock": "create_free_schema"
+    },
+    {
+      "uuid": "create_free_schema",
+      "alias": "创建企业免费 Schema",
+      "functionName": "createSchema",
+      "inputs": {
+        "datasource": "MokelayFree",
+        "schema": {
+          "template": "{{blocks['generate_free_schema_name'].outputs.value}}"
+        }
+      },
+      "outputs": [
+        "schema",
+        {
+          "key": "created",
+          "processors": [
+            {
+              "processor": "eq",
+              "param": [
+                true
+              ]
+            }
+          ]
+        },
+        "exists"
+      ],
+      "nextBlock": "create_free_datasource"
+    },
+    {
+      "uuid": "create_free_datasource",
+      "alias": "创建企业免费数据源记录",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "datasources",
+        "idField": "id",
+        "fields": {
+          "uuid": {
+            "template": "{{blocks['create_free_schema'].outputs.schema}}"
+          },
+          "alias": "Mokelay免费数据源",
+          "description": "限制5个模型",
+          "enterprise_uuid": {
+            "template": "{{blocks['create_enterprise_info'].outputs.uuid}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
       "nextBlock": "set_user_session"
     },
     {

@@ -169,6 +169,13 @@
       "when": 1783745872000,
       "tag": "0024_client_block_editor_block",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1783824000000,
+      "tag": "0025_datasources_enterprise_uuid",
+      "breakpoints": true
     }
   ]
 }

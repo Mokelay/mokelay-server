@@ -398,7 +398,8 @@ CREATE TABLE public.datasources (
     uuid character varying(8) NOT NULL,
     alias character varying(120) NOT NULL,
     description text DEFAULT ''::text NOT NULL,
-    schema jsonb DEFAULT '[]'::jsonb NOT NULL
+    enterprise_uuid uuid,
+    schema_data jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 
@@ -873,6 +874,13 @@ ALTER TABLE ONLY public.datasources
 
 
 --
+-- Name: idx_datasources_enterprise_uuid; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_datasources_enterprise_uuid ON public.datasources USING btree (enterprise_uuid);
+
+
+--
 -- Name: enterprise enterprise_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -918,6 +926,14 @@ ALTER TABLE ONLY public.employees
 
 ALTER TABLE ONLY public.employees
     ADD CONSTRAINT employees_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+
+--
+-- Name: datasources datasources_enterprise_uuid_enterprise_uuid_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.datasources
+    ADD CONSTRAINT datasources_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid) ON DELETE SET NULL;
 
 
 --

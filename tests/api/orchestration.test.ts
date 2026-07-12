@@ -189,6 +189,7 @@ type PublicDatasource = {
   uuid: string
   alias: string
   description: string
+  enterprise_uuid?: string | null
   schema_data: Array<{
     name: string
     columns: Array<{ name: string; type: string; dataType: string }>
@@ -401,6 +402,7 @@ type DatasourceRow = {
   uuid: string
   alias: string
   description: string
+  enterprise_uuid: string | null
   schema_data: PublicDatasource['schema_data']
 }
 
@@ -444,10 +446,13 @@ class FakeSqlExecutor {
   readonly pages: PageRow[] = []
   readonly apps: AppRow[] = []
   readonly datasourceRows: DatasourceRow[] = []
+  readonly createdSchemas: string[] = []
   readonly apis: ApiRow[] = []
   readonly apiSnapshots: ApiSnapshotRow[] = []
   readonly apiBuilderSamples: ApiBuilderSampleRow[] = []
   readonly datasources: string[] = []
+  failCreateSchemaAsDuplicate = false
+  forceDatasourceUuidConflict = false
 
   execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
     query: SQL,
@@ -462,6 +467,10 @@ class FakeSqlExecutor {
 
     if (queryText.startsWith('INSERT INTO "enterprise"')) {
       return this.result(databaseType, this.insertEnterprise<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('CREATE SCHEMA ')) {
+      return this.result(databaseType, this.createSchema<T>(queryText))
     }
 
     if (queryText.startsWith('INSERT INTO "employees"') || queryText.startsWith('INSERT INTO "users"')) {
@@ -693,6 +702,7 @@ class FakeSqlExecutor {
       uuid: `d${crypto.randomUUID().replaceAll('-', '').slice(0, 7)}`,
       alias: '',
       description: '',
+      enterprise_uuid: null,
       schema_data: [],
     }
 
@@ -702,6 +712,22 @@ class FakeSqlExecutor {
 
     this.datasourceRows.push(row)
     return [this.projectReturning(row, queryText)] as T[]
+  }
+
+  private createSchema<T extends Record<string, unknown>>(queryText: string) {
+    const schemaName = /^CREATE SCHEMA "([^"]+)"$/.exec(queryText)?.[1]
+
+    if (!schemaName) {
+      throw new Error(`Unsupported CREATE SCHEMA in test fake: ${queryText}`)
+    }
+
+    if (this.failCreateSchemaAsDuplicate || this.createdSchemas.includes(schemaName)) {
+      throw Object.assign(new Error('schema already exists'), { code: '42P06' })
+    }
+
+    this.createdSchemas.push(schemaName)
+
+    return [] as T[]
   }
 
   private upsertApi<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -1118,7 +1144,23 @@ class FakeSqlExecutor {
 
     if (queryText.includes('"uuid" =')) {
       const uuid = params.at(-1)
+      if (this.forceDatasourceUuidConflict) {
+        return [{
+          id: 999,
+          uuid: String(uuid),
+          alias: '冲突数据源',
+          description: '',
+          enterprise_uuid: null,
+          schema_data: [],
+        }]
+      }
+
       return this.datasourceRows.filter((datasource) => datasource.uuid === uuid)
+    }
+
+    if (queryText.includes('"enterprise_uuid" =')) {
+      const enterpriseUuid = params.at(-1)
+      return this.datasourceRows.filter((datasource) => datasource.enterprise_uuid === enterpriseUuid)
     }
 
     return [...this.datasourceRows]
@@ -1373,6 +1415,7 @@ describe('mokelay orchestration API', () => {
     process.env = {
       ...originalEnv,
       Mokelay_DATABASE_URL: 'postgres://unit-test',
+      MokelayFree_DATABASE_URL: 'postgres://free-unit-test',
       NODE_ENV: 'test',
     }
     clearApiR2Env()
@@ -1490,6 +1533,7 @@ describe('mokelay orchestration API', () => {
     const body = await readMokelayData<RegisterResponse>(response)
     const row = fakeSqlExecutor.employees.find((employee) => employee.email === 'register@mokelay.test')
     const enterprise = fakeSqlExecutor.enterprise.find((item) => item.name === 'Register Enterprise')
+    const freeDatasource = fakeSqlExecutor.datasourceRows.find((datasource) => datasource.enterprise_uuid === enterprise?.uuid)
 
     expect(response.status).toBe(200)
     expect(response.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
@@ -1507,6 +1551,16 @@ describe('mokelay orchestration API', () => {
     expect(row?.name).toBe('Register User')
     expect(row?.password_hash).not.toBe('abc12345')
     expect(await verifyPassword(row?.password_hash || '', 'abc12345')).toBe(true)
+    expect(fakeSqlExecutor.createdSchemas).toHaveLength(1)
+    expect(fakeSqlExecutor.createdSchemas[0]).toEqual(expect.stringMatching(/^e_[a-z0-9]{5}$/))
+    expect(freeDatasource).toMatchObject({
+      uuid: fakeSqlExecutor.createdSchemas[0],
+      alias: 'Mokelay免费数据源',
+      description: '限制5个模型',
+      enterprise_uuid: enterprise?.uuid,
+      schema_data: [],
+    })
+    expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay', 'MokelayFree']))
   })
 
   it('stops stored register when the output processor detects a duplicate email', async () => {
@@ -1530,6 +1584,44 @@ describe('mokelay orchestration API', () => {
     await expectMokelayError(duplicateResponse, 'PROCESSOR_VALIDATION_FAILED', /Processor eq/)
     expect(fakeSqlExecutor.employees).toHaveLength(1)
     expect(fakeSqlExecutor.enterprise.filter((item) => item.name.startsWith('Duplicate Enterprise'))).toHaveLength(1)
+    expect(fakeSqlExecutor.createdSchemas).toHaveLength(1)
+    expect(fakeSqlExecutor.datasourceRows).toHaveLength(1)
+  })
+
+  it('stops stored register when free schema creation reports an existing schema', async () => {
+    fakeSqlExecutor.failCreateSchemaAsDuplicate = true
+
+    const response = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Schema Duplicate Enterprise',
+      name: 'Schema Duplicate User',
+      email: 'schema-duplicate@mokelay.test',
+      password: 'abc12345',
+    })
+
+    await expectMokelayError(response, 'PROCESSOR_VALIDATION_FAILED', /Processor eq/)
+    expect(response.headers.get('set-cookie')).toBeNull()
+    expect(fakeSqlExecutor.enterprise.filter((item) => item.name === 'Schema Duplicate Enterprise')).toHaveLength(1)
+    expect(fakeSqlExecutor.employees.filter((employee) => employee.email === 'schema-duplicate@mokelay.test')).toHaveLength(1)
+    expect(fakeSqlExecutor.createdSchemas).toHaveLength(0)
+    expect(fakeSqlExecutor.datasourceRows).toHaveLength(0)
+  })
+
+  it('stops stored register before schema creation when the generated datasource uuid already exists', async () => {
+    fakeSqlExecutor.forceDatasourceUuidConflict = true
+
+    const response = await postJson(testServer.baseUrl, 'register', {
+      enterprise_name: 'Datasource Conflict Enterprise',
+      name: 'Datasource Conflict User',
+      email: 'datasource-conflict@mokelay.test',
+      password: 'abc12345',
+    })
+
+    await expectMokelayError(response, 'BLOCK_UNIQUE_CONFLICT', '免费数据源标识已存在，请重试注册。')
+    expect(response.headers.get('set-cookie')).toBeNull()
+    expect(fakeSqlExecutor.enterprise.filter((item) => item.name === 'Datasource Conflict Enterprise')).toHaveLength(1)
+    expect(fakeSqlExecutor.employees.filter((employee) => employee.email === 'datasource-conflict@mokelay.test')).toHaveLength(1)
+    expect(fakeSqlExecutor.createdSchemas).toHaveLength(0)
+    expect(fakeSqlExecutor.datasourceRows).toHaveLength(0)
   })
 
   it('executes the stored login API JSON and stores the public user in orchestration session', async () => {
