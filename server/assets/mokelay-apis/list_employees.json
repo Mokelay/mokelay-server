@@ -29,6 +29,21 @@
           "created_at",
           "updated_at"
         ],
+        "relations": [
+          {
+            "type": "left",
+            "table": "enterprise",
+            "alias": "enterprise",
+            "localField": "enterprise_uuid",
+            "foreignField": "uuid",
+            "fields": [
+              {
+                "field": "name",
+                "as": "enterprise_name"
+              }
+            ]
+          }
+        ],
         "page": {
           "template": "{{request.query.page}}"
         },

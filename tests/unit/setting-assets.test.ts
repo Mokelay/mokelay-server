@@ -76,6 +76,17 @@ type ApiAsset = {
     inputs?: {
       table?: string
       fields?: string[]
+      relations?: Array<{
+        type?: string
+        table?: string
+        alias?: string
+        localField?: string
+        foreignField?: string
+        fields?: Array<{
+          field?: string
+          as?: string
+        }>
+      }>
       conditions?: Array<{
         fieldName?: string
         fieldValue?: {
@@ -102,7 +113,7 @@ const settingPages = [
     listApi: 'list_employees',
     deleteApi: 'delete_employee_by_id',
     deleteBodyKey: 'id',
-    expectedFields: ['id', 'enterprise_uuid', 'name', 'email', 'plan', 'created_at', 'updated_at'],
+    expectedFields: ['id', 'enterprise_uuid', 'enterprise_name', 'name', 'email', 'plan', 'created_at', 'updated_at'],
   },
   {
     pageFile: 'mokelay-pages/setting_employee_auth_identities_page.json',
@@ -262,6 +273,44 @@ describe('setting assets', () => {
       template: `{{blocks['${pageBlock?.uuid}'].outputs.datas}}`,
     }))
     expect(response?.pagination).toBeTruthy()
+  })
+
+  it('configures the employees list API to read enterprise_name through page relations', async () => {
+    const api = await readJsonAsset<ApiAsset>('mokelay-apis/list_employees.json')
+    const pageBlock = api.blocks.find((block) => block.functionName === 'page')
+
+    expect(pageBlock?.inputs?.relations).toEqual([
+      {
+        type: 'left',
+        table: 'enterprise',
+        alias: 'enterprise',
+        localField: 'enterprise_uuid',
+        foreignField: 'uuid',
+        fields: [
+          {
+            field: 'name',
+            as: 'enterprise_name',
+          },
+        ],
+      },
+    ])
+  })
+
+  it('shows enterprise_name after enterprise_uuid on the employees setting page', async () => {
+    const page = await readJsonAsset<PageAsset>('mokelay-pages/setting_employees_page.json')
+    const table = tableBlock(page, 'setting-employees-table')
+
+    expect(table?.data?.columns?.map((column) => column.fieldVariable)).toEqual([
+      'id',
+      'enterprise_uuid',
+      'enterprise_name',
+      'name',
+      'email',
+      'plan',
+      'created_at',
+      'updated_at',
+      'action',
+    ])
   })
 
   it.each(deleteApis)('declares a direct delete API asset for $table', async ({

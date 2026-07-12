@@ -47,6 +47,22 @@
           },
           {
             "fixed": null,
+            "width": 180,
+            "columnName": "企业名称",
+            "columnContent": [
+              {
+                "id": "setting-employees-enterprise-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{enterprise_name}}"
+                }
+              }
+            ],
+            "fieldDataType": "string",
+            "fieldVariable": "enterprise_name"
+          },
+          {
+            "fixed": null,
             "width": 160,
             "columnName": "姓名",
             "columnContent": [

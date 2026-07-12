@@ -25,9 +25,9 @@ describe('client Action and Processor documentation assets', () => {
     ]))
     expect(docs.actions).toHaveLength(10)
     expect(docs.processors.map((doc) => doc.processor_name)).toEqual([
-      'filter', 'date_time_format', 'merge_data', 'random_id', 'trim',
+      'ai_dsl_request_context', 'filter', 'date_time_format', 'merge_data', 'random_id', 'trim',
     ])
-    expect(docs.processors).toHaveLength(5)
+    expect(docs.processors).toHaveLength(6)
   })
 
   it.each([
