@@ -271,16 +271,33 @@ DROP TABLE IF EXISTS `pages`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `pages` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-  `uuid` char(36) NOT NULL DEFAULT (uuid()) COMMENT '页面唯一标识',
+  `uuid` varchar(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT (uuid()) COMMENT '页面唯一标识',
   `name` varchar(120) NOT NULL COMMENT '页面名称',
   `blocks` json NOT NULL COMMENT '页面 Block 配置 JSON',
+  `sub_page` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否为被其他页面直接引用的子页面',
+  `quotes` json NOT NULL DEFAULT (json_array()) COMMENT '直接引用当前页面的页面 UUID 数组',
+  `dependencies` json NOT NULL DEFAULT (json_array()) COMMENT '当前页面直接依赖的子页面 UUID 数组',
   `app_uuid` varchar(8) DEFAULT NULL COMMENT '所属 App UUID',
   `layout_uuid` varchar(128) DEFAULT NULL COMMENT '页面布局 UUID',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_pages_uuid` (`uuid`)
+  UNIQUE KEY `uk_pages_uuid` (`uuid`),
+  KEY `idx_pages_sub_page` (`sub_page`),
+  CONSTRAINT `chk_pages_uuid_slug` CHECK (((char_length(`uuid`) between 1 and 128) and regexp_like(`uuid`,_ascii'^[a-z0-9_-]+$','c')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='页面定义表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `page_reference_graph_state`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `page_reference_graph_state` (
+  `id` tinyint unsigned NOT NULL DEFAULT 1 COMMENT '单例记录 ID，固定为 1',
+  `revision` bigint unsigned NOT NULL DEFAULT 0 COMMENT '页面引用图提交修订号',
+  `version` int unsigned NOT NULL DEFAULT 0 COMMENT '关系回填版本',
+  `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '最近一次图变更时间',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `chk_page_reference_graph_state_singleton` CHECK ((`id` = 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='页面引用图全局事务锁与版本状态';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `employees`;
 DROP TABLE IF EXISTS `enterprise`;

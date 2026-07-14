@@ -96,6 +96,14 @@ INSERT INTO public.pages (uuid, name, blocks, created_at, updated_at) VALUES
 
 
 --
+-- Data for Name: page_reference_graph_state; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+INSERT INTO public.page_reference_graph_state (id, revision, version) VALUES
+	(1, 0, 1);
+
+
+--
 -- Data for Name: enterprise; Type: TABLE DATA; Schema: public; Owner: -
 --
 

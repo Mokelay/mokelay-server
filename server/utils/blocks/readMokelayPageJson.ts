@@ -38,6 +38,7 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
  *   "category": "asset",
  *   "description": "按 uuid 从 Nitro server assets 的 mokelay-pages 目录读取并校验单个系统页面 JSON。",
  *   "inputs": [
+ *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，用于合并用户页面对系统页面的动态引用。" },
  *     { "key": "uuid", "type": "string", "required": true, "description": "页面 JSON uuid，同时对应 mokelay-pages/{uuid}.json。" }
  *   ],
  *   "outputs": [
@@ -52,7 +53,7 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
  *   ],
  *   "config": [],
  *   "runtime": [
- *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "读取用户页面依赖并合并动态 quotes。" },
  *     { "key": "source", "type": "string", "value": "assets:server/mokelay-pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
@@ -60,8 +61,10 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
  *   ]
  * }
  */
-export const executeReadMokelayPageJsonBlock: BlockExecutor = async ({ inputs }) => {
+export const executeReadMokelayPageJsonBlock: BlockExecutor = async ({ inputs, executeSql }) => {
+  const page = await readMokelayPageJson(inputs.uuid)
+  const { mergeSystemPageRelations } = await import('../pageRelationStore')
   return {
-    page: await readMokelayPageJson(inputs.uuid),
+    page: (await mergeSystemPageRelations([page as Record<string, unknown>], executeSql))[0],
   }
 }

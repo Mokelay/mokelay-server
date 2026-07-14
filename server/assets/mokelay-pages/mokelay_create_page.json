@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_create_page",
+  "subPage": true,
+  "quotes": ["mokelay_list_page"],
+  "dependencies": [],
   "createdAt": "2026-06-23T00:00:00.000Z",
   "updatedAt": "2026-06-23T00:00:00.000Z",
   "name": "创建页面",
@@ -71,7 +74,7 @@
         },
         "items": [
           {
-            "labelName": "页面 UUID",
+            "labelName": "页面标识",
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -79,8 +82,9 @@
               "id": "mokelay-create-page-uuid-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入页面 UUID",
-                "value": ""
+                "placeholder": "小写字母、数字、下划线或连字符",
+                "value": "",
+                "maxLength": 128
               }
             },
             "events": []

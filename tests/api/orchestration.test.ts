@@ -1,17 +1,19 @@
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { type SQL } from 'drizzle-orm'
+import { sql, type SQL } from 'drizzle-orm'
 import { MySqlDialect } from 'drizzle-orm/mysql-core'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
 import { createMokelayOrchestrationHandler as createCoreMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
+import type { DatasourceTransactionRunner, SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
 import type { MokelayErrorCode } from 'mokelay-server-core/utils/mokelay-error'
 import { verifyPassword } from 'mokelay-server-core/utils/password'
 import { orchestrationSessionCookieName } from 'mokelay-server-core/utils/session'
-import type { DatabaseType, SqlExecutionResult } from 'mokelay-server-core/utils/db'
+import { datasourceDatabaseType, type DatabaseType, type SqlExecutionResult } from 'mokelay-server-core/utils/db'
+import { serverBlockDefinitions } from '../../server/utils/blocks'
 
 const apiR2MockState = vi.hoisted(() => ({
   sentInputs: [] as Array<Record<string, unknown>>,
@@ -148,8 +150,8 @@ type PageListResponse = {
     uuid: string
     name: string
     blocks: unknown[]
-    created_at: string
-    updated_at: string
+    createdAt: string
+    updatedAt: string
   }>
   pagination: {
     page: number
@@ -359,6 +361,10 @@ function createMokelayOrchestrationHandler(
 
   return createCoreMokelayOrchestrationHandler({
     ...options,
+    blockDefinitions: {
+      ...serverBlockDefinitions,
+      ...(options.blockDefinitions ?? {}),
+    },
     loadApiJson: loadApiJson
       ? async (apiJsonUuid) => normalizeApiJsonFlow(await loadApiJson(apiJsonUuid))
       : undefined,
@@ -386,6 +392,11 @@ type PageRow = {
   uuid: string
   name: string
   blocks: unknown[]
+  app_uuid: string | null
+  layout_uuid: string | null
+  sub_page: boolean
+  quotes: string[]
+  dependencies: string[]
   created_at: string
   updated_at: string
 }
@@ -453,6 +464,21 @@ class FakeSqlExecutor {
   readonly datasources: string[] = []
   failCreateSchemaAsDuplicate = false
   forceDatasourceUuidConflict = false
+
+  transaction: DatasourceTransactionRunner = async (datasource, callback) => {
+    const snapshot = this.snapshotState()
+    try {
+      const databaseType = datasourceDatabaseType(datasource)
+      const executeSql: SqlExecutor = <T extends Record<string, unknown> = Record<string, unknown>>(query: SQL) => (
+        this.execute<T>(query, datasource, databaseType)
+      )
+      return await callback(executeSql)
+    }
+    catch (error) {
+      this.restoreState(snapshot)
+      throw error
+    }
+  }
 
   execute = async <T extends Record<string, unknown> = Record<string, unknown>>(
     query: SQL,
@@ -525,6 +551,9 @@ class FakeSqlExecutor {
     }
 
     if (queryText.startsWith('SELECT')) {
+      if (queryText.includes('FROM "page_reference_graph_state"')) {
+        return this.result(databaseType, [{ id: 1, version: 1 }] as unknown as T[])
+      }
       if (queryText.includes('FROM pg_catalog.pg_class cls')) {
         return this.result(databaseType, [
           { tableName: 'orders', columnName: 'id', columnType: 'integer' },
@@ -569,6 +598,10 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.updatePages<T>(queryText, params))
     }
 
+    if (queryText.startsWith('UPDATE "page_reference_graph_state"')) {
+      return this.result<T>(databaseType, [])
+    }
+
     if (queryText.startsWith('UPDATE "apps"')) {
       return this.result(databaseType, this.updateApps<T>(queryText, params))
     }
@@ -585,7 +618,39 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.deleteApis<T>(queryText, params))
     }
 
+
+    if (queryText.startsWith('DELETE FROM "pages"')) {
+      return this.result(databaseType, this.deletePages<T>(queryText, params))
+    }
+
     throw new Error(`Unsupported SQL in test fake: ${queryText}`)
+  }
+
+  private snapshotState() {
+    return structuredClone({
+      enterprise: this.enterprise,
+      employees: this.employees,
+      pages: this.pages,
+      apps: this.apps,
+      datasourceRows: this.datasourceRows,
+      createdSchemas: this.createdSchemas,
+      apis: this.apis,
+      apiSnapshots: this.apiSnapshots,
+      apiBuilderSamples: this.apiBuilderSamples,
+    })
+  }
+
+  private restoreState(snapshot: ReturnType<FakeSqlExecutor['snapshotState']>) {
+    const restore = <T>(target: T[], source: T[]) => target.splice(0, target.length, ...source)
+    restore(this.enterprise, snapshot.enterprise)
+    restore(this.employees, snapshot.employees)
+    restore(this.pages, snapshot.pages)
+    restore(this.apps, snapshot.apps)
+    restore(this.datasourceRows, snapshot.datasourceRows)
+    restore(this.createdSchemas, snapshot.createdSchemas)
+    restore(this.apis, snapshot.apis)
+    restore(this.apiSnapshots, snapshot.apiSnapshots)
+    restore(this.apiBuilderSamples, snapshot.apiBuilderSamples)
   }
 
   private result<T extends Record<string, unknown>>(
@@ -664,6 +729,11 @@ class FakeSqlExecutor {
       uuid: crypto.randomUUID(),
       name: '',
       blocks: [],
+      app_uuid: null,
+      layout_uuid: null,
+      sub_page: false,
+      quotes: [],
+      dependencies: [],
       created_at: now,
       updated_at: now,
     }
@@ -922,6 +992,15 @@ class FakeSqlExecutor {
     return apis.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
+  private deletePages<T extends Record<string, unknown>>(_queryText: string, params: unknown[]) {
+    const uuids = new Set(params.map(String))
+    const deleted = this.pages.filter(page => uuids.has(page.uuid))
+    for (let index = this.pages.length - 1; index >= 0; index -= 1) {
+      if (uuids.has(this.pages[index]?.uuid ?? '')) this.pages.splice(index, 1)
+    }
+    return deleted.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
   private updatePages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
@@ -1099,6 +1178,12 @@ class FakeSqlExecutor {
     if (whereText.includes('"name" =')) {
       const name = params[paramIndex++]
       result = result.filter((page) => page.name === name)
+    }
+
+    if (whereText.includes('"sub_page" =')) {
+      const value = params[paramIndex++]
+      const expected = value === true || value === 'true' || value === 1 || value === '1'
+      result = result.filter(page => page.sub_page === expected)
     }
 
     if (whereText.includes('"created_at" >=')) {
@@ -1330,7 +1415,7 @@ async function readJson<T>(response: Response) {
 async function readMokelaySuccess<T>(response: Response) {
   const body = await readJson<MokelaySuccessBody<T>>(response)
 
-  expect(body.ok).toBe(true)
+  expect(body.ok, JSON.stringify(body)).toBe(true)
 
   return body
 }
@@ -1432,6 +1517,7 @@ describe('mokelay orchestration API', () => {
     apiR2MockState.failPut = false
     testServer = await startServer(createMokelayOrchestrationHandler({
       executeSql: fakeSqlExecutor.execute,
+      executeTransaction: fakeSqlExecutor.transaction,
     }))
   })
 
@@ -2637,8 +2723,8 @@ describe('mokelay orchestration API', () => {
     expect(listResponse.status).toBe(200)
     expect(listBody.pages).toHaveLength(1)
     expect(listBody.pages[0]).toEqual(expect.objectContaining({
-      created_at: expect.any(String),
-      updated_at: expect.any(String),
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
     }))
     expect(listBody.pagination).toEqual({
       page: 1,
@@ -2687,7 +2773,7 @@ describe('mokelay orchestration API', () => {
     expect(emptySearchBody.pagination.total).toBe(2)
 
     const uuidSearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=${secondPage?.uuid}`,
+      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=${encodeURIComponent(` ${secondPage?.uuid.toUpperCase()} `)}`,
     )
     const uuidSearchBody = await readMokelayData<PageListResponse>(uuidSearchResponse)
 
@@ -2724,25 +2810,107 @@ describe('mokelay orchestration API', () => {
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
-  it('creates a page with a caller-provided UUID when create_page receives uuid', async () => {
-    const pageUuid = '550e8400-e29b-41d4-a716-446655440000'
+  it('canonicalizes a caller-provided readable page slug across CRUD APIs', async () => {
+    const pageUuid = 'customer_orders'
     const created = await createPage(testServer.baseUrl, {
-      uuid: pageUuid,
-      name: 'AI Generated Page',
-      blocks: [{ type: 'MHeading', data: { text: 'AI Generated Page' } }],
+      uuid: ' Customer_Orders ',
+      name: 'Customer Orders',
+      blocks: [{ type: 'MHeading', data: { text: 'Customer Orders' } }],
     })
 
     expect(created.page).toMatchObject({
       uuid: pageUuid,
-      name: 'AI Generated Page',
-      blocks: [{ type: 'MHeading', data: { text: 'AI Generated Page' } }],
+      name: 'Customer Orders',
+      blocks: [{ type: 'MHeading', data: { text: 'Customer Orders' } }],
     })
 
-    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${pageUuid}`)
+    const readResponse = await fetch(
+      `${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${encodeURIComponent(' CUSTOMER_ORDERS ')}`,
+    )
     const readBody = await readMokelayData<PageResponse>(readResponse)
 
     expect(readResponse.status).toBe(200)
     expect(readBody.page).toEqual(created.page)
+
+    const updateResponse = await postJson(
+      testServer.baseUrl,
+      'update_page_blocks_by_uuid',
+      { name: 'Customer Orders Updated', blocks: [] },
+      `?uuid=${encodeURIComponent(' CUSTOMER_ORDERS ')}`,
+    )
+    const updated = await readMokelayData<PageResponse>(updateResponse)
+    expect(updated.page).toMatchObject({ uuid: pageUuid, name: 'Customer Orders Updated' })
+
+    const deleteResponse = await postJson(testServer.baseUrl, 'delete_page_by_uuid', {
+      uuid: ' CUSTOMER_ORDERS ',
+    })
+    expect(await readMokelayData<{ affected: number }>(deleteResponse)).toMatchObject({ affected: 1 })
+    expect(fakeSqlExecutor.pages.some(page => page.uuid === pageUuid)).toBe(false)
+  })
+
+  it('keeps existing RFC UUID page identifiers compatible', async () => {
+    const pageUuid = '550e8400-e29b-41d4-a716-446655440000'
+    const created = await createPage(testServer.baseUrl, {
+      uuid: pageUuid,
+      name: 'Legacy UUID Page',
+      blocks: [],
+    })
+
+    expect(created.page?.uuid).toBe(pageUuid)
+  })
+
+  it('rejects user and system page slug duplicates without adding a suffix', async () => {
+    await createPage(testServer.baseUrl, {
+      uuid: 'customer_orders',
+      name: 'Customer Orders',
+      blocks: [],
+    })
+
+    const userDuplicate = await postJson(testServer.baseUrl, 'create_page', {
+      uuid: ' CUSTOMER_ORDERS ',
+      name: 'Duplicate Customer Orders',
+      blocks: [],
+    })
+    await expectMokelayError(userDuplicate, 'BLOCK_DUPLICATE_RECORD')
+
+    const systemDuplicate = await postJson(testServer.baseUrl, 'create_page', {
+      uuid: ' PAGES ',
+      name: 'System Collision',
+      blocks: [],
+    })
+    await expectMokelayError(systemDuplicate, 'BLOCK_DUPLICATE_RECORD')
+    expect(fakeSqlExecutor.pages.map(page => page.uuid)).toEqual(['customer_orders'])
+  })
+
+  it.each([
+    '',
+    'customer.orders',
+    'customer/orders',
+    'customer orders',
+    '客户页面',
+    'a'.repeat(129),
+  ])('rejects invalid user page slug %j', async (uuid) => {
+    const response = await postJson(testServer.baseUrl, 'create_page', {
+      uuid,
+      name: `Invalid ${uuid.length}`,
+      blocks: [],
+    })
+
+    await expectMokelayError(response, 'BLOCK_PAGE_UUID_INVALID')
+  })
+
+  it('restores fake database state when an injected transaction fails', async () => {
+    const rolledBackUuid = '99999999-9999-4999-8999-999999999999'
+    await expect(fakeSqlExecutor.transaction('Mokelay', async executeSql => {
+      await executeSql(sql`
+        INSERT INTO ${sql.identifier('pages')}
+          (${sql.identifier('uuid')}, ${sql.identifier('name')}, ${sql.identifier('blocks')})
+        VALUES (${rolledBackUuid}, ${'Rolled Back'}, ${JSON.stringify([])}::jsonb)
+      `)
+      throw new Error('force rollback')
+    })).rejects.toThrow('force rollback')
+
+    expect(fakeSqlExecutor.pages.some(page => page.uuid === rolledBackUuid)).toBe(false)
   })
 
   it('executes the stored app create and list API JSON definitions', async () => {
@@ -3721,6 +3889,11 @@ describe('mokelay orchestration API', () => {
             uuid: uuid as string,
             name: params[0] as string,
             blocks: JSON.parse(params[1] as string) as unknown[],
+            app_uuid: null,
+            layout_uuid: null,
+            sub_page: false,
+            quotes: [],
+            dependencies: [],
             created_at: '2026-05-27T00:00:00.000Z',
             updated_at: '2026-05-27T00:00:00.000Z',
           }

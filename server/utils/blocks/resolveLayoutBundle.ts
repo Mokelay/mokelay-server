@@ -8,6 +8,8 @@ import {
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import { readMokelayPageJson } from './readMokelayPageJson'
 import { readMokelayLayoutJson } from './readMokelayLayoutJson'
+import { mergeSystemPageRelations } from '../pageRelationStore'
+import { requireUserPageUuid } from '../pageRelations'
 
 type LayoutBundleRow = Record<string, unknown>
 
@@ -115,6 +117,9 @@ function normalizePage(row: LayoutBundleRow) {
     blocks: normalizeBlocks(row.page_blocks),
     appUuid: readString(row.page_app_uuid) ?? null,
     layoutUuid: readString(row.page_layout_uuid_value) ?? null,
+    subPage: row.page_sub_page === true || row.page_sub_page === 1 || row.page_sub_page === '1' || row.page_sub_page === 'true',
+    quotes: normalizeBlocks(row.page_quotes).filter((item): item is string => typeof item === 'string'),
+    dependencies: normalizeBlocks(row.page_dependencies).filter((item): item is string => typeof item === 'string'),
     createdAt: readString(row.page_created_at),
     updatedAt: readString(row.page_updated_at),
   }
@@ -132,6 +137,9 @@ async function resolveUserPageBundle(pageUuid: string, executeSql: SqlExecutor) 
       ${identifierSql('blocks', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_blocks')},
       ${identifierSql('app_uuid', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_app_uuid')},
       ${identifierSql('layout_uuid', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_layout_uuid_value')},
+      ${identifierSql('sub_page', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_sub_page')},
+      ${identifierSql('quotes', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_quotes')},
+      ${identifierSql('dependencies', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_dependencies')},
       ${identifierSql('created_at', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_created_at')},
       ${identifierSql('updated_at', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_updated_at')}
     FROM ${pagesTable}
@@ -157,7 +165,8 @@ async function resolveUserPageBundle(pageUuid: string, executeSql: SqlExecutor) 
 }
 
 async function resolveSystemPageBundle(pageUuid: string, executeSql: SqlExecutor) {
-  const page = await readMokelayPageJson(pageUuid)
+  const staticPage = await readMokelayPageJson(pageUuid) as Record<string, unknown>
+  const page = (await mergeSystemPageRelations([staticPage], executeSql))[0]
   const layoutsTable = identifierSql('layouts', 'table', 'BLOCK_INVALID_TABLE')
   const layoutUuid = readPageLayoutUuid(page)
   const layout = await readSystemLayoutByUuid(layoutUuid, layoutsTable, executeSql)
@@ -282,5 +291,5 @@ export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, e
     return await resolveSystemPageBundle(pageUuid, executeSql)
   }
 
-  return await resolveUserPageBundle(pageUuid, executeSql)
+  return await resolveUserPageBundle(requireUserPageUuid(pageUuid), executeSql)
 }

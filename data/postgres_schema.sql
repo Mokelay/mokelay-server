@@ -493,13 +493,30 @@ ALTER SEQUENCE public.layouts_id_seq OWNED BY public.layouts.id;
 --
 
 CREATE TABLE public.pages (
-    uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    uuid character varying(128) DEFAULT (gen_random_uuid())::text NOT NULL,
     name character varying(120) NOT NULL,
     blocks jsonb DEFAULT '[]'::jsonb NOT NULL,
+    sub_page boolean DEFAULT false NOT NULL,
+    quotes jsonb DEFAULT '[]'::jsonb NOT NULL,
+    dependencies jsonb DEFAULT '[]'::jsonb NOT NULL,
     app_uuid character varying(8),
     layout_uuid character varying(128),
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT pages_uuid_slug_check CHECK (((char_length((uuid)::text) >= 1) AND (char_length((uuid)::text) <= 128) AND ((uuid)::text !~ '[^a-z0-9_-]'::text)))
+);
+
+
+--
+-- Name: page_reference_graph_state; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.page_reference_graph_state (
+    id integer DEFAULT 1 NOT NULL,
+    revision bigint DEFAULT 0 NOT NULL,
+    version integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT page_reference_graph_state_singleton CHECK ((id = 1))
 );
 
 
@@ -902,6 +919,21 @@ ALTER TABLE ONLY public.enterprise
 
 ALTER TABLE ONLY public.pages
     ADD CONSTRAINT pages_pkey PRIMARY KEY (uuid);
+
+
+--
+-- Name: page_reference_graph_state page_reference_graph_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.page_reference_graph_state
+    ADD CONSTRAINT page_reference_graph_state_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_pages_sub_page; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_pages_sub_page ON public.pages USING btree (sub_page);
 
 
 --

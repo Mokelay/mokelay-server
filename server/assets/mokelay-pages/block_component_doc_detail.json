@@ -1,5 +1,8 @@
 {
   "uuid": "block_component_doc_detail",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": [],
   "createdAt": "2026-07-10T00:00:00.000Z",
   "updatedAt": "2026-07-10T00:00:00.000Z",
   "name": "客户端 Block 文档详情",

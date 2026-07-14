@@ -1,5 +1,8 @@
 {
   "uuid": "setting",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["setting_employee_auth_identities_page","setting_employees_page","setting_enterprise_page"],
   "createdAt": "2026-07-12T00:00:00.000Z",
   "updatedAt": "2026-07-12T00:00:00.000Z",
   "name": "设置",

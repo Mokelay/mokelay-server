@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_datasource_create_page",
+  "subPage": true,
+  "quotes": ["datasources"],
+  "dependencies": [],
   "createdAt": "2026-06-29T00:00:00.000Z",
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "name": "创建数据源",

@@ -44,8 +44,26 @@ export function parseMokelayPageJsonAsset(fileName: string, value: unknown) {
     throw mokelayError('API_JSON_UUID_MISMATCH', `页面 JSON ${pageJsonUuid} 的 uuid 必须与文件名一致。`, 400)
   }
 
-  if (typeof record.name !== 'string' || !Array.isArray(record.blocks)) {
-    throw mokelayError('API_JSON_INVALID_SCHEMA', `页面 JSON ${pageJsonUuid} 缺少 name 或 blocks。`, 400)
+  const validRelationArray = (relation: unknown) => Array.isArray(relation)
+    && relation.every(item => typeof item === 'string' && item.length > 0)
+    && new Set(relation).size === relation.length
+    && relation.every((item, index) => index === 0 || relation[index - 1] < item)
+
+  if (
+    typeof record.name !== 'string'
+    || !record.name.trim()
+    || record.name.trim().length > 120
+    || !Array.isArray(record.blocks)
+    || typeof record.subPage !== 'boolean'
+    || !validRelationArray(record.quotes)
+    || !validRelationArray(record.dependencies)
+    || record.subPage !== ((record.quotes as unknown[]).length > 0)
+  ) {
+    throw mokelayError(
+      'API_JSON_INVALID_SCHEMA',
+      `页面 JSON ${pageJsonUuid} 缺少有效的 name、blocks、subPage、quotes 或 dependencies。`,
+      400,
+    )
   }
 
   return pageJson
@@ -90,7 +108,9 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   "displayName": "列出系统页面 JSON",
  *   "category": "asset",
  *   "description": "从 Nitro server assets 的 mokelay-pages 目录读取并校验系统页面 JSON 列表。",
- *   "inputs": [],
+ *   "inputs": [
+ *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，用于合并用户页面对系统页面的动态引用。" }
+ *   ],
  *   "outputs": [
  *     { "key": "pages", "type": "PageJson[]", "description": "已解析并校验的页面 JSON 数组。" },
  *     { "key": "count", "type": "number", "description": "页面 JSON 数量。" }
@@ -103,7 +123,7 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   ],
  *   "config": [],
  *   "runtime": [
- *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
+ *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "读取用户页面依赖并合并动态 quotes。" },
  *     { "key": "source", "type": "string", "value": "assets:server/mokelay-pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
@@ -111,6 +131,9 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   ]
  * }
  */
-export const executeListMokelayPageJsonsBlock: BlockExecutor = async () => {
-  return await listMokelayPageJsons()
+export const executeListMokelayPageJsonsBlock: BlockExecutor = async ({ executeSql }) => {
+  const result = await listMokelayPageJsons()
+  const { mergeSystemPageRelations } = await import('../pageRelationStore')
+  const pages = await mergeSystemPageRelations(result.pages as Record<string, unknown>[], executeSql)
+  return { pages, count: pages.length }
 }

@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_apis_system_page",
+  "subPage": true,
+  "quotes": ["apis"],
+  "dependencies": [],
   "createdAt": "2026-07-10T00:00:00.000Z",
   "updatedAt": "2026-07-10T00:00:00.000Z",
   "name": "系统内置 API",

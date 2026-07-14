@@ -9,6 +9,9 @@ function pageJson(uuid: string, name: string) {
     name,
     createdAt: '2026-06-20T00:00:00.000Z',
     updatedAt: '2026-06-20T00:00:00.000Z',
+    subPage: false,
+    quotes: [],
+    dependencies: [],
     blocks: [],
   }
 }
@@ -57,6 +60,16 @@ describe('listMokelayPageJsons', () => {
       { 'mokelay-pages:expected.json': pageJson('different', 'Different Page') },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_UUID_MISMATCH' },
+      statusCode: 400,
+    })
+  })
+
+  it.each(['', '   ', 'x'.repeat(121)])('fails when a page name is invalid: %j', async (name) => {
+    await expect(listMokelayPageJsons(storage(
+      ['mokelay-pages:invalid_name.json'],
+      { 'mokelay-pages:invalid_name.json': pageJson('invalid_name', name) },
+    ))).rejects.toMatchObject({
+      data: { code: 'API_JSON_INVALID_SCHEMA' },
       statusCode: 400,
     })
   })

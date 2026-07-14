@@ -1,5 +1,8 @@
 {
   "uuid": "pages",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["mokelay_list_page","mokelay_system_page"],
   "createdAt": "2026-06-28T00:00:00.000Z",
   "updatedAt": "2026-06-28T00:00:00.000Z",
   "name": "页面管理",

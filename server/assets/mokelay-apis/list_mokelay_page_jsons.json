@@ -11,7 +11,9 @@
       "uuid": "list_mokelay_page_jsons_block",
       "alias": "读取内置页面 DSL 列表 Block",
       "functionName": "listMokelayPageJsons",
-      "inputs": {},
+      "inputs": {
+        "datasource": "Mokelay"
+      },
       "outputs": [
         "pages",
         "count"

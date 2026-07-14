@@ -10,7 +10,7 @@ describe('database schema utilities', () => {
       { tableName: 'apis_snapshot', columnName: 'id', columnType: 'uuid' },
       { tableName: 'apis_snapshot', columnName: 'api_uuid', columnType: 'character varying(128)' },
       { tableName: 'apis_snapshot', columnName: 'api_json', columnType: 'jsonb' },
-      { tableName: 'pages', columnName: 'uuid', columnType: 'uuid' },
+      { tableName: 'pages', columnName: 'uuid', columnType: 'character varying(128)' },
       { tableName: 'pages', columnName: 'name', columnType: 'character varying(120)' },
       { tableName: 'enterprise', columnName: 'uuid', columnType: 'uuid' },
       { tableName: 'enterprise', columnName: 'name', columnType: 'character varying(120)' },
@@ -39,7 +39,7 @@ describe('database schema utilities', () => {
       {
         name: 'pages',
         columns: [
-          { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+          { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
           { name: 'name', type: 'character varying(120)', dataType: 'character varying(120)' },
         ],
       },

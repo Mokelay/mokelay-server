@@ -19,6 +19,12 @@
         ]
       },
       {
+        "key": "subPage",
+        "processors": [
+          "boolean_value"
+        ]
+      },
+      {
         "key": "created_at_begin",
         "processors": [
           "trim"
@@ -35,6 +41,21 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "normalize_page_uuid_filter_block"
+    },
+    {
+      "uuid": "normalize_page_uuid_filter_block",
+      "alias": "规范化可选页面标识筛选",
+      "functionName": "normalizePageUuid",
+      "inputs": {
+        "uuid": {
+          "template": "{{request.query.uuid}}"
+        },
+        "optional": true
+      },
+      "outputs": [
+        "uuid"
+      ],
       "nextBlock": "list_pages_block"
     },
     {
@@ -48,6 +69,11 @@
           "uuid",
           "name",
           "blocks",
+          "app_uuid",
+          "layout_uuid",
+          "sub_page",
+          "quotes",
+          "dependencies",
           "created_at",
           "updated_at"
         ],
@@ -63,7 +89,7 @@
             "conditionType": "EQ",
             "fieldName": "uuid",
             "fieldValue": {
-              "template": "{{request.query.uuid}}"
+              "template": "{{blocks['normalize_page_uuid_filter_block'].outputs.uuid}}"
             },
             "optional": true
           },
@@ -73,6 +99,15 @@
             "fieldName": "name",
             "fieldValue": {
               "template": "{{request.query.name}}"
+            },
+            "optional": true
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "sub_page",
+            "fieldValue": {
+              "template": "{{request.query.subPage}}"
             },
             "optional": true
           },
@@ -115,32 +150,48 @@
         "hasPreviousPage",
         "hasNextPage"
       ],
+      "nextBlock": "normalize_page_rows_block"
+    },
+    {
+      "uuid": "normalize_page_rows_block",
+      "alias": "标准化页面关系字段",
+      "functionName": "normalizePageRows",
+      "inputs": {
+        "rows": { "template": "{{blocks['list_pages_block'].outputs.datas}}" },
+        "page": { "template": "{{blocks['list_pages_block'].outputs.page}}" },
+        "pageSize": { "template": "{{blocks['list_pages_block'].outputs.pageSize}}" },
+        "total": { "template": "{{blocks['list_pages_block'].outputs.total}}" },
+        "totalPages": { "template": "{{blocks['list_pages_block'].outputs.totalPages}}" },
+        "hasPreviousPage": { "template": "{{blocks['list_pages_block'].outputs.hasPreviousPage}}" },
+        "hasNextPage": { "template": "{{blocks['list_pages_block'].outputs.hasNextPage}}" }
+      },
+      "outputs": ["pages", "page", "pageSize", "total", "totalPages", "hasPreviousPage", "hasNextPage"],
       "nextBlock": null
     }
   ],
   "responses": {
-    "list_pages_block": {
+    "normalize_page_rows_block": {
       "pages": {
-        "template": "{{blocks['list_pages_block'].outputs.datas}}"
+        "template": "{{blocks['normalize_page_rows_block'].outputs.pages}}"
       },
       "pagination": {
         "page": {
-          "template": "{{blocks['list_pages_block'].outputs.page}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.page}}"
         },
         "pageSize": {
-          "template": "{{blocks['list_pages_block'].outputs.pageSize}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.pageSize}}"
         },
         "total": {
-          "template": "{{blocks['list_pages_block'].outputs.total}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.total}}"
         },
         "totalPages": {
-          "template": "{{blocks['list_pages_block'].outputs.totalPages}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.totalPages}}"
         },
         "hasPreviousPage": {
-          "template": "{{blocks['list_pages_block'].outputs.hasPreviousPage}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.hasPreviousPage}}"
         },
         "hasNextPage": {
-          "template": "{{blocks['list_pages_block'].outputs.hasNextPage}}"
+          "template": "{{blocks['normalize_page_rows_block'].outputs.hasNextPage}}"
         }
       }
     }

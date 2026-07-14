@@ -9,6 +9,12 @@ import { executeReadMokelayPageJsonBlock } from './readMokelayPageJson'
 import { executeResolveLayoutBundleBlock } from './resolveLayoutBundle'
 import { executeSaveAiDslAssetsBlock } from './saveAiDslAssets'
 import {
+  executeDeletePageRelationsBlock,
+  executeNormalizePageUuidBlock,
+  executeNormalizePageRowsBlock,
+  executeSavePageRelationsBlock,
+} from './pageRelationBlocks'
+import {
   executeReadImageFromR2Block,
   executeSaveImageToR2Block,
 } from './r2Image'
@@ -29,10 +35,12 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
   listMokelayPageJsons: {
     executor: executeListMokelayPageJsonsBlock,
     allowedOutputs: ['pages', 'count'],
+    requiresDatasource: true,
   },
   readMokelayPageJson: {
     executor: executeReadMokelayPageJsonBlock,
     allowedOutputs: ['page'],
+    requiresDatasource: true,
   },
   listMokelayLayoutJsons: {
     executor: executeListMokelayLayoutJsonsBlock,
@@ -51,6 +59,24 @@ export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> =
     executor: executeSaveAiDslAssetsBlock,
     allowedOutputs: ['saveSummary'],
     requiresDatasource: true,
+  },
+  savePageRelations: {
+    executor: executeSavePageRelationsBlock,
+    allowedOutputs: ['affected', 'page'],
+    requiresDatasource: true,
+  },
+  deletePageRelations: {
+    executor: executeDeletePageRelationsBlock,
+    allowedOutputs: ['affected'],
+    requiresDatasource: true,
+  },
+  normalizePageRows: {
+    executor: executeNormalizePageRowsBlock,
+    allowedOutputs: ['pages', 'page', 'affected', 'pageSize', 'total', 'totalPages', 'hasPreviousPage', 'hasNextPage'],
+  },
+  normalizePageUuid: {
+    executor: executeNormalizePageUuidBlock,
+    allowedOutputs: ['uuid'],
   },
   saveImageToR2: {
     executor: executeSaveImageToR2Block,

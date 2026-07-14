@@ -4,7 +4,8 @@ import type { AddressInfo } from 'node:net'
 import { resolve } from 'node:path'
 import { createApp, createRouter, toNodeListener } from 'h3'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
+import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
+import { serverBlockDefinitions } from '../../server/utils/blocks'
 
 const apiJsonDir = resolve(process.cwd(), 'server/assets/mokelay-apis')
 const pageJsonDir = resolve(process.cwd(), 'server/assets/mokelay-pages')
@@ -41,12 +42,18 @@ vi.mock('nitropack/runtime', () => ({
 
 let server: Server
 let baseUrl: string
+const originalDatabaseUrl = process.env.Mokelay_DATABASE_URL
 
 beforeAll(async () => {
   const app = createApp()
   const router = createRouter()
 
-  router.use('/api/mokelay/:apiJsonUuid', orchestrationHandler)
+  process.env.Mokelay_DATABASE_URL = 'postgres://unit-test'
+  const handler = createMokelayOrchestrationHandler({
+    blockDefinitions: serverBlockDefinitions,
+    executeSql: async () => ({ databaseType: 'postgres', rows: [] }),
+  })
+  router.use('/api/mokelay/:apiJsonUuid', handler)
   app.use(router)
 
   server = createServer(toNodeListener(app))
@@ -60,6 +67,8 @@ afterAll(async () => {
   await new Promise<void>((resolveClose, reject) => {
     server.close((error) => (error ? reject(error) : resolveClose()))
   })
+  if (originalDatabaseUrl === undefined) delete process.env.Mokelay_DATABASE_URL
+  else process.env.Mokelay_DATABASE_URL = originalDatabaseUrl
 })
 
 describe('GET /api/mokelay/list_mokelay_api_jsons', () => {

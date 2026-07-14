@@ -1,5 +1,8 @@
 {
   "uuid": "datasources",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["mokelay_datasource_create_page","mokelay_datasource_edit_page","mokelay_datasource_schema_details_page"],
   "createdAt": "2026-06-29T00:00:00.000Z",
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "name": "数据源管理",

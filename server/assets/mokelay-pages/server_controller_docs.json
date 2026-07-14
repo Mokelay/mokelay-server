@@ -1,5 +1,8 @@
 {
   "uuid": "server_controller_docs",
+  "subPage": true,
+  "quotes": ["server_docs"],
+  "dependencies": [],
   "name": "服务端 Controller 文档",
   "layoutUuid": "mokelay_layout",
   "blocks": [

@@ -17,6 +17,7 @@
       "alias": "读取内置页面 DSL Block",
       "functionName": "readMokelayPageJson",
       "inputs": {
+        "datasource": "Mokelay",
         "uuid": {
           "template": "{{request.query.uuid}}"
         }

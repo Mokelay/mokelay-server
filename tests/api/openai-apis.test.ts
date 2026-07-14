@@ -477,12 +477,15 @@ describe('OpenAI orchestration APIs', () => {
   it('generates page and API DSL from a requirement document', async () => {
     const generatedPageUuid = '550e8400-e29b-41d4-a716-446655440000'
     const generatedDsl = {
-      version: 1,
+      version: 2,
       status: 'partial',
       summary: '生成客户列表页和删除接口，批量导出需要新增 Action。',
       pages: [
         {
           uuid: generatedPageUuid,
+          subPage: false,
+          quotes: [],
+          dependencies: [],
           name: '客户列表',
           blocks: [
             {
@@ -590,15 +593,17 @@ describe('OpenAI orchestration APIs', () => {
     })
     expect(userInput.dslSpecifications.pageApi).toMatchObject({
       $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $id: 'urn:mokelay:schema:page-api-dsl:1',
+      $id: 'urn:mokelay:schema:page-api-dsl:2',
       $defs: {
-        page: expect.any(Object),
+        page: expect.objectContaining({
+          required: expect.arrayContaining(['subPage', 'quotes', 'dependencies']),
+        }),
         api: expect.any(Object),
       },
     })
     expect(userInput.dslSpecifications.response).toMatchObject({
       $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $id: 'urn:mokelay:schema:ai-dsl-generation-response:1',
+      $id: 'urn:mokelay:schema:ai-dsl-generation-response:2',
       required: expect.arrayContaining([
         'version',
         'status',
@@ -610,11 +615,14 @@ describe('OpenAI orchestration APIs', () => {
         'assumptions',
         'warnings',
       ]),
+      properties: expect.objectContaining({
+        version: { const: 2 },
+      }),
     })
     expect(userInput.dslSpecifications.response.properties.pages.items.$ref)
-      .toBe('urn:mokelay:schema:page-api-dsl:1#/$defs/page')
+      .toBe('urn:mokelay:schema:page-api-dsl:2#/$defs/page')
     expect(userInput.dslSpecifications.response.properties.apis.items.$ref)
-      .toBe('urn:mokelay:schema:page-api-dsl:1#/$defs/api')
+      .toBe('urn:mokelay:schema:page-api-dsl:2#/$defs/api')
     expect(userInput.dslContext.client.blocks[0].block_type).toBe('MForm')
     expect(userInput.dslContext.client.actions[0].action_name).toBe('execute_ds')
     expect(userInput.dslContext.client.processors[0].processor_name).toBe('trim')
@@ -623,11 +631,14 @@ describe('OpenAI orchestration APIs', () => {
     expect(userInput.dslContext.server.processors[0].function_name).toBe('is_not_null')
     const prompt = openAiMocks.responsesCreate.mock.calls[0]?.[0]?.input[0]?.content
     expect(prompt).toContain('userInput.dslSpecifications.response')
-    expect(prompt).toContain('页面 uuid 必须是合法 RFC UUID')
+    expect(prompt).toContain('页面 uuid 必须是 1 到 128 位小写 Slug')
     expect(prompt).toContain('status 必须为 partial')
     expect(prompt).toContain('DSL 文档是可用能力')
     expect(prompt).toContain('schema_data 是当前需求所对应的真实模型数据')
     expect(prompt).toContain('inputs.datasource 必须使用 userInput.requirementDataModel.uuid')
+    expect(prompt).toContain('页面关系只记录 MTabs.tabs 和 open_dialog 实际嵌入的直接页面')
+    expect(prompt).toContain('jump_url 不建立依赖')
+    expect(prompt).toContain('pageUUID 和 pageSource 必须是字面量')
     expect(prompt).not.toContain('DSL 基础结构')
     expect(prompt).not.toContain('必须返回如下结构')
     expect(prompt).not.toContain('"version": 1')

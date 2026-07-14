@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_api_create_page",
+  "subPage": true,
+  "quotes": ["apis","mokelay_apis_user_page"],
+  "dependencies": [],
   "createdAt": "2026-07-10T00:00:00.000Z",
   "updatedAt": "2026-07-10T00:00:00.000Z",
   "name": "新建 API",

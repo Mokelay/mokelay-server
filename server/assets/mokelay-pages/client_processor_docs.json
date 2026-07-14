@@ -1,5 +1,8 @@
 {
   "uuid":"client_processor_docs",
+  "subPage": true,
+  "quotes": ["client_docs"],
+  "dependencies": [],
   "name":"客户端 Processor 文档",
   "blocks":[
     {"id":"client-processor-docs-title","type":"MHeading","data":{"text":"客户端 Processor 文档","level":"1","align":"left"}},

@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_system_page",
+  "subPage": true,
+  "quotes": ["pages"],
+  "dependencies": [],
   "createdAt": "2026-06-28T00:00:00.000Z",
   "updatedAt": "2026-06-28T00:00:00.000Z",
   "name": "系统内置页面",

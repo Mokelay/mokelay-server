@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_list_page",
+  "subPage": true,
+  "quotes": ["pages"],
+  "dependencies": ["mokelay_create_page"],
   "createdAt": "2026-06-20T12:42:39.437Z",
   "updatedAt": "2026-06-23T00:00:00.000Z",
   "name": "页面列表",
@@ -37,6 +40,34 @@
               "data": {
                 "placeholder": "请输入页面名称",
                 "value": ""
+              }
+            },
+            "events": []
+          },
+          {
+            "labelName": "页面类型",
+            "variableName": "subPage",
+            "fieldDataType": "string",
+            "layout": "Horizontal",
+            "editor": {
+              "id": "mokelay-list-page-search-sub-page",
+              "type": "MSelectField",
+              "data": {
+                "value": "",
+                "options": [
+                  {
+                    "label": "全部页面",
+                    "value": ""
+                  },
+                  {
+                    "label": "主页面",
+                    "value": "0"
+                  },
+                  {
+                    "label": "子页面",
+                    "value": "1"
+                  }
+                ]
               }
             },
             "events": []
@@ -332,6 +363,41 @@
           },
           {
             "fixed": null,
+            "width": 96,
+            "columnName": "页面类型",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-sub-page-tag",
+                "type": "MTag",
+                "data": {
+                  "tagName": "{{pageKindLabel}}",
+                  "type": "info",
+                  "size": "small"
+                },
+                "events": []
+              }
+            ],
+            "fieldDataType": "boolean",
+            "fieldVariable": "subPage"
+          },
+          {
+            "fixed": null,
+            "width": 96,
+            "columnName": "引用页面数",
+            "columnContent": [
+              {
+                "id": "mokelay-list-page-quotes-count",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{quotesCount}}"
+                }
+              }
+            ],
+            "fieldDataType": "number",
+            "fieldVariable": "quotes"
+          },
+          {
+            "fixed": null,
             "width": null,
             "columnName": "创建时间",
             "columnContent": [
@@ -554,6 +620,15 @@
                 "processors": [
                   "trim"
                 ]
+              }
+            },
+            {
+              "key": "subPage",
+              "value": {
+                "mode": "variable",
+                "blockId": "mokelay-list-page-table",
+                "blockType": "MAdvanceTable",
+                "variable": "search.subPage"
               }
             },
             {

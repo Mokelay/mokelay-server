@@ -2,45 +2,24 @@
   "uuid": "delete_page_by_uuid",
   "alias": "删除页面接口",
   "method": "POST",
-  "request": {
-    "body": [
-      "uuid"
-    ]
-  },
+  "request": { "body": ["uuid"] },
   "blocks": [
+    { "uuid": "starter", "nextBlock": "delete_page_relations_block" },
     {
-      "uuid": "starter",
-      "nextBlock": "delete_page_block"
-    },
-    {
-      "uuid": "delete_page_block",
-      "alias": "删除页面 Block",
-      "functionName": "delete",
+      "uuid": "delete_page_relations_block",
+      "alias": "事务删除页面并维护引用图",
+      "functionName": "deletePageRelations",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "pages",
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{request.body.uuid}}"
-            }
-          }
-        ]
+        "uuid": { "template": "{{request.body.uuid}}" }
       },
-      "outputs": [
-        "affected"
-      ],
+      "outputs": ["affected"],
       "nextBlock": null
     }
   ],
   "responses": {
-    "delete_page_block": {
-      "affected": {
-        "template": "{{blocks['delete_page_block'].outputs.affected}}"
-      },
+    "delete_page_relations_block": {
+      "affected": { "template": "{{blocks['delete_page_relations_block'].outputs.affected}}" },
       "message": "删除成功"
     }
   }

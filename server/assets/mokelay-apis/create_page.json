@@ -6,187 +6,38 @@
     "body": [
       "name",
       "blocks",
-      {
-        "key": "uuid"
-      }
+      { "key": "uuid" },
+      { "key": "subPage" },
+      { "key": "quotes" },
+      { "key": "dependencies" }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "choose_page_uuid_controller"
+      "nextBlock": "save_page_relations_block"
     },
     {
-      "uuid": "choose_page_uuid_controller",
-      "alias": "按请求 UUID 选择创建方式",
-      "functionName": "if_controller",
-      "type": "controller",
-      "inputs": {
-        "value": {
-          "template": "{{request.body.uuid}}"
-        }
-      },
-      "nodes": [
-        {
-          "uuid": "has_page_uuid_node",
-          "alias": "使用请求 UUID",
-          "value": true,
-          "nextBlock": "create_page_with_uuid_block"
-        },
-        {
-          "uuid": "missing_page_uuid_node",
-          "alias": "数据库生成 UUID",
-          "value": false,
-          "nextBlock": "create_page_block"
-        }
-      ]
-    },
-    {
-      "uuid": "create_page_block",
-      "alias": "创建页面Block",
-      "functionName": "create",
+      "uuid": "save_page_relations_block",
+      "alias": "事务创建页面并维护引用图",
+      "functionName": "savePageRelations",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "pages",
-        "idField": "uuid",
-        "fields": {
-          "name": {
-            "template": "{{request.body.name}}"
-          },
-          "blocks": {
-            "template": "{{request.body.blocks}}"
-          }
-        }
+        "mode": "create",
+        "uuid": { "template": "{{request.body.uuid}}" },
+        "name": { "template": "{{request.body.name}}" },
+        "blocks": { "template": "{{request.body.blocks}}" },
+        "subPage": { "template": "{{request.body.subPage}}" },
+        "quotes": { "template": "{{request.body.quotes}}" },
+        "dependencies": { "template": "{{request.body.dependencies}}" }
       },
-      "outputs": [
-        "uuid"
-      ],
-      "nextBlock": "read_created_page_block"
-    },
-    {
-      "uuid": "create_page_with_uuid_block",
-      "alias": "按请求 UUID 创建页面Block",
-      "functionName": "create",
-      "inputs": {
-        "datasource": "Mokelay",
-        "table": "pages",
-        "idField": "uuid",
-        "fields": {
-          "uuid": {
-            "template": "{{request.body.uuid}}"
-          },
-          "name": {
-            "template": "{{request.body.name}}"
-          },
-          "blocks": {
-            "template": "{{request.body.blocks}}"
-          }
-        }
-      },
-      "outputs": [
-        "uuid"
-      ],
-      "nextBlock": "read_created_page_with_uuid_block"
-    },
-    {
-      "uuid": "read_created_page_block",
-      "alias": "读取页面Block",
-      "functionName": "read",
-      "inputs": {
-        "datasource": "Mokelay",
-        "table": "pages",
-        "fields": [
-          "uuid",
-          "name",
-          "blocks",
-          "created_at",
-          "updated_at"
-        ],
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{blocks['create_page_block'].outputs.uuid}}"
-            }
-          }
-        ]
-      },
-      "outputs": [
-        "data"
-      ],
-      "nextBlock": null
-    },
-    {
-      "uuid": "read_created_page_with_uuid_block",
-      "alias": "读取指定 UUID 页面Block",
-      "functionName": "read",
-      "inputs": {
-        "datasource": "Mokelay",
-        "table": "pages",
-        "fields": [
-          "uuid",
-          "name",
-          "blocks",
-          "created_at",
-          "updated_at"
-        ],
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{blocks['create_page_with_uuid_block'].outputs.uuid}}"
-            }
-          }
-        ]
-      },
-      "outputs": [
-        "data"
-      ],
+      "outputs": ["affected", "page"],
       "nextBlock": null
     }
   ],
   "responses": {
-    "read_created_page_block": {
-      "page": {
-        "uuid": {
-          "template": "{{blocks['read_created_page_block'].outputs.data.uuid}}"
-        },
-        "name": {
-          "template": "{{blocks['read_created_page_block'].outputs.data.name}}"
-        },
-        "blocks": {
-          "template": "{{blocks['read_created_page_block'].outputs.data.blocks}}"
-        },
-        "createdAt": {
-          "template": "{{blocks['read_created_page_block'].outputs.data.created_at}}"
-        },
-        "updatedAt": {
-          "template": "{{blocks['read_created_page_block'].outputs.data.updated_at}}"
-        }
-      }
-    },
-    "read_created_page_with_uuid_block": {
-      "page": {
-        "uuid": {
-          "template": "{{blocks['read_created_page_with_uuid_block'].outputs.data.uuid}}"
-        },
-        "name": {
-          "template": "{{blocks['read_created_page_with_uuid_block'].outputs.data.name}}"
-        },
-        "blocks": {
-          "template": "{{blocks['read_created_page_with_uuid_block'].outputs.data.blocks}}"
-        },
-        "createdAt": {
-          "template": "{{blocks['read_created_page_with_uuid_block'].outputs.data.created_at}}"
-        },
-        "updatedAt": {
-          "template": "{{blocks['read_created_page_with_uuid_block'].outputs.data.updated_at}}"
-        }
-      }
+    "save_page_relations_block": {
+      "page": { "template": "{{blocks['save_page_relations_block'].outputs.page}}" }
     }
   }
 }

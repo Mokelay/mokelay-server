@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mokelay:schema:ai-dsl-generation-response:1",
+  "$id": "urn:mokelay:schema:ai-dsl-generation-response:2",
   "title": "Mokelay AI DSL Generation Response Schema",
   "description": "AI 页面与接口 DSL 生成接口的模型输出结构。",
   "type": "object",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "version": {
-      "const": 1
+      "const": 2
     },
     "status": {
       "enum": [
@@ -32,13 +32,13 @@
     "pages": {
       "type": "array",
       "items": {
-        "$ref": "urn:mokelay:schema:page-api-dsl:1#/$defs/page"
+        "$ref": "urn:mokelay:schema:page-api-dsl:2#/$defs/page"
       }
     },
     "apis": {
       "type": "array",
       "items": {
-        "$ref": "urn:mokelay:schema:page-api-dsl:1#/$defs/api"
+        "$ref": "urn:mokelay:schema:page-api-dsl:2#/$defs/api"
       }
     },
     "upgradePlan": {
@@ -407,7 +407,11 @@
           ]
         },
         "pageUuids": {
-          "$ref": "#/$defs/stringArray"
+          "type": "array",
+          "items": {
+            "$ref": "urn:mokelay:schema:page-api-dsl:2#/$defs/pageReferenceUuid"
+          },
+          "uniqueItems": true
         },
         "apiUuids": {
           "$ref": "#/$defs/stringArray"

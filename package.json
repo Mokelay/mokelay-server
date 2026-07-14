@@ -18,16 +18,22 @@
     "seed:client-action-docs": "node scripts/import-client-action-docs.mjs",
     "seed:client-processor-docs": "node scripts/import-client-processor-docs.mjs",
     "seed:client-runtime-docs": "node scripts/import-client-runtime-docs.mjs",
+    "page-relations:check": "tsx scripts/page-references.mjs check",
+    "page-relations:write": "tsx scripts/page-references.mjs assets-write",
+    "page-relations:db-check": "tsx scripts/page-references.mjs db-check",
+    "page-relations:db-apply": "tsx scripts/page-references.mjs db-apply",
+    "page-relations:test": "vitest run tests/unit/page-relations.test.ts tests/unit/page-reference-assets.test.mjs tests/unit/page-reference-migrations.test.mjs tests/unit/page-relation-backfill.test.ts tests/unit/system-page-relations.test.ts tests/unit/page-list-subpage-ui.test.ts tests/unit/save-ai-dsl-assets-block.test.ts tests/unit/list-mokelay-page-jsons-block.test.ts tests/unit/resolve-layout-bundle-block.test.ts tests/integration/page-relations-dialects.test.ts",
+    "page-relations:deploy-check": "npm run page-relations:check && npm run typecheck && npm run page-relations:test && npm run build",
     "update:server-core": "npm install mokelay-server-core@latest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "deploy:check": "npm run typecheck && npm run test && npm run build"
+    "deploy:check": "npm run page-relations:check && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
     "dotenv": "^17.4.2",
     "h3": "^1.15.4",
-    "mokelay-server-core": "^0.1.27",
+    "mokelay-server-core": "^0.1.29",
     "nitropack": "^2.12.9",
     "postgres": "^3.4.9"
   },
@@ -36,6 +42,7 @@
     "drizzle-kit": "^0.31.6",
     "drizzle-orm": "^0.44.5",
     "mysql2": "^3.22.3",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }

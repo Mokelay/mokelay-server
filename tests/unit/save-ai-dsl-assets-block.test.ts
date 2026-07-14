@@ -10,16 +10,32 @@ import {
   type AiDslAssetStore,
 } from '../../server/utils/blocks/saveAiDslAssets'
 
-const pageOneUuid = '11111111-1111-4111-8111-111111111111'
-const pageTwoUuid = '22222222-2222-4222-8222-222222222222'
+const pageOneUuid = 'customer_list'
+const pageTwoUuid = 'customer_details'
 
 function generatedPage(uuid = pageOneUuid, name = '客户列表') {
   return {
     uuid,
+    subPage: false,
+    quotes: [],
+    dependencies: [],
     name,
     blocks: [{ id: 'heading', type: 'MHeading', data: { text: name } }],
   }
 }
+
+type GeneratedPage = ReturnType<typeof generatedPage>
+
+const invalidPageRelationCases: Array<[
+  string,
+  (page: GeneratedPage) => Record<string, unknown>,
+]> = [
+  ['missing subPage', ({ subPage: _ignored, ...page }) => page],
+  ['invalid subPage', page => ({ ...page, subPage: 'false' })],
+  ['missing quotes', ({ quotes: _ignored, ...page }) => page],
+  ['invalid quotes item', page => ({ ...page, quotes: [''] })],
+  ['duplicate dependencies', page => ({ ...page, dependencies: [pageTwoUuid, pageTwoUuid] })],
+]
 
 function generatedApi(uuid = 'api_list_customers', alias = '获取客户列表') {
   return {
@@ -73,7 +89,7 @@ describe('saveAiDslAssets', () => {
 
     await expect(saveAiDslAssets({
       generationResult: {},
-      knownPageUuids: [pageOneUuid, pageOneUuid, 'invalid'],
+      knownPageUuids: [pageOneUuid, pageOneUuid, 'invalid/path'],
       knownApiUuids: ['known_api', 'known_api', '../invalid'],
     }, store)).resolves.toEqual({
       status: 'complete',
@@ -165,26 +181,97 @@ describe('saveAiDslAssets', () => {
     expect(calls.snapshots).toEqual(['api_list_customers'])
   })
 
-  it('keeps validation and database failures item-scoped', async () => {
+  it('canonicalizes page UUID whitespace and casing before existence checks and result links', async () => {
+    const { store, calls } = fakeStore({ pages: [pageOneUuid] })
+    const summary = await saveAiDslAssets({
+      generationResult: { pages: [generatedPage(` ${pageOneUuid.toUpperCase()} `)] },
+      knownPageUuids: [` ${pageOneUuid.toUpperCase()} `],
+    }, store)
+
+    expect(calls.pages).toEqual([{ uuid: pageOneUuid, mode: 'update' }])
+    expect(summary.knownPageUuids).toEqual([pageOneUuid])
+    expect(summary.pages[0]).toMatchObject({
+      savedUuid: pageOneUuid,
+      href: `#/pages/${pageOneUuid}`,
+    })
+  })
+
+  it('sends all generated pages through one atomic batch and preserves forward references', async () => {
+    const { store } = fakeStore()
+    const savePageBatch = vi.fn(async (_pages: Array<unknown>) => undefined)
+    store.savePageBatch = savePageBatch
+    const parent = {
+      ...generatedPage(pageOneUuid, 'Parent'),
+      dependencies: [pageTwoUuid],
+      blocks: [{ type: 'MTabs', data: { tabs: [{ pageUUID: pageTwoUuid }] } }],
+    }
+    const child = {
+      ...generatedPage(pageTwoUuid, 'Child'),
+      subPage: true,
+      quotes: [pageOneUuid],
+    }
+    const summary = await saveAiDslAssets({
+      generationResult: { pages: [parent, child] },
+    }, store)
+
+    expect(summary.status).toBe('complete')
+    expect(savePageBatch).toHaveBeenCalledTimes(1)
+    expect(savePageBatch.mock.calls[0]?.[0]).toEqual([
+      { page: expect.objectContaining({ uuid: pageOneUuid }), mode: 'create' },
+      { page: expect.objectContaining({ uuid: pageTwoUuid }), mode: 'create' },
+    ])
+  })
+
+  it('aborts the entire page batch when any candidate is invalid', async () => {
+    const { store } = fakeStore()
+    const savePageBatch = vi.fn(async (_pages: Array<unknown>) => undefined)
+    store.savePageBatch = savePageBatch
+    const summary = await saveAiDslAssets({
+      generationResult: {
+        pages: [generatedPage('invalid.slug', 'Invalid'), generatedPage(pageTwoUuid, 'Valid')],
+      },
+    }, store)
+
+    expect(summary).toMatchObject({ status: 'error', savedCount: 0, failedCount: 2 })
+    expect(summary.pages[1]?.error).toContain('AI_DSL_ASSET_BATCH_ABORTED')
+    expect(savePageBatch).not.toHaveBeenCalled()
+  })
+
+  it.each(invalidPageRelationCases)('aborts the page batch for %s relation assertions', async (_case, mutate) => {
+    const { store } = fakeStore()
+    const savePageBatch = vi.fn(async (_pages: Array<unknown>) => undefined)
+    store.savePageBatch = savePageBatch
+    const invalid = mutate(generatedPage())
+    const summary = await saveAiDslAssets({
+      generationResult: { pages: [invalid, generatedPage(pageTwoUuid, 'Valid')] },
+    }, store)
+
+    expect(summary).toMatchObject({ status: 'error', savedCount: 0, failedCount: 2 })
+    expect(summary.pages[0]?.error).toContain('AI_DSL_ASSET_SAVE_FAILED')
+    expect(summary.pages[1]?.error).toContain('AI_DSL_ASSET_BATCH_ABORTED')
+    expect(savePageBatch).not.toHaveBeenCalled()
+  })
+
+  it('keeps API failures item-scoped while invalid pages abort the page batch', async () => {
     const { store, calls } = fakeStore({ failApiUuid: 'api_fails' })
     const summary = await saveAiDslAssets({
       generationResult: {
         apis: [generatedApi('api_fails', '失败 API')],
         pages: [
-          generatedPage('not-a-page-uuid', '非法页面'),
+          generatedPage('not/a-page-uuid', '非法页面'),
           generatedPage(pageTwoUuid, '有效页面'),
         ],
       },
     }, store)
 
-    expect(summary.status).toBe('partial')
-    expect(summary.savedCount).toBe(1)
-    expect(summary.failedCount).toBe(2)
+    expect(summary.status).toBe('error')
+    expect(summary.savedCount).toBe(0)
+    expect(summary.failedCount).toBe(3)
     expect(summary.apis[0]?.error).toBe('AI_DSL_ASSET_SAVE_FAILED: API保存失败。')
     expect(summary.pages[0]?.error).toContain('AI_DSL_PAGE_UUID_INVALID')
-    expect(summary.pages[1]?.status).toBe('success')
+    expect(summary.pages[1]?.error).toContain('AI_DSL_ASSET_BATCH_ABORTED')
     expect(calls.snapshots).toEqual([])
-    expect(calls.pages).toEqual([{ uuid: pageTwoUuid, mode: 'create' }])
+    expect(calls.pages).toEqual([])
   })
 
   it('returns an item error when an API UUID is missing', async () => {
@@ -231,10 +318,13 @@ describe('saveAiDslAssets', () => {
   ] as const)('uses fixed SQL tables and inserts API snapshots with %s', async (databaseType, dialect) => {
     const statements: string[] = []
     const executeSql = vi.fn(async (query: SQL) => {
-      statements.push(dialect.sqlToQuery(query).sql.toLowerCase())
+      const statement = dialect.sqlToQuery(query).sql.toLowerCase()
+      statements.push(statement)
       return {
         databaseType: databaseType as DatabaseType,
-        rows: [],
+        rows: statement.includes('page_reference_graph_state') && statement.includes('select')
+          ? [{ id: 1, version: 1 }]
+          : [],
       }
     }) as unknown as SqlExecutor
 
@@ -250,6 +340,7 @@ describe('saveAiDslAssets', () => {
       },
       executeSql,
       databaseType,
+      withTransaction: async callback => await callback(executeSql),
     })).resolves.toMatchObject({
       saveSummary: {
         status: 'complete',

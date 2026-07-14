@@ -1,5 +1,8 @@
 {
   "uuid": "setting_enterprise_page",
+  "subPage": true,
+  "quotes": ["setting"],
+  "dependencies": [],
   "createdAt": "2026-07-12T00:00:00.000Z",
   "updatedAt": "2026-07-12T00:00:00.000Z",
   "name": "企业设置",

@@ -1,10 +1,12 @@
 import { sql } from 'drizzle-orm'
 import type { DatabaseType } from 'mokelay-server-core/utils/db'
+import type { TransactionRunner } from 'mokelay-server-core/utils/db'
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import type { BlockExecutor, SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
+import { loadSystemPageNodes, savePageBatchWithRelations } from '../pageRelationStore'
+import { normalizeUserPageUuid } from '../pageReferenceGraph'
 
 const apiUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
-const pageUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const apiMethodPattern = /^[A-Z]+$/
 const strategyName = 'create_or_update_known'
 
@@ -37,6 +39,9 @@ type NormalizedPage = {
   uuid: string
   name: string
   blocks: unknown[]
+  subPage: boolean
+  quotes: string[]
+  dependencies: string[]
 }
 
 type NormalizedApi = {
@@ -51,6 +56,7 @@ type NormalizedApi = {
 export type AiDslAssetStore = {
   pageExists: (uuid: string) => Promise<boolean>
   savePage: (page: NormalizedPage, mode: SaveMode) => Promise<void>
+  savePageBatch?: (pages: Array<{ page: NormalizedPage; mode: SaveMode }>) => Promise<void>
   apiExists: (uuid: string) => Promise<boolean>
   saveApi: (api: NormalizedApi, mode: SaveMode) => Promise<void>
   createApiSnapshot: (api: NormalizedApi) => Promise<void>
@@ -98,16 +104,42 @@ function cloneJson<T>(value: T, label: string): T {
   }
 }
 
-function normalizeKnownUuids(value: unknown, pattern: RegExp) {
+function normalizeKnownUuids(value: unknown, normalize: (value: string) => string | undefined) {
   if (!Array.isArray(value)) return []
 
   const seen = new Set<string>()
   for (const item of value) {
     if (typeof item !== 'string') continue
-    const uuid = item.trim()
-    if (pattern.test(uuid)) seen.add(uuid)
+    const uuid = normalize(item)
+    if (uuid) seen.add(uuid)
   }
   return [...seen]
+}
+
+function normalizePageRelationArray(value: unknown, field: 'quotes' | 'dependencies') {
+  if (!Array.isArray(value)) {
+    itemError('AI_DSL_ASSET_SAVE_FAILED', `页面 ${field} 必须是数组。`)
+  }
+  const normalized: string[] = []
+  const seen = new Set<string>()
+  for (const item of value) {
+    if (typeof item !== 'string' || !item.trim()) {
+      itemError('AI_DSL_ASSET_SAVE_FAILED', `页面 ${field} 只能包含非空字符串。`)
+    }
+    const uuid = normalizeUserPageUuid(item)
+    if (!uuid) {
+      itemError(
+        'AI_DSL_ASSET_SAVE_FAILED',
+        `页面 ${field} 只能包含 1 到 128 位小写 Slug。`,
+      )
+    }
+    if (seen.has(uuid)) {
+      itemError('AI_DSL_ASSET_SAVE_FAILED', `页面 ${field} 不能包含重复 UUID。`)
+    }
+    seen.add(uuid)
+    normalized.push(uuid)
+  }
+  return normalized
 }
 
 function normalizePage(value: unknown): NormalizedPage {
@@ -115,9 +147,13 @@ function normalizePage(value: unknown): NormalizedPage {
     itemError('AI_DSL_ASSET_SAVE_FAILED', 'page 必须是 object。')
   }
 
-  const uuid = readString(value, 'uuid')
-  if (!pageUuidPattern.test(uuid)) {
-    itemError('AI_DSL_PAGE_UUID_INVALID', '页面 uuid 必须是合法 RFC UUID。')
+  const rawUuid = readString(value, 'uuid')
+  const uuid = normalizeUserPageUuid(rawUuid)
+  if (!uuid) {
+    itemError(
+      'AI_DSL_PAGE_UUID_INVALID',
+      '页面 uuid 必须是 1 到 128 位小写 Slug，只能包含字母、数字、下划线或连字符。',
+    )
   }
 
   const name = readString(value, 'name')
@@ -127,11 +163,19 @@ function normalizePage(value: unknown): NormalizedPage {
   if (!Array.isArray(value.blocks)) {
     itemError('AI_DSL_ASSET_SAVE_FAILED', '页面 blocks 必须是数组。')
   }
+  if (typeof value.subPage !== 'boolean') {
+    itemError('AI_DSL_ASSET_SAVE_FAILED', '页面 subPage 必须是 boolean。')
+  }
+  const quotes = normalizePageRelationArray(value.quotes, 'quotes')
+  const dependencies = normalizePageRelationArray(value.dependencies, 'dependencies')
 
   return {
     uuid,
     name,
     blocks: cloneJson(value.blocks, '页面 blocks'),
+    subPage: value.subPage,
+    quotes,
+    dependencies,
   }
 }
 
@@ -194,43 +238,81 @@ function summaryError(error: unknown, type: AssetType) {
   return `AI_DSL_ASSET_SAVE_FAILED: ${type === 'api' ? 'API' : '页面'}保存失败。`
 }
 
-async function savePageItem(
-  value: unknown,
-  index: number,
+async function savePageItemsBatch(
+  values: unknown[],
   knownUuids: Set<string>,
   store: AiDslAssetStore,
-): Promise<SaveAiDslAssetItem> {
-  const fallback = {
-    type: 'page' as const,
-    title: fallbackTitle('page', value, index),
-    sourceUuid: sourceUuid(value),
+): Promise<SaveAiDslAssetItem[]> {
+  const items: SaveAiDslAssetItem[] = new Array(values.length)
+  const candidates: Array<{ index: number; page: NormalizedPage; mode: SaveMode }> = []
+  let invalid = false
+
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index]
+    const fallback = {
+      type: 'page' as const,
+      title: fallbackTitle('page', value, index),
+      sourceUuid: sourceUuid(value),
+    }
+    try {
+      const page = normalizePage(value)
+      const exists = await store.pageExists(page.uuid)
+      if (exists && !knownUuids.has(page.uuid)) {
+        itemError('AI_DSL_ASSET_UUID_EXISTS', '页面 uuid 已存在且不属于当前会话。')
+      }
+      candidates.push({ index, page, mode: exists ? 'update' : 'create' })
+    } catch (error) {
+      invalid = true
+      items[index] = { ...fallback, status: 'error', error: summaryError(error, 'page') }
+    }
+  }
+
+  if (invalid) {
+    for (const candidate of candidates) {
+      items[candidate.index] = {
+        type: 'page',
+        title: candidate.page.name,
+        sourceUuid: candidate.page.uuid,
+        status: 'error',
+        error: 'AI_DSL_ASSET_BATCH_ABORTED: 页面批次包含无效项目，未写入任何页面。',
+      }
+    }
+    return items
   }
 
   try {
-    const page = normalizePage(value)
-    const exists = await store.pageExists(page.uuid)
-    if (exists && !knownUuids.has(page.uuid)) {
-      itemError('AI_DSL_ASSET_UUID_EXISTS', '页面 uuid 已存在且不属于当前会话。')
+    if (store.savePageBatch) {
+      await store.savePageBatch(candidates.map(({ page, mode }) => ({ page, mode })))
     }
-
-    await store.savePage(page, exists ? 'update' : 'create')
-    knownUuids.add(page.uuid)
-
-    return {
-      ...fallback,
-      title: page.name,
-      sourceUuid: page.uuid,
-      savedUuid: page.uuid,
-      href: `#/pages/${encodeURIComponent(page.uuid)}`,
-      status: 'success',
+    else {
+      // Compatibility for pure/in-memory adapters: validation still completes
+      // for the entire batch before the first write. Production injects the
+      // graph-transaction batch implementation.
+      for (const candidate of candidates) await store.savePage(candidate.page, candidate.mode)
+    }
+    for (const candidate of candidates) {
+      knownUuids.add(candidate.page.uuid)
+      items[candidate.index] = {
+        type: 'page',
+        title: candidate.page.name,
+        sourceUuid: candidate.page.uuid,
+        savedUuid: candidate.page.uuid,
+        href: `#/pages/${encodeURIComponent(candidate.page.uuid)}`,
+        status: 'success',
+      }
     }
   } catch (error) {
-    return {
-      ...fallback,
-      status: 'error',
-      error: summaryError(error, 'page'),
+    for (const candidate of candidates) {
+      items[candidate.index] = {
+        type: 'page',
+        title: candidate.page.name,
+        sourceUuid: candidate.page.uuid,
+        status: 'error',
+        error: summaryError(error, 'page'),
+      }
     }
   }
+  return items
 }
 
 async function saveApiItem(
@@ -299,17 +381,18 @@ export async function saveAiDslAssets(
 
   const pages = Array.isArray(inputs.generationResult.pages) ? inputs.generationResult.pages : []
   const apis = Array.isArray(inputs.generationResult.apis) ? inputs.generationResult.apis : []
-  const knownPageUuids = new Set(normalizeKnownUuids(inputs.knownPageUuids, pageUuidPattern))
-  const knownApiUuids = new Set(normalizeKnownUuids(inputs.knownApiUuids, apiUuidPattern))
+  const knownPageUuids = new Set(normalizeKnownUuids(inputs.knownPageUuids, normalizeUserPageUuid))
+  const knownApiUuids = new Set(normalizeKnownUuids(inputs.knownApiUuids, (value) => {
+    const uuid = value.trim()
+    return apiUuidPattern.test(uuid) ? uuid : undefined
+  }))
   const apiItems: SaveAiDslAssetItem[] = []
   const pageItems: SaveAiDslAssetItem[] = []
 
   for (let index = 0; index < apis.length; index += 1) {
     apiItems.push(await saveApiItem(apis[index], index, apiStatus, knownApiUuids, store))
   }
-  for (let index = 0; index < pages.length; index += 1) {
-    pageItems.push(await savePageItem(pages[index], index, knownPageUuids, store))
-  }
+  pageItems.push(...await savePageItemsBatch(pages, knownPageUuids, store))
 
   const items = [...apiItems, ...pageItems]
   const savedCount = items.filter(item => item.status === 'success').length
@@ -336,17 +419,24 @@ function jsonFieldSql(value: unknown, databaseType: DatabaseType) {
 export function createAiDslAssetSqlStore(
   executeSql: SqlExecutor,
   databaseType: DatabaseType,
+  savePageOverride?: AiDslAssetStore['savePage'],
+  savePageBatchOverride?: AiDslAssetStore['savePageBatch'],
 ): AiDslAssetStore {
   const pagesTable = sql.identifier('pages')
   const apisTable = sql.identifier('apis')
   const snapshotsTable = sql.identifier('apis_snapshot')
 
   return {
+    ...(savePageBatchOverride ? { savePageBatch: savePageBatchOverride } : {}),
     async pageExists(uuid) {
       const result = await executeSql(sql`SELECT uuid FROM ${pagesTable} WHERE uuid = ${uuid} LIMIT 1`)
       return Boolean(result.rows[0])
     },
     async savePage(page, mode) {
+      if (savePageOverride) {
+        await savePageOverride(page, mode)
+        return
+      }
       const blocks = jsonFieldSql(page.blocks, databaseType)
       if (mode === 'update') {
         await executeSql(sql`UPDATE ${pagesTable} SET name = ${page.name}, blocks = ${blocks}, updated_at = CURRENT_TIMESTAMP WHERE uuid = ${page.uuid}`)
@@ -381,6 +471,13 @@ function requireDatabaseType(value: DatabaseType | undefined): DatabaseType {
   return value
 }
 
+function requireTransactionRunner(value: TransactionRunner | undefined): TransactionRunner {
+  if (!value) {
+    throw mokelayError('BLOCK_SQL_UNSUPPORTED', 'saveAiDslAssets 未获得事务执行器。', 500)
+  }
+  return value
+}
+
 /**
  * @serverBlockDoc
  * {
@@ -388,7 +485,7 @@ function requireDatabaseType(value: DatabaseType | undefined): DatabaseType {
  *   "functionName": "saveAiDslAssets",
  *   "displayName": "保存 AI DSL 生成资产",
  *   "category": "ai",
- *   "description": "把 AI 生成响应中的 APIs 和 Pages 批量保存到 Mokelay 数据库，并返回不会因单项失败而中断的逐项摘要。固定策略 create_or_update_known 会创建新 uuid、更新当前会话 known 列表中的既有 uuid，并拒绝覆盖会话外同名资产；API 保存后同步创建快照，但不会发布 JSON 到 R2。",
+ *   "description": "把 AI 生成响应中的 APIs 和 Pages 保存到 Mokelay 数据库。API 仍逐项保存并创建快照；所有合法 Page 候选先组成最终引用图，再在单一事务中批量保存，支持批内前向引用，任一 Page 非法、图校验或 SQL 失败都会中止整批 Page。固定策略 create_or_update_known 会创建新 uuid、更新当前会话 known 列表中的既有 uuid，并拒绝覆盖会话外同名资产。",
  *   "inputs": [
  *     { "key": "datasource", "type": "string", "required": true, "description": "数据源名称，通常为 Mokelay；Block 注册为 requiresDatasource=true。" },
  *     {
@@ -397,7 +494,7 @@ function requireDatabaseType(value: DatabaseType | undefined): DatabaseType {
  *       "required": true,
  *       "description": "AI DSL 生成响应。缺失或非 object 属于顶层输入错误；pages/apis 缺失或非数组时分别按空数组处理。",
  *       "fields": [
- *         { "key": "pages", "type": "unknown[]", "required": false, "defaultValue": [], "description": "页面项至少需要合法 RFC UUID、1 到 120 字符的 name 和 blocks 数组。" },
+ *         { "key": "pages", "type": "unknown[]", "required": false, "defaultValue": [], "description": "页面项必须包含 1 到 128 位小写 Slug、1 到 120 字符的 name、blocks 数组、boolean subPage，以及由唯一小写 Slug 组成的 quotes/dependencies 数组；三个关系字段作为服务端完整图计算结果的一致性断言。" },
  *         { "key": "apis", "type": "unknown[]", "required": false, "defaultValue": [], "description": "API 项至少需要安全 uuid、1 到 16 位字母 method；alias/name 可选，layout 非 object 时按 {}。" }
  *       ]
  *     },
@@ -426,22 +523,23 @@ function requireDatabaseType(value: DatabaseType | undefined): DatabaseType {
  *   "errors": [
  *     { "code": "BLOCK_AI_INPUT_INVALID", "description": "generationResult、strategy 或 apiStatus 顶层输入非法；消息以 AI_DSL_ASSETS_INVALID_RESULT 开头，Block 直接失败且不处理资产。" },
  *     { "code": "BLOCK_DATASOURCE_UNSUPPORTED_DATABASE", "description": "执行器未获得 postgres 或 mysql 数据库类型，Block 直接失败。" },
- *     { "code": "AI_DSL_PAGE_UUID_INVALID", "description": "单个页面 uuid 非法；不是 HTTP 顶层错误，而是写入对应 item.error 后继续。" },
+ *     { "code": "AI_DSL_PAGE_UUID_INVALID", "description": "单个页面 uuid 非法；不是 HTTP 顶层错误，但会中止整个 Page 批次且不写入任何页面。" },
  *     { "code": "AI_DSL_API_UUID_INVALID", "description": "单个 API uuid 非法；写入对应 item.error 后继续。" },
  *     { "code": "AI_DSL_ASSET_UUID_EXISTS", "description": "uuid 已存在但不在对应 known 列表；拒绝覆盖并写入 item.error。" },
- *     { "code": "AI_DSL_ASSET_SAVE_FAILED", "description": "单项结构、JSON 序列化或数据库写入失败；写入 item.error 后继续同批其他项。" }
+ *     { "code": "AI_DSL_ASSET_SAVE_FAILED", "description": "结构、JSON 序列化或数据库写入失败；API 维持逐项结果，任一 Page 结构/图/SQL 失败会中止整个 Page 批次。" }
  *   ],
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "需要 datasource，仅访问固定 pages、apis、apis_snapshot 表。" },
- *     { "key": "partialSuccess", "type": "boolean", "value": true, "description": "单项失败不会中断同批其他资产。" },
- *     { "key": "processingOrder", "type": "string", "value": "apis_then_pages", "description": "按输入顺序串行保存全部 API，再按输入顺序串行保存全部 Page。" },
- *     { "key": "globalTransaction", "type": "boolean", "value": false, "description": "v1 不使用跨资产全局事务；API 主记录写入后若快照失败，该项会报错但已发生的主记录写入不会自动回滚。" },
+ *     { "key": "partialSuccess", "type": "boolean", "value": true, "description": "API 维持逐项结果；Page 以整批为原子单元。" },
+ *     { "key": "processingOrder", "type": "string", "value": "apis_then_page_graph_batch", "description": "先按输入顺序保存 API，再一次性校验并保存完整 Page 图。" },
+ *     { "key": "pageBatchTransaction", "type": "boolean", "value": true, "description": "Page 候选共享一个引用图事务，支持批内前向引用且全成全败。" },
+ *     { "key": "globalTransaction", "type": "boolean", "value": false, "description": "API 与 Page 批次之间没有跨资产全局事务；API 快照失败不会回滚先前成功的其他 API。" },
  *     { "key": "r2Publish", "type": "boolean", "value": false, "description": "不调用 saveJsonToR2；apiStatus 只影响数据库记录和快照。" }
  *   ],
  *   "examples": [
  *     { "title": "保存 AI 生成资产", "block": { "uuid": "save_ai_dsl_assets_block", "functionName": "saveAiDslAssets", "inputs": { "datasource": "Mokelay", "generationResult": { "template": "{{request.body.generationResult}}" }, "knownPageUuids": { "template": "{{request.body.knownPageUuids}}" }, "knownApiUuids": { "template": "{{request.body.knownApiUuids}}" }, "apiStatus": "draft", "strategy": "create_or_update_known" }, "outputs": ["saveSummary"], "nextBlock": null } },
- *     { "title": "允许更新当前会话已保存资产", "input": { "generationResult": { "pages": [{ "uuid": "550e8400-e29b-41d4-a716-446655440000", "name": "客户列表", "blocks": [] }], "apis": [] }, "knownPageUuids": ["550e8400-e29b-41d4-a716-446655440000"], "knownApiUuids": [], "apiStatus": "draft", "strategy": "create_or_update_known" }, "result": "若页面已存在则更新；若不在 knownPageUuids 中则返回单项 AI_DSL_ASSET_UUID_EXISTS。" }
+ *     { "title": "允许更新当前会话已保存资产", "input": { "generationResult": { "pages": [{ "uuid": "customer_orders", "subPage": false, "quotes": [], "dependencies": [], "name": "客户列表", "blocks": [] }], "apis": [] }, "knownPageUuids": ["customer_orders"], "knownApiUuids": [], "apiStatus": "draft", "strategy": "create_or_update_known" }, "result": "若页面已存在则更新；若不在 knownPageUuids 中则返回单项 AI_DSL_ASSET_UUID_EXISTS。" }
  *   ]
  * }
  */
@@ -449,8 +547,27 @@ export const executeSaveAiDslAssetsBlock: BlockExecutor = async ({
   inputs,
   executeSql,
   databaseType,
+  withTransaction,
 }) => {
-  const store = createAiDslAssetSqlStore(executeSql, requireDatabaseType(databaseType))
+  const resolvedDatabaseType = requireDatabaseType(databaseType)
+  const transactionRunner = requireTransactionRunner(withTransaction)
+  const systemNodes = await loadSystemPageNodes()
+  const store = createAiDslAssetSqlStore(executeSql, resolvedDatabaseType, undefined, async entries => {
+    await savePageBatchWithRelations(
+      entries.map(({ page, mode }) => ({
+        mode,
+        uuid: page.uuid,
+        name: page.name,
+        blocks: page.blocks,
+        subPage: page.subPage,
+        quotes: page.quotes,
+        dependencies: page.dependencies,
+      })),
+      resolvedDatabaseType,
+      transactionRunner,
+      systemNodes,
+    )
+  })
   return {
     saveSummary: await saveAiDslAssets(inputs, store),
   }

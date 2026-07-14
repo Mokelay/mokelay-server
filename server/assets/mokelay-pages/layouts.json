@@ -1,5 +1,8 @@
 {
   "uuid": "layouts",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["mokelay_layouts_system_page","mokelay_layouts_user_page"],
   "createdAt": "2026-06-29T00:00:00.000Z",
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "name": "布局管理",

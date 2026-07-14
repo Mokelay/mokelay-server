@@ -1,5 +1,8 @@
 {
   "uuid": "block_component_docs",
+  "subPage": true,
+  "quotes": ["client_docs"],
+  "dependencies": [],
   "name": "客户端 Block 文档管理",
   "layoutUuid": "mokelay_layout",
   "blocks": [

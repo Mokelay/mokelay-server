@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:mokelay:schema:page-api-dsl:1",
+  "$id": "urn:mokelay:schema:page-api-dsl:2",
   "title": "Mokelay Page and API DSL Schema",
   "description": "AI 生成的 Mokelay 页面 DSL 与服务端 API DSL 基础结构。组件、Action、Processor、Block 和 Controller 的具体能力仍以运行时注入的 active 文档为准。",
   "oneOf": [
@@ -134,10 +134,20 @@
       },
       "additionalProperties": false
     },
+    "pageReferenceUuid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "规范化后的小写页面 Slug。"
+    },
     "page": {
       "type": "object",
       "required": [
         "uuid",
+        "subPage",
+        "quotes",
+        "dependencies",
         "name",
         "blocks",
         "apiDependencies",
@@ -146,8 +156,33 @@
       "properties": {
         "uuid": {
           "type": "string",
-          "format": "uuid",
-          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9_-]+$",
+          "description": "稳定、可读且全局唯一的小写页面 Slug。"
+        },
+        "subPage": {
+          "type": "boolean",
+          "readOnly": true,
+          "description": "服务端派生字段，恒等于 quotes.length > 0。"
+        },
+        "quotes": {
+          "type": "array",
+          "readOnly": true,
+          "description": "直接引用当前页面的页面 UUID；服务端拥有最终解释权。",
+          "items": {
+            "$ref": "#/$defs/pageReferenceUuid"
+          },
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "readOnly": true,
+          "description": "从 MTabs 和 open_dialog 静态提取的直接子页面 UUID；服务端拥有最终解释权。",
+          "items": {
+            "$ref": "#/$defs/pageReferenceUuid"
+          },
+          "uniqueItems": true
         },
         "name": {
           "type": "string",
@@ -439,7 +474,10 @@
     }
   },
   "x-mokelay-rules": [
-    "Page uuid 必须稳定且为合法 RFC UUID；同一页面内的 block id 必须唯一。",
+    "Page uuid 必须稳定且为 1 到 128 位小写 Slug，只能包含 a-z、0-9、下划线或连字符；同一页面内的 block id 必须唯一。",
+    "Page 的 subPage、quotes、dependencies 是服务端派生关系字段；生成结果必须填写与当前批次一致的断言值，保存时由服务端重新计算。",
+    "dependencies 只包含 MTabs tabs 和 open_dialog 实际嵌入的直接页面；jump_url 不建立依赖，数组必须去重并按 UUID 字典序排列。",
+    "MTabs 与 open_dialog 的 pageUUID/pageSource 必须是字面量；禁止模板、对象或其他动态目标。",
     "Page block 的 data、events 和 actions 必须遵守运行时注入的 active 客户端文档。",
     "API uuid 必须与 API 路径末尾一致；所有 Block 与 Controller uuid 必须唯一。",
     "API 必须且只能有一个 starter；所有 nextBlock 必须引用存在的 Block，并且所有 Block 都必须可达。",

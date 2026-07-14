@@ -1,5 +1,8 @@
 {
   "uuid": "home",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["mokelay_app_create_page","mokelay_app_edit_page"],
   "createdAt": "2026-07-03T00:00:00.000Z",
   "updatedAt": "2026-07-03T00:00:00.000Z",
   "name": "应用管理",

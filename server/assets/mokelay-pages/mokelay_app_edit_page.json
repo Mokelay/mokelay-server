@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_app_edit_page",
+  "subPage": true,
+  "quotes": ["home"],
+  "dependencies": [],
   "createdAt": "2026-07-03T00:00:00.000Z",
   "updatedAt": "2026-07-03T00:00:00.000Z",
   "name": "编辑 App",

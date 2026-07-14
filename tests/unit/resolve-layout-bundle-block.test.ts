@@ -12,6 +12,9 @@ vi.mock('nitropack/runtime', () => ({
           uuid: 'system_page',
           name: 'System Page',
           layoutUuid: 'asset-layout',
+          subPage: false,
+          quotes: [],
+          dependencies: [],
           blocks: [{ type: 'paragraph', data: { text: 'System page body.' } }],
         })
       }
@@ -175,6 +178,7 @@ describe('executeResolveLayoutBundleBlock', () => {
         blocks: [{ id: 'asset-slot' }],
       },
     })
-    expect(executeSql).not.toHaveBeenCalled()
+    // Dynamic user->system quotes are merged from the user-page graph.
+    expect(executeSql).toHaveBeenCalledTimes(1)
   })
 })

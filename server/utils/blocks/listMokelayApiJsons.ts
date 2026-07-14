@@ -1,5 +1,7 @@
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import { parseApiJson, type BlockExecutor } from 'mokelay-server-core/utils/orchestration-schema'
+import { readFile, readdir } from 'node:fs/promises'
+import { resolve, sep } from 'node:path'
 
 export type MokelayApiAssetStorage = {
   getKeys: (base?: string, options?: { maxDepth?: number }) => Promise<string[]>
@@ -40,8 +42,35 @@ export function parseMokelayApiJsonAsset(fileName: string, value: unknown) {
 }
 
 export async function getMokelayApiAssetStorage() {
-  const { useStorage } = await import('nitropack/runtime')
-  return useStorage('assets:server') as unknown as MokelayApiAssetStorage
+  try {
+    const { useStorage } = await import('nitropack/runtime')
+    return useStorage('assets:server') as unknown as MokelayApiAssetStorage
+  } catch {
+    const assetsRoot = resolve(process.cwd(), 'server/assets')
+    return {
+      async getKeys(base = '') {
+        const directory = resolve(assetsRoot, base)
+        if (directory !== assetsRoot && !directory.startsWith(`${assetsRoot}${sep}`)) return []
+        try {
+          return (await readdir(directory, { withFileTypes: true }))
+            .filter(entry => entry.isFile())
+            .map(entry => `${base}:${entry.name}`)
+        } catch {
+          return []
+        }
+      },
+      async getItem(key: string) {
+        const normalized = key.replaceAll(':', '/')
+        const filePath = resolve(assetsRoot, normalized)
+        if (!filePath.startsWith(`${assetsRoot}${sep}`)) return undefined
+        try {
+          return await readFile(filePath, 'utf8')
+        } catch {
+          return undefined
+        }
+      },
+    }
+  }
 }
 
 export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {

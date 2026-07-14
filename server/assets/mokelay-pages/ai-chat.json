@@ -1,5 +1,8 @@
 {
   "uuid": "ai-chat",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": [],
   "createdAt": "2026-07-12T00:00:00.000Z",
   "updatedAt": "2026-07-12T00:00:00.000Z",
   "name": "AI DSL 生成",

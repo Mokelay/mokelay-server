@@ -87,12 +87,13 @@ describe('collectServerProcessorDocs', () => {
     const docs = await collectServerProcessorDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(17)
+    expect(docs).toHaveLength(18)
     expect(functionNames).toContain('trim')
     expect(functionNames).toContain('env_value')
     expect(functionNames).toContain('api_json_when_published')
     expect(functionNames).toContain('hash_make')
     expect(functionNames).toContain('hash_check')
+    expect(functionNames).toContain('boolean_value')
     expect(docs.find((doc) => doc.function_name === 'trim')).toMatchObject({
       source_kind: 'core',
       source_package: 'mokelay-server-core',

@@ -107,7 +107,7 @@ describe('database schema JSON API', () => {
           rows: [
             { tableName: 'apis', columnName: 'uuid', columnType: 'character varying(128)' },
             { tableName: 'apis', columnName: 'api_json', columnType: 'jsonb' },
-            { tableName: 'pages', columnName: 'uuid', columnType: 'uuid' },
+            { tableName: 'pages', columnName: 'uuid', columnType: 'character varying(128)' },
             { tableName: 'pages', columnName: 'blocks', columnType: 'jsonb' },
           ] as unknown as T[],
         }
@@ -133,7 +133,7 @@ describe('database schema JSON API', () => {
           {
             name: 'pages',
             columns: [
-              { name: 'uuid', type: 'uuid', dataType: 'uuid' },
+              { name: 'uuid', type: 'character varying(128)', dataType: 'character varying(128)' },
               { name: 'blocks', type: 'jsonb', dataType: 'jsonb' },
             ],
           },

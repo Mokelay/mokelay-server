@@ -3,114 +3,42 @@
   "alias": "更新页面区块接口",
   "method": "POST",
   "request": {
-    "query": [
-      "uuid"
-    ],
+    "query": ["uuid"],
     "body": [
       "name",
-      "blocks"
+      "blocks",
+      { "key": "subPage" },
+      { "key": "quotes" },
+      { "key": "dependencies" }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "update_page_block"
+      "nextBlock": "save_page_relations_block"
     },
     {
-      "uuid": "update_page_block",
-      "alias": "更新页面Block",
-      "functionName": "update",
+      "uuid": "save_page_relations_block",
+      "alias": "事务更新页面并维护引用图",
+      "functionName": "savePageRelations",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "pages",
-        "fields": {
-          "name": {
-            "template": "{{request.body.name}}"
-          },
-          "blocks": {
-            "template": "{{request.body.blocks}}"
-          },
-          "updated_at": {
-            "template": "{{now}}"
-          }
-        },
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{request.query.uuid}}"
-            }
-          }
-        ]
+        "mode": "update",
+        "uuid": { "template": "{{request.query.uuid}}" },
+        "name": { "template": "{{request.body.name}}" },
+        "blocks": { "template": "{{request.body.blocks}}" },
+        "subPage": { "template": "{{request.body.subPage}}" },
+        "quotes": { "template": "{{request.body.quotes}}" },
+        "dependencies": { "template": "{{request.body.dependencies}}" }
       },
-      "outputs": [
-        "affected"
-      ],
-      "nextBlock": "read_page_block"
-    },
-    {
-      "uuid": "read_page_block",
-      "alias": "读取页面Block",
-      "functionName": "read",
-      "inputs": {
-        "datasource": "Mokelay",
-        "table": "pages",
-        "fields": [
-          "uuid",
-          "name",
-          "blocks",
-          "app_uuid",
-          "layout_uuid",
-          "created_at",
-          "updated_at"
-        ],
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{request.query.uuid}}"
-            }
-          }
-        ]
-      },
-      "outputs": [
-        "data"
-      ],
+      "outputs": ["affected", "page"],
       "nextBlock": null
     }
   ],
   "responses": {
-    "read_page_block": {
-      "affected": {
-        "template": "{{blocks['update_page_block'].outputs.affected}}"
-      },
-      "page": {
-        "uuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.uuid}}"
-        },
-        "name": {
-          "template": "{{blocks['read_page_block'].outputs.data.name}}"
-        },
-        "blocks": {
-          "template": "{{blocks['read_page_block'].outputs.data.blocks}}"
-        },
-        "appUuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.app_uuid}}"
-        },
-        "layoutUuid": {
-          "template": "{{blocks['read_page_block'].outputs.data.layout_uuid}}"
-        },
-        "createdAt": {
-          "template": "{{blocks['read_page_block'].outputs.data.created_at}}"
-        },
-        "updatedAt": {
-          "template": "{{blocks['read_page_block'].outputs.data.updated_at}}"
-        }
-      }
+    "save_page_relations_block": {
+      "affected": { "template": "{{blocks['save_page_relations_block'].outputs.affected}}" },
+      "page": { "template": "{{blocks['save_page_relations_block'].outputs.page}}" }
     }
   }
 }

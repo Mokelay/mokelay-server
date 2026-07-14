@@ -1,5 +1,8 @@
 {
   "uuid": "mokelay_layouts_user_page",
+  "subPage": true,
+  "quotes": ["layouts"],
+  "dependencies": ["mokelay_layout_create_page","mokelay_layout_user_editor_page"],
   "createdAt": "2026-06-29T00:00:00.000Z",
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "name": "用户创建布局",

@@ -1,5 +1,8 @@
 {
   "uuid": "server_block_doc_detail",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": [],
   "name": "服务端 Block 文档详情",
   "layoutUuid": "mokelay_layout",
   "dataSources": [

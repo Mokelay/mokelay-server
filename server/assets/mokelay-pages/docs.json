@@ -1,5 +1,8 @@
 {
   "uuid": "docs",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["client_docs","server_docs"],
   "createdAt": "2026-07-09T00:00:00.000Z",
   "updatedAt": "2026-07-09T00:00:00.000Z",
   "name": "文档",

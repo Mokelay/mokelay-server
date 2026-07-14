@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigserial, boolean, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 
 export const enterprise = pgTable('enterprise', {
   id: serial('id').primaryKey(),
@@ -34,14 +34,32 @@ export const employeeAuthIdentities = pgTable('employee_auth_identities', {
 ])
 
 export const pages = pgTable('pages', {
-  uuid: uuid('uuid').primaryKey().defaultRandom(),
+  uuid: varchar('uuid', { length: 128 }).primaryKey().default(sql`gen_random_uuid()::text`),
   name: varchar('name', { length: 120 }).notNull(),
   blocks: jsonb('blocks').$type<unknown[]>().notNull().default([]),
+  subPage: boolean('sub_page').notNull().default(false),
+  quotes: jsonb('quotes').$type<string[]>().notNull().default([]),
+  dependencies: jsonb('dependencies').$type<string[]>().notNull().default([]),
   appUuid: varchar('app_uuid', { length: 8 }),
   layoutUuid: varchar('layout_uuid', { length: 128 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  index('idx_pages_sub_page').on(table.subPage),
+  check(
+    'pages_uuid_slug_check',
+    sql`char_length(${table.uuid}) BETWEEN 1 AND 128 AND ${table.uuid} !~ '[^a-z0-9_-]'`,
+  ),
+])
+
+export const pageReferenceGraphState = pgTable('page_reference_graph_state', {
+  id: integer('id').primaryKey().notNull().default(1),
+  revision: bigint('revision', { mode: 'number' }).notNull().default(0),
+  version: integer('version').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check('page_reference_graph_state_singleton', sql`${table.id} = 1`),
+])
 
 export const apps = pgTable('apps', {
   id: serial('id').primaryKey(),
