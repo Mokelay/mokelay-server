@@ -4,50 +4,10 @@
   "method": "GET",
   "request": {
     "query": [
-      {
-        "key": "code",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "state",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "error",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "error_description",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      }
+      { "key": "code", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "state", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "error", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "error_description", "processors": [{ "processor": "default_value", "param": [""] }] }
     ],
     "body": [],
     "header": []
@@ -64,19 +24,11 @@
       "inputs": {
         "datasource": "Mokelay",
         "provider": "github",
-        "code": {
-          "template": "{{request.query.code}}"
-        },
-        "state": {
-          "template": "{{request.query.state}}"
-        },
-        "error": {
-          "template": "{{request.query.error}}"
-        },
-        "errorDescription": {
-          "template": "{{request.query.error_description}}"
-        },
-        "autoCreateEnterprise": true
+        "code": { "template": "{{request.query.code}}" },
+        "state": { "template": "{{request.query.state}}" },
+        "error": { "template": "{{request.query.error}}" },
+        "errorDescription": { "template": "{{request.query.error_description}}" },
+        "deferNewUserProvisioning": true
       },
       "outputs": [
         "user",
@@ -84,18 +36,129 @@
         "linkedIdentity",
         "provider",
         "redirectUrl",
-        "errorCode"
+        "errorCode",
+        "requiresRegistration",
+        "registration"
       ],
-      "nextBlock": null
+      "nextBlock": "github_registration_controller"
+    },
+    {
+      "uuid": "github_registration_controller",
+      "alias": "是否需要创建新用户",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": { "template": "{{blocks.handle_github_callback.outputs.requiresRegistration}}" }
+      },
+      "nodes": [
+        {
+          "uuid": "github_registration_required_node",
+          "alias": "创建新用户",
+          "value": true,
+          "nextBlock": "provision_github_user"
+        },
+        {
+          "uuid": "github_registration_not_required_node",
+          "alias": "已有用户",
+          "value": false,
+          "nextBlock": null
+        }
+      ]
+    },
+    {
+      "uuid": "provision_github_user",
+      "alias": "执行新用户注册 Fragment",
+      "functionName": "executeFragment",
+      "inputs": {
+        "fragmentUuid": "provision_new_user",
+        "params": {
+          "enterprise_name": { "template": "{{blocks.handle_github_callback.outputs.registration.enterpriseName}}" },
+          "name": { "template": "{{blocks.handle_github_callback.outputs.registration.name}}" },
+          "email": { "template": "{{blocks.handle_github_callback.outputs.registration.email}}" },
+          "password_hash": { "template": "{{blocks.handle_github_callback.outputs.registration.passwordHash}}" }
+        }
+      },
+      "outputs": ["result"],
+      "nextBlock": "link_github_identity",
+      "errorNextBlock": null
+    },
+    {
+      "uuid": "link_github_identity",
+      "alias": "绑定 GitHub 身份",
+      "functionName": "linkOAuthIdentity",
+      "inputs": {
+        "datasource": "Mokelay",
+        "provider": { "template": "{{blocks.handle_github_callback.outputs.registration.provider}}" },
+        "employeeId": { "template": "{{blocks.provision_github_user.outputs.result.user.id}}" },
+        "providerUserId": { "template": "{{blocks.handle_github_callback.outputs.registration.providerUserId}}" },
+        "providerEmail": { "template": "{{blocks.handle_github_callback.outputs.registration.providerEmail}}" },
+        "emailVerified": { "template": "{{blocks.handle_github_callback.outputs.registration.emailVerified}}" },
+        "profile": { "template": "{{blocks.handle_github_callback.outputs.registration.profile}}" }
+      },
+      "outputs": ["user", "linkedIdentity"],
+      "nextBlock": "set_github_user_session",
+      "errorNextBlock": null
+    },
+    {
+      "uuid": "set_github_user_session",
+      "alias": "保存 GitHub 用户到 Session",
+      "functionName": "addSession",
+      "inputs": {
+        "key": "user",
+        "value": { "template": "{{blocks.provision_github_user.outputs.result.user}}" }
+      },
+      "outputs": [],
+      "nextBlock": null,
+      "errorNextBlock": "github_session_error_controller"
+    },
+    {
+      "uuid": "github_session_error_controller",
+      "alias": "GitHub Session 写入失败终点",
+      "functionName": "switch_controller",
+      "type": "controller",
+      "inputs": {
+        "value": "session_failed",
+        "dataType": "string"
+      },
+      "nodes": [
+        {
+          "uuid": "github_session_error_node",
+          "alias": "返回 Session 失败跳转",
+          "value": "session_failed",
+          "nextBlock": null
+        }
+      ]
     }
   ],
   "responses": {
-    "handle_github_callback": {
+    "github_registration_not_required_node": {
       "redirect": {
         "statusCode": 302,
-        "url": {
-          "template": "{{blocks['handle_github_callback'].outputs.redirectUrl}}"
-        }
+        "url": { "template": "{{blocks.handle_github_callback.outputs.redirectUrl}}" }
+      }
+    },
+    "provision_github_user": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=registration_failed"
+      }
+    },
+    "link_github_identity": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=identity_link_failed"
+      }
+    },
+    "github_session_error_node": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=session_failed"
+      }
+    },
+    "set_github_user_session": {
+      "redirect": {
+        "statusCode": 302,
+        "url": { "template": "{{blocks.handle_github_callback.outputs.redirectUrl}}" }
       }
     }
   }

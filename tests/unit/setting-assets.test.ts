@@ -219,18 +219,6 @@ const listApis = [
 
 const deleteApis = [
   {
-    apiFile: 'mokelay-apis/delete_enterprise_by_uuid.json',
-    table: 'enterprise',
-    bodyKey: 'uuid',
-    conditionField: 'uuid',
-  },
-  {
-    apiFile: 'mokelay-apis/delete_employee_by_id.json',
-    table: 'employees',
-    bodyKey: 'id',
-    conditionField: 'id',
-  },
-  {
     apiFile: 'mokelay-apis/delete_employee_auth_identity_by_id.json',
     table: 'employee_auth_identities',
     bodyKey: 'id',
@@ -310,8 +298,12 @@ describe('setting assets', () => {
 
   it('configures the API user list table for pagination and affected delete refresh', async () => {
     const page = await readJsonAsset<PageAsset>('mokelay-pages/mokelay_apis_user_page.json')
-    const table = tableBlock(page, 'mokelay-apis-user-table')
-    const batchToolbar = page.blocks.find((block) => block.id === 'mokelay-apis-user-batch-actions')
+    const listBlocks = (page.blocks[0]?.data as {
+      areas?: Array<{ id?: string, blocks?: PageAsset['blocks'] }>
+    })?.areas?.find(area => area.id === 'main')?.blocks ?? []
+    const listPage = { blocks: listBlocks } as PageAsset
+    const table = tableBlock(listPage, 'mokelay-apis-user-table')
+    const batchToolbar = listBlocks.find((block) => block.id === 'mokelay-apis-user-batch-actions')
     const batchDeleteButton = batchToolbar?.data?.buttons?.find((button) => button.id === 'batchDelete')
     const batchActions = batchDeleteButton?.events?.flatMap((event) => event.actions ?? []) ?? []
     const batchExecuteAction = batchActions.find((action) => action.action === 'execute_ds')
@@ -335,7 +327,11 @@ describe('setting assets', () => {
     expect(table?.data?.selection).toBe(true)
     expect(table?.data?.pageSize).toBe(15)
     expect(table?.data?.ds?.path).toBe('/api/mokelay/list_apis')
-    expect(table?.data?.ds?.queryData?.map((item) => item.key)).toEqual(['page', 'pageSize'])
+    expect(table?.data?.ds?.queryData).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'page' }),
+      expect.objectContaining({ key: 'pageSize' }),
+      expect.objectContaining({ key: 'fragment' }),
+    ]))
     expect(table?.data?.ds?.matchingExternalFields).toEqual(expect.arrayContaining([
       expect.objectContaining({
         variable: 'total',
@@ -469,6 +465,172 @@ describe('setting assets', () => {
     expect(deleteBlock?.inputs?.table).toBe(table)
     expect(condition?.fieldName).toBe(conditionField)
     expect(condition?.fieldValue?.template).toBe(`{{request.body.${bodyKey}}}`)
+  })
+
+  it('deletes an enterprise dependency graph before dropping its tenant schemas', async () => {
+    const api = await readJsonAsset<any>('mokelay-apis/delete_enterprise_by_uuid.json')
+    const cleanupBlock = api.blocks.find((block: any) => block.uuid === 'delete_enterprise_records')
+    const dropSchemasBlock = api.blocks.find((block: any) => block.uuid === 'drop_enterprise_schemas')
+    const response = api.responses.drop_enterprise_schemas
+
+    expect(api.method).toBe('POST')
+    expect(api.request.body).toEqual([
+      expect.objectContaining({
+        key: 'uuid',
+        processors: expect.arrayContaining([
+          'trim',
+          'is_not_null',
+          expect.objectContaining({ processor: 'regex' }),
+        ]),
+      }),
+    ])
+    expect(api.blocks.map((block: any) => block.uuid)).toEqual([
+      'starter',
+      'delete_enterprise_records',
+      'drop_enterprise_schemas',
+    ])
+    expect(cleanupBlock).toMatchObject({
+      functionName: 'cascadeDelete',
+      inputs: {
+        datasource: 'Mokelay',
+        root: {
+          id: 'enterprise',
+          table: 'enterprise',
+          keyField: 'uuid',
+          conditions: [
+            {
+              conditionType: 'EQ',
+              fieldName: 'uuid',
+              fieldValue: { template: '{{request.body.uuid}}' },
+            },
+          ],
+        },
+        relations: [
+          {
+            id: 'employees',
+            table: 'employees',
+            keyField: 'id',
+            parent: 'enterprise',
+            foreignKey: 'enterprise_uuid',
+          },
+          {
+            id: 'employeeAuthIdentities',
+            table: 'employee_auth_identities',
+            keyField: 'id',
+            parent: 'employees',
+            foreignKey: 'employee_id',
+          },
+          {
+            id: 'datasources',
+            table: 'datasources',
+            keyField: 'id',
+            parent: 'enterprise',
+            foreignKey: 'enterprise_uuid',
+          },
+        ],
+        collect: [
+          {
+            key: 'schemaNames',
+            node: 'datasources',
+            mode: 'values',
+            fields: [
+              {
+                key: 'uuid',
+                processors: [
+                  'trim',
+                  expect.objectContaining({ processor: 'regex' }),
+                ],
+              },
+            ],
+            distinct: true,
+            orderBy: [{ fieldName: 'uuid', direction: 'ASC' }],
+          },
+        ],
+        limits: {
+          maxRootRows: 1,
+          maxAffectedRows: 100000,
+          maxCollectedRows: 10000,
+        },
+      },
+      outputs: ['affected', 'affectedByNode', 'totalAffected', 'collected'],
+      nextBlock: 'drop_enterprise_schemas',
+    })
+    expect(dropSchemasBlock).toMatchObject({
+      functionName: 'dropSchemas',
+      inputs: {
+        datasource: 'MokelayFree',
+        schemas: { template: '{{blocks.delete_enterprise_records.outputs.collected.schemaNames}}' },
+        cascade: true,
+      },
+      outputs: ['schemas', 'dropped'],
+      nextBlock: null,
+    })
+    expect(response).toMatchObject({
+      affected: { template: '{{blocks.delete_enterprise_records.outputs.affected}}' },
+      deleted: {
+        employeeAuthIdentities: { template: '{{blocks.delete_enterprise_records.outputs.affectedByNode.employeeAuthIdentities}}' },
+        datasources: { template: '{{blocks.delete_enterprise_records.outputs.affectedByNode.datasources}}' },
+        employees: { template: '{{blocks.delete_enterprise_records.outputs.affectedByNode.employees}}' },
+        enterprises: { template: '{{blocks.delete_enterprise_records.outputs.affectedByNode.enterprise}}' },
+      },
+      schemas: { template: '{{blocks.drop_enterprise_schemas.outputs.schemas}}' },
+      dropped: { template: '{{blocks.drop_enterprise_schemas.outputs.dropped}}' },
+    })
+  })
+
+  it('deletes employee auth identities through the generic cascade before deleting the employee', async () => {
+    const api = await readJsonAsset<any>('mokelay-apis/delete_employee_by_id.json')
+    const cleanupBlock = api.blocks.find((block: any) => block.uuid === 'delete_employee_block')
+
+    expect(api.request.body).toEqual([
+      expect.objectContaining({
+        key: 'id',
+        processors: expect.arrayContaining([
+          'trim',
+          'is_not_null',
+          expect.objectContaining({ processor: 'regex' }),
+        ]),
+      }),
+    ])
+    expect(cleanupBlock).toMatchObject({
+      functionName: 'cascadeDelete',
+      inputs: {
+        datasource: 'Mokelay',
+        root: {
+          id: 'employees',
+          table: 'employees',
+          keyField: 'id',
+          conditions: [
+            {
+              conditionType: 'EQ',
+              fieldName: 'id',
+              fieldValue: { template: '{{request.body.id}}' },
+            },
+          ],
+        },
+        relations: [
+          {
+            id: 'employeeAuthIdentities',
+            table: 'employee_auth_identities',
+            keyField: 'id',
+            parent: 'employees',
+            foreignKey: 'employee_id',
+          },
+        ],
+        collect: [],
+        limits: {
+          maxRootRows: 1,
+          maxAffectedRows: 10000,
+          maxCollectedRows: 10000,
+        },
+      },
+      outputs: ['affected', 'affectedByNode', 'totalAffected', 'collected'],
+      nextBlock: null,
+    })
+    expect(api.responses.delete_employee_block).toMatchObject({
+      affected: { template: "{{blocks['delete_employee_block'].outputs.affected}}" },
+      message: '删除成功',
+    })
   })
 
   it('declares a batch delete API asset for user APIs', async () => {

@@ -1,4 +1,8 @@
 import type { BlockDefinition } from 'mokelay-server-core/utils/orchestration-schema'
+import {
+  executeAssertApiDefinitionsDeletableBlock,
+  executeValidateApiDefinitionBlock,
+} from './apiDefinitions'
 import { executeReadAiDslPromptAssetBlock } from './readAiDslPromptAsset'
 import { executeListMokelayApiJsonsBlock } from './listMokelayApiJsons'
 import { executeListMokelayLayoutJsonsBlock } from './listMokelayLayoutJsons'
@@ -20,6 +24,16 @@ import {
 } from './r2Image'
 
 export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> = {
+  validateApiDefinition: {
+    executor: executeValidateApiDefinitionBlock,
+    allowedOutputs: ['method', 'fragment'],
+    requiresDatasource: true,
+  },
+  assertApiDefinitionsDeletable: {
+    executor: executeAssertApiDefinitionsDeletableBlock,
+    allowedOutputs: [],
+    requiresDatasource: true,
+  },
   readAiDslPromptAsset: {
     executor: executeReadAiDslPromptAssetBlock,
     allowedOutputs: ['document'],

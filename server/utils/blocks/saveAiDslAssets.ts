@@ -2,9 +2,11 @@ import { sql } from 'drizzle-orm'
 import type { DatabaseType } from 'mokelay-server-core/utils/db'
 import type { TransactionRunner } from 'mokelay-server-core/utils/db'
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
-import type { BlockExecutor, SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
+import { parseApiJson, type BlockExecutor, type SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
 import { loadSystemPageNodes, savePageBatchWithRelations } from '../pageRelationStore'
 import { normalizeUserPageUuid } from '../pageReferenceGraph'
+import { validateApiDefinition } from './apiDefinitions'
+import { getMokelayApiAssetStorage } from './listMokelayApiJsons'
 
 const apiUuidPattern = /^[A-Za-z0-9_-]{1,128}$/
 const apiMethodPattern = /^[A-Z]+$/
@@ -48,6 +50,7 @@ type NormalizedApi = {
   uuid: string
   name: string
   method: string
+  fragment: boolean
   status: ApiStatus
   apiJson: Record<string, unknown>
   layout: Record<string, unknown>
@@ -58,6 +61,7 @@ export type AiDslAssetStore = {
   savePage: (page: NormalizedPage, mode: SaveMode) => Promise<void>
   savePageBatch?: (pages: Array<{ page: NormalizedPage; mode: SaveMode }>) => Promise<void>
   apiExists: (uuid: string) => Promise<boolean>
+  validateApi?: (api: NormalizedApi) => Promise<void>
   saveApi: (api: NormalizedApi, mode: SaveMode) => Promise<void>
   createApiSnapshot: (api: NormalizedApi) => Promise<void>
 }
@@ -189,9 +193,15 @@ function normalizeApi(value: unknown, status: ApiStatus): NormalizedApi {
     itemError('AI_DSL_API_UUID_INVALID', 'API uuid 不能为空且只能包含字母、数字、下划线或连字符。')
   }
 
-  const method = readString(value, 'method').toUpperCase()
-  if (!method || method.length > 16 || !apiMethodPattern.test(method)) {
-    itemError('AI_DSL_ASSET_SAVE_FAILED', 'API method 必须是 1 到 16 个英文字母。')
+  if ('fragment' in value && typeof value.fragment !== 'boolean') {
+    itemError('AI_DSL_ASSET_SAVE_FAILED', 'API fragment 必须是 boolean。')
+  }
+  const fragment = value.fragment === true
+  const inputMethod = readString(value, 'method').toUpperCase()
+  const method = fragment ? 'FRAGMENT' : inputMethod
+  if ((!fragment && (!method || method.length > 16 || !apiMethodPattern.test(method)))
+    || (fragment && inputMethod && inputMethod !== 'FRAGMENT')) {
+    itemError('AI_DSL_ASSET_SAVE_FAILED', '普通 API method 必须是 1 到 16 个英文字母；Fragment 不允许配置 method。')
   }
 
   const name = readString(value, 'alias') || readString(value, 'name') || uuid
@@ -199,17 +209,23 @@ function normalizeApi(value: unknown, status: ApiStatus): NormalizedApi {
     itemError('AI_DSL_ASSET_SAVE_FAILED', 'API 名称不能超过 120 个字符。')
   }
 
-  const apiJson = cloneJson({
-    ...value,
+  const { layout: _layout, name: _name, method: _method, ...dslValue } = value
+  const apiJsonCandidate = cloneJson({
+    ...dslValue,
     uuid,
-    method,
+    ...(fragment ? { fragment: true } : { method }),
   }, 'API JSON')
+  const apiJson = cloneJson(
+    status === 'published' ? parseApiJson(uuid, apiJsonCandidate) : apiJsonCandidate,
+    'API JSON',
+  ) as Record<string, unknown>
   const layout = cloneJson(isRecord(value.layout) ? value.layout : {}, 'API layout')
 
   return {
     uuid,
     name,
     method,
+    fragment,
     status,
     apiJson,
     layout,
@@ -233,6 +249,10 @@ function sourceUuid(value: unknown) {
 function summaryError(error: unknown, type: AssetType) {
   if (error instanceof AiDslAssetItemError) {
     return `${error.code}: ${error.message}`
+  }
+  if (isRecord(error) && isRecord(error.data) && typeof error.data.code === 'string') {
+    const message = typeof error.message === 'string' ? error.message : `${type === 'api' ? 'API' : '页面'}保存失败。`
+    return `${error.data.code}: ${message}`
   }
 
   return `AI_DSL_ASSET_SAVE_FAILED: ${type === 'api' ? 'API' : '页面'}保存失败。`
@@ -320,6 +340,7 @@ async function saveApiItem(
   index: number,
   status: ApiStatus,
   knownUuids: Set<string>,
+  systemApiUuids: ReadonlySet<string>,
   store: AiDslAssetStore,
 ): Promise<SaveAiDslAssetItem> {
   const fallback = {
@@ -330,11 +351,15 @@ async function saveApiItem(
 
   try {
     const api = normalizeApi(value, status)
+    if (systemApiUuids.has(api.uuid)) {
+      itemError('AI_DSL_ASSET_UUID_EXISTS', 'API uuid 与系统 API 资产冲突。')
+    }
     const exists = await store.apiExists(api.uuid)
     if (exists && !knownUuids.has(api.uuid)) {
       itemError('AI_DSL_ASSET_UUID_EXISTS', 'API uuid 已存在且不属于当前会话。')
     }
 
+    await store.validateApi?.(api)
     await store.saveApi(api, exists ? 'update' : 'create')
     await store.createApiSnapshot(api)
     knownUuids.add(api.uuid)
@@ -364,6 +389,7 @@ function summaryStatus(savedCount: number, failedCount: number): SummaryStatus {
 export async function saveAiDslAssets(
   inputs: Record<string, unknown>,
   store: AiDslAssetStore,
+  systemApiUuids: ReadonlySet<string> = new Set(),
 ): Promise<SaveAiDslAssetsSummary> {
   if (!isRecord(inputs.generationResult)) {
     invalidResult('generationResult 必须是 object。')
@@ -386,11 +412,22 @@ export async function saveAiDslAssets(
     const uuid = value.trim()
     return apiUuidPattern.test(uuid) ? uuid : undefined
   }))
-  const apiItems: SaveAiDslAssetItem[] = []
+  const initialKnownApiUuids = [...knownApiUuids]
+  const apiItems: SaveAiDslAssetItem[] = new Array(apis.length)
   const pageItems: SaveAiDslAssetItem[] = []
 
-  for (let index = 0; index < apis.length; index += 1) {
-    apiItems.push(await saveApiItem(apis[index], index, apiStatus, knownApiUuids, store))
+  // Fragment definitions must be persisted before callers from the same AI
+  // batch are validated, including drafts whose targets must already exist in
+  // the database. Fragment DSL cannot invoke another Fragment, so a stable
+  // two-phase order is sufficient and keeps results aligned with input order.
+  const apiIndexes = apis.map((_value, index) => index)
+  apiIndexes.sort((left, right) => {
+    const leftIsFragment = isRecord(apis[left]) && apis[left].fragment === true
+    const rightIsFragment = isRecord(apis[right]) && apis[right].fragment === true
+    return Number(rightIsFragment) - Number(leftIsFragment)
+  })
+  for (const index of apiIndexes) {
+    apiItems[index] = await saveApiItem(apis[index], index, apiStatus, knownApiUuids, systemApiUuids, store)
   }
   pageItems.push(...await savePageItemsBatch(pages, knownPageUuids, store))
 
@@ -405,7 +442,10 @@ export async function saveAiDslAssets(
     savedCount,
     failedCount,
     knownPageUuids: [...knownPageUuids],
-    knownApiUuids: [...knownApiUuids],
+    knownApiUuids: [...new Set([
+      ...initialKnownApiUuids,
+      ...apiItems.flatMap(item => item.status === 'success' && item.savedUuid ? [item.savedUuid] : []),
+    ])],
   }
 }
 
@@ -448,18 +488,29 @@ export function createAiDslAssetSqlStore(
       const result = await executeSql(sql`SELECT uuid FROM ${apisTable} WHERE uuid = ${uuid} LIMIT 1`)
       return Boolean(result.rows[0])
     },
+    async validateApi(api) {
+      await validateApiDefinition({
+        datasource: 'Mokelay',
+        uuid: api.uuid,
+        originalUuid: api.uuid,
+        method: api.method,
+        fragment: api.fragment,
+        status: api.status,
+        apiJson: api.apiJson,
+      }, executeSql)
+    },
     async saveApi(api, mode) {
       const apiJson = jsonFieldSql(api.apiJson, databaseType)
       const layout = jsonFieldSql(api.layout, databaseType)
       if (mode === 'update') {
-        await executeSql(sql`UPDATE ${apisTable} SET name = ${api.name}, method = ${api.method}, status = ${api.status}, api_json = ${apiJson}, layout = ${layout}, updated_at = CURRENT_TIMESTAMP WHERE uuid = ${api.uuid}`)
+        await executeSql(sql`UPDATE ${apisTable} SET name = ${api.name}, method = ${api.method}, fragment = ${api.fragment}, status = ${api.status}, api_json = ${apiJson}, layout = ${layout}, updated_at = CURRENT_TIMESTAMP WHERE uuid = ${api.uuid}`)
         return
       }
-      await executeSql(sql`INSERT INTO ${apisTable} (uuid, name, method, status, api_json, layout) VALUES (${api.uuid}, ${api.name}, ${api.method}, ${api.status}, ${apiJson}, ${layout})`)
+      await executeSql(sql`INSERT INTO ${apisTable} (uuid, name, method, fragment, status, api_json, layout) VALUES (${api.uuid}, ${api.name}, ${api.method}, ${api.fragment}, ${api.status}, ${apiJson}, ${layout})`)
     },
     async createApiSnapshot(api) {
       const apiJson = jsonFieldSql(api.apiJson, databaseType)
-      await executeSql(sql`INSERT INTO ${snapshotsTable} (api_uuid, name, method, status, api_json) VALUES (${api.uuid}, ${api.name}, ${api.method}, ${api.status}, ${apiJson})`)
+      await executeSql(sql`INSERT INTO ${snapshotsTable} (api_uuid, name, method, fragment, status, api_json) VALUES (${api.uuid}, ${api.name}, ${api.method}, ${api.fragment}, ${api.status}, ${apiJson})`)
     },
   }
 }
@@ -485,7 +536,7 @@ function requireTransactionRunner(value: TransactionRunner | undefined): Transac
  *   "functionName": "saveAiDslAssets",
  *   "displayName": "保存 AI DSL 生成资产",
  *   "category": "ai",
- *   "description": "把 AI 生成响应中的 APIs 和 Pages 保存到 Mokelay 数据库。API 仍逐项保存并创建快照；所有合法 Page 候选先组成最终引用图，再在单一事务中批量保存，支持批内前向引用，任一 Page 非法、图校验或 SQL 失败都会中止整批 Page。固定策略 create_or_update_known 会创建新 uuid、更新当前会话 known 列表中的既有 uuid，并拒绝覆盖会话外同名资产。",
+ *   "description": "把 AI 生成响应中的 APIs 和 Pages 保存到 Mokelay 数据库。API 逐项保存并创建快照；draft 与 published 批次都会先保存 Fragment 再校验 caller，同时结果保持输入顺序。所有合法 Page 候选先组成最终引用图，再在单一事务中批量保存，支持批内前向引用，任一 Page 非法、图校验或 SQL 失败都会中止整批 Page。固定策略 create_or_update_known 会创建新 uuid、更新当前会话 known 列表中的既有 uuid，并拒绝覆盖会话外同名资产。",
  *   "inputs": [
  *     { "key": "datasource", "type": "string", "required": true, "description": "数据源名称，通常为 Mokelay；Block 注册为 requiresDatasource=true。" },
  *     {
@@ -552,6 +603,12 @@ export const executeSaveAiDslAssetsBlock: BlockExecutor = async ({
   const resolvedDatabaseType = requireDatabaseType(databaseType)
   const transactionRunner = requireTransactionRunner(withTransaction)
   const systemNodes = await loadSystemPageNodes()
+  const apiAssetStorage = await getMokelayApiAssetStorage()
+  const systemApiUuids = new Set((await apiAssetStorage.getKeys('mokelay-apis')).flatMap((key) => {
+    const normalized = key.replaceAll('\\', '/').replaceAll(':', '/')
+    const match = /^mokelay-apis\/([A-Za-z0-9_-]{1,128})\.json$/.exec(normalized)
+    return match?.[1] ? [match[1]] : []
+  }))
   const store = createAiDslAssetSqlStore(executeSql, resolvedDatabaseType, undefined, async entries => {
     await savePageBatchWithRelations(
       entries.map(({ page, mode }) => ({
@@ -569,6 +626,6 @@ export const executeSaveAiDslAssetsBlock: BlockExecutor = async ({
     )
   })
   return {
-    saveSummary: await saveAiDslAssets(inputs, store),
+    saveSummary: await saveAiDslAssets(inputs, store, systemApiUuids),
   }
 }

@@ -1,0 +1,40 @@
+{
+  "uuid": "mokelay_apis_user_tabs_page",
+  "subPage": true,
+  "quotes": ["apis"],
+  "dependencies": ["mokelay_apis_user_fragment_page","mokelay_apis_user_page"],
+  "createdAt": "2026-07-15T00:00:00.000Z",
+  "updatedAt": "2026-07-15T00:00:00.000Z",
+  "name": "用户创建接口",
+  "layoutUuid": "mokelay_layout",
+  "blocks": [
+    {
+      "id": "mokelay-apis-user-type-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "user-api",
+        "tabs": [
+          {
+            "id": "user-api",
+            "name": "API",
+            "pageUUID": "mokelay_apis_user_page",
+            "pageSource": "system",
+            "query": {
+              "fragment": [null, "false"]
+            }
+          },
+          {
+            "id": "user-fragment",
+            "name": "Fragment",
+            "pageUUID": "mokelay_apis_user_fragment_page",
+            "pageSource": "system",
+            "query": {
+              "fragment": "true"
+            }
+          }
+        ]
+      },
+      "events": []
+    }
+  ]
+}

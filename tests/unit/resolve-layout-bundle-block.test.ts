@@ -62,6 +62,8 @@ function executeBlockWithRows(rows: Record<string, unknown>[]) {
       },
       executeSql,
       databaseType: 'postgres',
+      processValue: async (value: unknown) => value,
+      invokeFragment: async () => ({}),
     }),
   }
 }
@@ -167,6 +169,8 @@ describe('executeResolveLayoutBundleBlock', () => {
       },
       executeSql,
       databaseType: 'postgres',
+      processValue: async (value: unknown) => value,
+      invokeFragment: async () => ({}),
     })).resolves.toMatchObject({
       page: {
         uuid: 'system_page',

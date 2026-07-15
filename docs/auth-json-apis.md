@@ -1,6 +1,6 @@
 # 登录注册 JSON API 接口文档
 
-本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。运行时会先读取本地/Nitro assets，再读取 Cloudflare R2 的 `mokelay-apis/*.json`，最后兜底读取数据库中已发布的同名配置：
+本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。系统认证 API 优先从本地/Nitro assets 读取；动态普通 API 的 R2 内容受数据库当前元数据保护，动态 Fragment 则只从数据库已发布记录读取：
 
 - `register.json`
 - `login.json`
@@ -87,11 +87,11 @@ Provider callback URL：
 
 ## GET /api/mokelay/oauth_google_callback
 
-处理 Google OAuth callback。成功后创建或绑定员工账号、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
+处理 Google OAuth callback。已有 identity 或相同邮箱时维持原登录/绑定流程；全新账号通过内置 `provision_new_user` Fragment 创建企业、员工和免费数据源，再绑定 Google identity、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
 
 ## GET /api/mokelay/oauth_github_callback
 
-处理 GitHub OAuth callback。成功后创建或绑定员工账号、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
+处理 GitHub OAuth callback。已有 identity 或相同邮箱时维持原登录/绑定流程；全新账号通过内置 `provision_new_user` Fragment 创建企业、员工和免费数据源，再绑定 GitHub identity、写入 session，并 302 跳转到 start 阶段保存的 `redirect`。
 
 OAuth callback 失败时会跳转：
 
@@ -99,9 +99,11 @@ OAuth callback 失败时会跳转：
 /login?oauth_error={code}
 ```
 
+其中公共开户 Fragment 失败使用 `registration_failed`，OAuth identity 绑定失败使用 `identity_link_failed`，Session 写入失败使用 `session_failed`。这些错误终点使用静态跳转地址，不读取失败 Block 未产生的 outputs。
+
 ## POST /api/mokelay/register
 
-注册新企业，并创建关联该企业的首个员工。
+注册新企业，并通过 `server/assets/mokelay-apis/fragment/provision_new_user.json` 内置 Fragment 创建首个员工、免费 schema 和 datasource。密码注册仍在入口 API 完成邮箱查重和密码 hash，Fragment 只负责公共开户流程。该内置 caller 不会解析同 UUID 的数据库 Fragment。
 
 对应配置：`server/assets/mokelay-apis/register.json`
 

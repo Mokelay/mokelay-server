@@ -2,6 +2,16 @@
   "uuid": "list_mokelay_api_jsons",
   "alias": "内置 API DSL 列表接口",
   "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "fragment",
+        "processors": [
+          "boolean_value"
+        ]
+      }
+    ]
+  },
   "blocks": [
     {
       "uuid": "starter",
@@ -11,7 +21,11 @@
       "uuid": "list_mokelay_api_jsons_block",
       "alias": "读取内置 API DSL 列表 Block",
       "functionName": "listMokelayApiJsons",
-      "inputs": {},
+      "inputs": {
+        "fragment": {
+          "template": "{{request.query.fragment}}"
+        }
+      },
       "outputs": [
         "apis",
         "count"

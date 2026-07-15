@@ -1,15 +1,15 @@
 {
-  "uuid": "mokelay_apis_system_page",
+  "uuid": "mokelay_apis_system_fragment_page",
   "subPage": true,
   "quotes": ["mokelay_apis_system_tabs_page"],
   "dependencies": [],
-  "createdAt": "2026-07-10T00:00:00.000Z",
-  "updatedAt": "2026-07-10T00:00:00.000Z",
-  "name": "系统内置 API",
+  "createdAt": "2026-07-15T00:00:00.000Z",
+  "updatedAt": "2026-07-15T00:00:00.000Z",
+  "name": "系统内置 Fragment",
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
-      "id": "mokelay-apis-system-table",
+      "id": "mokelay-fragments-system-table",
       "type": "MAdvanceTable",
       "data": {
         "rowKey": "uuid",
@@ -25,7 +25,7 @@
             {
               "key": "fragment",
               "dataType": "boolean",
-              "value": "false"
+              "value": "true"
             }
           ],
           "bodyData": [],
@@ -33,7 +33,7 @@
             {
               "path": "data.apis[]",
               "type": "array",
-              "label": "系统 API 列表"
+              "label": "系统 Fragment 列表"
             },
             {
               "path": "data.count",
@@ -43,7 +43,7 @@
           ],
           "matchingExternalFields": [
             {
-              "label": "系统 API 列表",
+              "label": "系统 Fragment 列表",
               "variable": "data",
               "matchFieldPath": "data.apis[]"
             },
@@ -61,7 +61,7 @@
             "columnName": "名称",
             "columnContent": [
               {
-                "id": "system-api-name-text-{{uuid}}",
+                "id": "system-fragment-name-text-{{uuid}}",
                 "type": "paragraph",
                 "data": {
                   "text": "{{alias}}"
@@ -78,7 +78,7 @@
             "columnName": "UUID",
             "columnContent": [
               {
-                "id": "system-api-uuid-text-{{uuid}}",
+                "id": "system-fragment-uuid-text-{{uuid}}",
                 "type": "paragraph",
                 "data": {
                   "text": "{{uuid}}"
@@ -92,13 +92,13 @@
           {
             "fixed": null,
             "width": 100,
-            "columnName": "方法",
+            "columnName": "类型",
             "columnContent": [
               {
-                "id": "system-api-method-tag-{{uuid}}",
+                "id": "system-fragment-type-tag-{{uuid}}",
                 "type": "MTag",
                 "data": {
-                  "tagName": "{{method}}",
+                  "tagName": "Fragment",
                   "type": "info",
                   "size": "small"
                 },
@@ -106,7 +106,7 @@
               }
             ],
             "fieldDataType": "string",
-            "fieldVariable": "method"
+            "fieldVariable": "fragment"
           },
           {
             "fixed": null,
@@ -114,7 +114,7 @@
             "columnName": "状态",
             "columnContent": [
               {
-                "id": "system-api-source-tag-{{uuid}}",
+                "id": "system-fragment-source-tag-{{uuid}}",
                 "type": "MTag",
                 "data": {
                   "tagName": "内置",
@@ -133,7 +133,7 @@
             "columnName": "操作",
             "columnContent": [
               {
-                "id": "open-system-api-{{uuid}}",
+                "id": "open-system-fragment-{{uuid}}",
                 "type": "MButton",
                 "data": {
                   "label": "打开",
@@ -147,12 +147,12 @@
                     "event": "click",
                     "actions": [
                       {
-                        "uuid": "mokelay_api_system_open_detail",
+                        "uuid": "mokelay_fragment_system_open_detail",
                         "action": "jump_url",
-                        "alias": "打开系统 API",
+                        "alias": "打开系统 Fragment",
                         "inputs": {
                           "url": {
-                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system"
+                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system&fragment=true"
                           }
                         },
                         "outputs": [],

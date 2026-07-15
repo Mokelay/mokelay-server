@@ -55,6 +55,7 @@ describe('syncMokelayApisToR2', () => {
     expect(result.keys).toContain('mokelay-apis/read_api_by_uuid.json')
     expect(result.keys).toContain('mokelay-apis/save_api.json')
     expect(result.keys).toContain('mokelay-apis/update_page_blocks_by_uuid.json')
+    expect(result.keys).not.toContain('mokelay-apis/fragment/provision_new_user.json')
     expect(new Set(result.keys)).toHaveProperty('size', expectedCount)
     expect(sentInputs).toHaveLength(expectedCount)
     expect(sentInputs.every((input) => input.Bucket === 'mokelay-api-json')).toBe(true)

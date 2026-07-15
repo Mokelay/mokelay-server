@@ -57,13 +57,15 @@ CREATE TABLE `apis` (
   `uuid` varchar(128) NOT NULL COMMENT 'API 唯一标识（业务键，如 save_api）',
   `name` varchar(120) NOT NULL COMMENT 'API 名称',
   `method` varchar(16) NOT NULL COMMENT 'HTTP 请求方法',
+  `fragment` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否为逻辑片段',
   `status` varchar(32) NOT NULL DEFAULT 'draft' COMMENT '发布状态',
   `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON',
   `layout` json NOT NULL COMMENT 'API Builder 布局 JSON',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_apis_uuid` (`uuid`)
+  UNIQUE KEY `uk_apis_uuid` (`uuid`),
+  KEY `idx_apis_fragment_status` (`fragment`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `apis_snapshot`;
@@ -74,6 +76,7 @@ CREATE TABLE `apis_snapshot` (
   `api_uuid` varchar(128) NOT NULL COMMENT '关联 API 业务标识',
   `name` varchar(120) NOT NULL COMMENT 'API 名称（快照时点）',
   `method` varchar(16) NOT NULL COMMENT 'HTTP 请求方法（快照时点）',
+  `fragment` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否为逻辑片段（快照时点）',
   `status` varchar(32) NOT NULL COMMENT '发布状态（快照时点）',
   `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON（快照时点）',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '快照创建时间',

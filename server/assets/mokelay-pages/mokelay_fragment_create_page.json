@@ -1,15 +1,15 @@
 {
-  "uuid": "mokelay_api_create_page",
+  "uuid": "mokelay_fragment_create_page",
   "subPage": true,
-  "quotes": ["mokelay_apis_user_page"],
+  "quotes": ["mokelay_apis_user_fragment_page"],
   "dependencies": [],
-  "createdAt": "2026-07-10T00:00:00.000Z",
-  "updatedAt": "2026-07-10T00:00:00.000Z",
-  "name": "新建 API",
+  "createdAt": "2026-07-15T00:00:00.000Z",
+  "updatedAt": "2026-07-15T00:00:00.000Z",
+  "name": "新建 Fragment",
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
-      "id": "mokelay-api-create-form",
+      "id": "mokelay-fragment-create-form",
       "type": "MForm",
       "data": {
         "values": {
@@ -17,11 +17,6 @@
             "mode": "variable",
             "source": "MPage",
             "variable": "context.name"
-          },
-          "method": {
-            "mode": "variable",
-            "source": "MPage",
-            "variable": "context.method"
           },
           "uuid": {
             "mode": "flow",
@@ -41,7 +36,7 @@
                     {
                       "processor": "random_id",
                       "param": {
-                        "prefix": "api_",
+                        "prefix": "fragment_",
                         "length": 6,
                         "when": "empty"
                       }
@@ -90,61 +85,35 @@
         },
         "items": [
           {
-            "labelName": "接口名称",
+            "labelName": "Fragment 名称",
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
             "editor": {
-              "id": "api-create-name",
+              "id": "fragment-create-name",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入接口名称",
+                "placeholder": "请输入 Fragment 名称",
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入接口名称"
+                "validationMessage": "请输入 Fragment 名称"
               }
             },
             "events": []
           },
           {
-            "labelName": "API 标识",
+            "labelName": "Fragment 标识",
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
             "editor": {
-              "id": "api-create-uuid",
+              "id": "fragment-create-uuid",
               "type": "MInput",
               "data": {
-                "placeholder": "例如 api_list_customers",
+                "placeholder": "例如 fragment_prepare_customer",
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入 API 标识"
-              }
-            },
-            "events": []
-          },
-          {
-            "labelName": "请求方法",
-            "variableName": "method",
-            "fieldDataType": "string",
-            "layout": "Horizontal",
-            "editor": {
-              "id": "api-create-method",
-              "type": "MSelectField",
-              "data": {
-                "placeholder": "请选择请求方法",
-                "value": "GET",
-                "required": true,
-                "options": [
-                  {
-                    "label": "GET",
-                    "value": "GET"
-                  },
-                  {
-                    "label": "POST",
-                    "value": "POST"
-                  }
-                ]
+                "validationMessage": "请输入 Fragment 标识"
               }
             },
             "events": []
@@ -154,15 +123,15 @@
       "events": []
     },
     {
-      "id": "mokelay-api-create-preview",
+      "id": "mokelay-fragment-create-preview",
       "type": "paragraph",
       "data": {
-        "text": "路径预览：/api/mokelay/{{blocks['api-create-uuid'].value}}"
+        "text": "Fragment 标识：{{blocks[\"fragment-create-uuid\"].value}}"
       },
       "events": []
     },
     {
-      "id": "mokelay-api-create-actions",
+      "id": "mokelay-fragment-create-actions",
       "type": "MActionToolbar",
       "data": {
         "align": "right",
@@ -176,9 +145,9 @@
                 "event": "click",
                 "actions": [
                   {
-                    "uuid": "mokelay_api_create_cancel",
+                    "uuid": "mokelay_fragment_create_cancel",
                     "action": "close_dialog",
-                    "alias": "取消新建 API",
+                    "alias": "取消新建 Fragment",
                     "inputs": {
                       "reason": "cancel"
                     },
@@ -201,32 +170,74 @@
                 "event": "click",
                 "actions": [
                   {
-                    "uuid": "mokelay_api_create_submit_form",
+                    "uuid": "mokelay_fragment_create_read_form",
                     "action": "call_block_method",
-                    "alias": "提交 API 表单",
+                    "alias": "读取 Fragment 表单",
                     "inputs": {
-                      "blockId": "mokelay-api-create-form",
+                      "blockId": "mokelay-fragment-create-form",
+                      "method": "getData"
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": "mokelay_fragment_create_normalize_uuid"
+                  },
+                  {
+                    "uuid": "mokelay_fragment_create_normalize_uuid",
+                    "action": "call_block_method",
+                    "alias": "规范 Fragment 标识",
+                    "inputs": {
+                      "blockId": "mokelay-fragment-create-form",
+                      "method": "setValues",
+                      "args": {
+                        "uuid": {
+                          "template": "{{actions['mokelay_fragment_create_read_form'].outputs.returnData.uuid}}",
+                          "processors": [
+                            "trim",
+                            {
+                              "processor": "random_id",
+                              "param": {
+                                "prefix": "fragment_",
+                                "length": 6,
+                                "when": "empty"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "outputs": [
+                      "returnData"
+                    ],
+                    "nextAction": "mokelay_fragment_create_submit_form"
+                  },
+                  {
+                    "uuid": "mokelay_fragment_create_submit_form",
+                    "action": "call_block_method",
+                    "alias": "提交 Fragment 表单",
+                    "inputs": {
+                      "blockId": "mokelay-fragment-create-form",
                       "method": "submit"
                     },
                     "outputs": [
                       "returnData"
                     ],
-                    "nextAction": "mokelay_api_create_if_valid"
+                    "nextAction": "mokelay_fragment_create_if_valid"
                   },
                   {
-                    "uuid": "mokelay_api_create_if_valid",
+                    "uuid": "mokelay_fragment_create_if_valid",
                     "action": "if_controller",
                     "alias": "判断表单是否有效",
                     "inputs": {
                       "value": {
-                        "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.valid}}"
+                        "template": "{{actions['mokelay_fragment_create_submit_form'].outputs.returnData.valid}}"
                       }
                     },
                     "nodes": [
                       {
                         "uuid": "true",
                         "value": true,
-                        "nextAction": "mokelay_api_create_execute_save"
+                        "nextAction": "mokelay_fragment_create_execute_save"
                       },
                       {
                         "uuid": "false",
@@ -237,9 +248,9 @@
                     "nextAction": null
                   },
                   {
-                    "uuid": "mokelay_api_create_execute_save",
+                    "uuid": "mokelay_fragment_create_execute_save",
                     "action": "execute_ds",
-                    "alias": "保存 API",
+                    "alias": "保存 Fragment",
                     "inputs": {
                       "dsConfig": {
                         "type": "API",
@@ -253,25 +264,14 @@
                             "key": "uuid",
                             "dataType": "string",
                             "value": {
-                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}",
-                              "processors": [
-                                "trim",
-                                {
-                                  "processor": "random_id",
-                                  "param": {
-                                    "prefix": "api_",
-                                    "length": 6,
-                                    "when": "empty"
-                                  }
-                                }
-                              ]
+                              "template": "{{actions['mokelay_fragment_create_normalize_uuid'].outputs.returnData.values.uuid}}"
                             }
                           },
                           {
                             "key": "name",
                             "dataType": "string",
                             "value": {
-                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}",
+                              "template": "{{actions['mokelay_fragment_create_submit_form'].outputs.returnData.values.name}}",
                               "processors": [
                                 "trim"
                               ]
@@ -280,12 +280,12 @@
                           {
                             "key": "method",
                             "dataType": "string",
-                            "value": {
-                              "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}",
-                              "processors": [
-                                "trim"
-                              ]
-                            }
+                            "value": "FRAGMENT"
+                          },
+                          {
+                            "key": "fragment",
+                            "dataType": "boolean",
+                            "value": true
                           },
                           {
                             "key": "status",
@@ -297,19 +297,13 @@
                             "dataType": "object",
                             "value": {
                               "uuid": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                                "template": "{{actions['mokelay_fragment_create_normalize_uuid'].outputs.returnData.values.uuid}}"
                               },
                               "alias": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}"
+                                "template": "{{actions['mokelay_fragment_create_submit_form'].outputs.returnData.values.name}}"
                               },
-                              "method": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}"
-                              },
-                              "request": {
-                                "header": [],
-                                "query": [],
-                                "body": []
-                              },
+                              "fragment": true,
+                              "params": [],
                               "blocks": [
                                 {
                                   "uuid": "starter",
@@ -331,12 +325,12 @@
                           {
                             "path": "data.api",
                             "type": "object",
-                            "label": "已保存 API"
+                            "label": "已保存 Fragment"
                           }
                         ],
                         "matchingExternalFields": [
                           {
-                            "label": "已保存 API",
+                            "label": "已保存 Fragment",
                             "variable": "api",
                             "matchFieldPath": "data.api"
                           }
@@ -347,17 +341,17 @@
                       "rawResponse",
                       "api"
                     ],
-                    "nextAction": "mokelay_api_create_close_dialog"
+                    "nextAction": "mokelay_fragment_create_close_dialog"
                   },
                   {
-                    "uuid": "mokelay_api_create_close_dialog",
+                    "uuid": "mokelay_fragment_create_close_dialog",
                     "action": "close_dialog",
-                    "alias": "关闭新建 API 弹窗",
+                    "alias": "关闭新建 Fragment 弹窗",
                     "inputs": {
                       "reason": "success",
                       "result": {
                         "api": {
-                          "template": "{{actions['mokelay_api_create_execute_save'].outputs.api}}"
+                          "template": "{{actions['mokelay_fragment_create_execute_save'].outputs.api}}"
                         }
                       }
                     },
@@ -366,15 +360,15 @@
                       "reason",
                       "result"
                     ],
-                    "nextAction": "mokelay_api_create_open_created_api"
+                    "nextAction": "mokelay_fragment_create_open_created_api"
                   },
                   {
-                    "uuid": "mokelay_api_create_open_created_api",
+                    "uuid": "mokelay_fragment_create_open_created_api",
                     "action": "jump_url",
-                    "alias": "打开新建 API",
+                    "alias": "打开新建 Fragment",
                     "inputs": {
                       "url": {
-                        "template": "#/apis/{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                        "template": "#/apis/{{actions['mokelay_fragment_create_execute_save'].outputs.api.uuid}}?fragment=true"
                       }
                     },
                     "outputs": [],

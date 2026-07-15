@@ -5,6 +5,7 @@ import type { DatabaseType } from 'mokelay-server-core/utils/db'
 import type { SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  createAiDslAssetSqlStore,
   executeSaveAiDslAssetsBlock,
   saveAiDslAssets,
   type AiDslAssetStore,
@@ -43,7 +44,7 @@ function generatedApi(uuid = 'api_list_customers', alias = '获取客户列表')
     alias,
     method: 'get',
     request: { query: [], body: [], header: [] },
-    blocks: [],
+    blocks: [{ uuid: 'starter', nextBlock: null }],
     response: null,
   }
 }
@@ -312,6 +313,142 @@ describe('saveAiDslAssets', () => {
     })
   })
 
+  it('blocks AI publishing when an executeFragment dependency is unavailable', async () => {
+    const statements: string[] = []
+    const executeSql = vi.fn(async (query: SQL) => {
+      const statement = new PgDialect().sqlToQuery(query).sql.toLowerCase()
+      statements.push(statement)
+      return { databaseType: 'postgres' as const, rows: [] }
+    }) as unknown as SqlExecutor
+    const store = createAiDslAssetSqlStore(executeSql, 'postgres')
+
+    const summary = await saveAiDslAssets({
+      apiStatus: 'published',
+      generationResult: {
+        apis: [{
+          uuid: 'ai_fragment_caller',
+          alias: 'AI Fragment caller',
+          method: 'POST',
+          request: { header: [], query: [], body: [] },
+          blocks: [
+            { uuid: 'starter', nextBlock: 'call_missing_fragment' },
+            {
+              uuid: 'call_missing_fragment',
+              functionName: 'executeFragment',
+              inputs: { fragmentUuid: 'missing_fragment', params: {} },
+              outputs: ['result'],
+              nextBlock: null,
+            },
+          ],
+          response: { result: { template: '{{blocks.call_missing_fragment.outputs.result}}' } },
+        }],
+      },
+    }, store)
+
+    expect(summary.apis[0]).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('API_JSON_INVALID_FLOW'),
+    })
+    expect(statements.some(statement => statement.startsWith('insert into "apis"'))).toBe(false)
+  })
+
+  it.each(['draft', 'published'] as const)('persists a same-batch Fragment before an earlier %s caller while preserving result order', async (apiStatus) => {
+    const { store, calls, apis } = fakeStore()
+    store.validateApi = async (api) => {
+      if (api.uuid === 'caller_before_fragment' && !apis.has('same_batch_fragment')) {
+        throw new Error('same-batch Fragment was not persisted before caller validation')
+      }
+    }
+
+    const summary = await saveAiDslAssets({
+      apiStatus,
+      generationResult: {
+        apis: [
+          {
+            uuid: 'caller_before_fragment',
+            alias: 'Caller before Fragment',
+            method: 'POST',
+            request: { header: [], query: [], body: [] },
+            blocks: [
+              { uuid: 'starter', nextBlock: 'call_same_batch_fragment' },
+              {
+                uuid: 'call_same_batch_fragment',
+                functionName: 'executeFragment',
+                inputs: { fragmentUuid: 'same_batch_fragment', params: { name: 'Mokelay' } },
+                outputs: ['result'],
+                nextBlock: null,
+              },
+            ],
+            response: { result: { template: '{{blocks.call_same_batch_fragment.outputs.result}}' } },
+          },
+          {
+            uuid: 'same_batch_fragment',
+            alias: 'Same batch Fragment',
+            fragment: true,
+            params: ['name'],
+            blocks: [{ uuid: 'starter', nextBlock: null }],
+            response: { name: { template: '{{params.name}}' } },
+          },
+        ],
+      },
+    }, store)
+
+    expect(summary).toMatchObject({
+      status: 'complete',
+      savedCount: 2,
+      failedCount: 0,
+      apis: [
+        { sourceUuid: 'caller_before_fragment', status: 'success' },
+        { sourceUuid: 'same_batch_fragment', status: 'success' },
+      ],
+      knownApiUuids: ['caller_before_fragment', 'same_batch_fragment'],
+    })
+    expect(calls.apis.map(call => call.uuid)).toEqual([
+      'same_batch_fragment',
+      'caller_before_fragment',
+    ])
+  })
+
+  it('blocks AI updates that try to convert a known Fragment into an endpoint', async () => {
+    const statements: string[] = []
+    const executeSql = vi.fn(async (query: SQL) => {
+      const statement = new PgDialect().sqlToQuery(query).sql.toLowerCase()
+      statements.push(statement)
+      if (statement.startsWith('select uuid from "apis"')) {
+        return { databaseType: 'postgres' as const, rows: [{ uuid: 'known_fragment' }] }
+      }
+      if (statement.includes('select uuid, fragment, status, api_json')) {
+        return {
+          databaseType: 'postgres' as const,
+          rows: [{ uuid: 'known_fragment', fragment: true, status: 'published', api_json: {} }],
+        }
+      }
+      return { databaseType: 'postgres' as const, rows: [] }
+    }) as unknown as SqlExecutor
+    const store = createAiDslAssetSqlStore(executeSql, 'postgres')
+
+    const summary = await saveAiDslAssets({
+      knownApiUuids: ['known_fragment'],
+      apiStatus: 'published',
+      generationResult: {
+        apis: [{
+          uuid: 'known_fragment',
+          alias: 'Illegal conversion',
+          method: 'GET',
+          request: { header: [], query: [], body: [] },
+          blocks: [{ uuid: 'starter', nextBlock: null }],
+          response: {},
+        }],
+      },
+    }, store)
+
+    expect(summary.apis[0]).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('API_JSON_INVALID_FLOW'),
+    })
+    expect(statements.some(statement => statement.startsWith('update "apis"'))).toBe(false)
+  })
+
   it.each([
     ['postgres', new PgDialect()],
     ['mysql', new MySqlDialect()],
@@ -341,6 +478,8 @@ describe('saveAiDslAssets', () => {
       executeSql,
       databaseType,
       withTransaction: async callback => await callback(executeSql),
+      processValue: async (value: unknown) => value,
+      invokeFragment: async () => ({}),
     })).resolves.toMatchObject({
       saveSummary: {
         status: 'complete',

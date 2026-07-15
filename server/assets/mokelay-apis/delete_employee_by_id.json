@@ -4,7 +4,17 @@
   "method": "POST",
   "request": {
     "body": [
-      "id"
+      {
+        "key": "id",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "regex",
+            "param": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          }
+        ]
+      }
     ]
   },
   "blocks": [
@@ -14,24 +24,46 @@
     },
     {
       "uuid": "delete_employee_block",
-      "alias": "删除员工 Block",
-      "functionName": "delete",
+      "alias": "删除员工及授权记录 Block",
+      "functionName": "cascadeDelete",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "employees",
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "id",
-            "fieldValue": {
-              "template": "{{request.body.id}}"
+        "root": {
+          "id": "employees",
+          "table": "employees",
+          "keyField": "id",
+          "conditions": [
+            {
+              "group": false,
+              "conditionType": "EQ",
+              "fieldName": "id",
+              "fieldValue": {
+                "template": "{{request.body.id}}"
+              }
             }
+          ]
+        },
+        "relations": [
+          {
+            "id": "employeeAuthIdentities",
+            "table": "employee_auth_identities",
+            "keyField": "id",
+            "parent": "employees",
+            "foreignKey": "employee_id"
           }
-        ]
+        ],
+        "collect": [],
+        "limits": {
+          "maxRootRows": 1,
+          "maxAffectedRows": 10000,
+          "maxCollectedRows": 10000
+        }
       },
       "outputs": [
-        "affected"
+        "affected",
+        "affectedByNode",
+        "totalAffected",
+        "collected"
       ],
       "nextBlock": null
     }

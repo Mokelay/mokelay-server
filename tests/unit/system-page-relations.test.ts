@@ -26,7 +26,7 @@ describe('system page dynamic quotes', () => {
     const [merged] = await mergeSystemPageRelations([page], executeSql)
     expect(merged).toMatchObject({
       subPage: true,
-      quotes: [userUuid, 'apis', 'mokelay_apis_user_page'],
+      quotes: [userUuid, 'mokelay_apis_user_page'],
     })
   })
 })

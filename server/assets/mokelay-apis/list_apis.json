@@ -5,7 +5,13 @@
   "request": {
     "query": [
       "page",
-      "pageSize"
+      "pageSize",
+      {
+        "key": "fragment",
+        "processors": [
+          "boolean_value"
+        ]
+      }
     ]
   },
   "blocks": [
@@ -24,6 +30,7 @@
           "uuid",
           "name",
           "method",
+          "fragment",
           "status",
           "created_at",
           "updated_at"
@@ -34,6 +41,17 @@
         "pageSize": {
           "template": "{{request.query.pageSize}}"
         },
+        "conditions": [
+          {
+            "group": false,
+            "optional": true,
+            "conditionType": "EQ",
+            "fieldName": "fragment",
+            "fieldValue": {
+              "template": "{{request.query.fragment}}"
+            }
+          }
+        ],
         "orderBy": [
           {
             "fieldName": "updated_at",

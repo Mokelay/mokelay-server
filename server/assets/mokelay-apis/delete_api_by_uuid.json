@@ -10,6 +10,21 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "assert_api_deletable_block"
+    },
+    {
+      "uuid": "assert_api_deletable_block",
+      "alias": "校验 API/Fragment 可删除",
+      "functionName": "assertApiDefinitionsDeletable",
+      "inputs": {
+        "datasource": "Mokelay",
+        "uuids": [
+          {
+            "template": "{{request.body.uuid}}"
+          }
+        ]
+      },
+      "outputs": [],
       "nextBlock": "delete_api_block"
     },
     {

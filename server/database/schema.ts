@@ -99,18 +99,22 @@ export const apis = pgTable('apis', {
   uuid: varchar('uuid', { length: 128 }).primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
   method: varchar('method', { length: 16 }).notNull(),
+  fragment: boolean('fragment').notNull().default(false),
   status: varchar('status', { length: 32 }).notNull().default('draft'),
   apiJson: jsonb('api_json').$type<Record<string, unknown>>().notNull(),
   layout: jsonb('layout').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  index('idx_apis_fragment_status').on(table.fragment, table.status),
+])
 
 export const apisSnapshot = pgTable('apis_snapshot', {
   id: uuid('id').primaryKey().defaultRandom(),
   apiUuid: varchar('api_uuid', { length: 128 }).notNull(),
   name: varchar('name', { length: 120 }).notNull(),
   method: varchar('method', { length: 16 }).notNull(),
+  fragment: boolean('fragment').notNull().default(false),
   status: varchar('status', { length: 32 }).notNull(),
   apiJson: jsonb('api_json').$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

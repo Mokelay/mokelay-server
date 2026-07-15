@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mokelay:schema:page-api-dsl:2",
   "title": "Mokelay Page and API DSL Schema",
-  "description": "AI 生成的 Mokelay 页面 DSL 与服务端 API DSL 基础结构。组件、Action、Processor、Block 和 Controller 的具体能力仍以运行时注入的 active 文档为准。",
+  "description": "AI 生成的 Mokelay 页面 DSL 与服务端 API DSL 基础结构。内置 API/Fragment 分别位于 mokelay-apis 根目录与 fragment 子目录，用户 API/Fragment 位于数据库；ExecuteFragment 只能引用同来源 Fragment。组件、Action、Processor、Block 和 Controller 的具体能力仍以运行时注入的 active 文档为准。",
   "oneOf": [
     {
       "$ref": "#/$defs/page"
@@ -288,7 +288,10 @@
         },
         "functionName": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "not": {
+            "const": "executeFragment"
+          }
         },
         "type": {
           "type": "string",
@@ -314,7 +317,45 @@
         },
         "nextBlock": {
           "$ref": "#/$defs/nextBlock"
+        },
+        "errorNextBlock": {
+          "$ref": "#/$defs/nextBlock"
         }
+      },
+      "additionalProperties": false
+    },
+    "executeFragmentBlock": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "functionName",
+        "inputs",
+        "outputs",
+        "nextBlock"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "minLength": 1,
+          "not": { "const": "starter" }
+        },
+        "alias": { "type": "string" },
+        "functionName": { "const": "executeFragment" },
+        "inputs": {
+          "type": "object",
+          "required": ["fragmentUuid", "params"],
+          "properties": {
+            "fragmentUuid": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            },
+            "params": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "outputs": { "const": ["result"] },
+        "nextBlock": { "$ref": "#/$defs/nextBlock" },
+        "errorNextBlock": { "$ref": "#/$defs/nextBlock" }
       },
       "additionalProperties": false
     },
@@ -396,6 +437,9 @@
           "$ref": "#/$defs/standardBlock"
         },
         {
+          "$ref": "#/$defs/executeFragmentBlock"
+        },
+        {
           "$ref": "#/$defs/controller"
         }
       ]
@@ -410,7 +454,19 @@
         }
       ]
     },
-    "api": {
+    "apiBlocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/orchestrationBlock"
+      },
+      "contains": {
+        "$ref": "#/$defs/starterBlock"
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "endpointApi": {
       "type": "object",
       "required": [
         "uuid",
@@ -436,17 +492,11 @@
         "request": {
           "$ref": "#/$defs/request"
         },
+        "fragment": {
+          "const": false
+        },
         "blocks": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/orchestrationBlock"
-          },
-          "contains": {
-            "$ref": "#/$defs/starterBlock"
-          },
-          "minContains": 1,
-          "maxContains": 1
+          "$ref": "#/$defs/apiBlocks"
         },
         "response": {
           "$ref": "#/$defs/response"
@@ -471,6 +521,75 @@
         }
       ],
       "additionalProperties": false
+    },
+    "fragmentResponse": {
+      "type": "object",
+      "minProperties": 1,
+      "not": {
+        "required": ["redirect"]
+      }
+    },
+    "fragmentApi": {
+      "type": "object",
+      "required": [
+        "uuid",
+        "alias",
+        "fragment",
+        "blocks"
+      ],
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+        },
+        "alias": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "fragment": {
+          "const": true
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processableKey"
+          }
+        },
+        "blocks": {
+          "$ref": "#/$defs/apiBlocks",
+          "not": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "functionName": { "const": "executeFragment" }
+              },
+              "required": ["functionName"]
+            }
+          }
+        },
+        "response": {
+          "$ref": "#/$defs/fragmentResponse"
+        },
+        "responses": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/fragmentResponse"
+          }
+        }
+      },
+      "anyOf": [
+        { "required": ["response"] },
+        { "required": ["responses"] }
+      ],
+      "additionalProperties": false
+    },
+    "api": {
+      "oneOf": [
+        { "$ref": "#/$defs/endpointApi" },
+        { "$ref": "#/$defs/fragmentApi" }
+      ]
     }
   },
   "x-mokelay-rules": [
@@ -480,7 +599,8 @@
     "MTabs 与 open_dialog 的 pageUUID/pageSource 必须是字面量；禁止模板、对象或其他动态目标。",
     "Page block 的 data、events 和 actions 必须遵守运行时注入的 active 客户端文档。",
     "API uuid 必须与 API 路径末尾一致；所有 Block 与 Controller uuid 必须唯一。",
-    "API 必须且只能有一个 starter；所有 nextBlock 必须引用存在的 Block，并且所有 Block 都必须可达。",
-    "每个 API 终点必须由 response 或 responses 覆盖；模板只能引用 request、blocks、actions、sourceBlock 或 now 中存在的数据。"
+    "API 必须且只能有一个 starter；所有 nextBlock/errorNextBlock 必须引用存在的 Block，并且所有 Block 都必须可达。配置 errorNextBlock 后，Block 抛错会沿该错误边继续；值为 null 时该 Block 成为错误终点。",
+    "每个 API 终点必须由 response 或 responses 覆盖；模板只能引用 request、blocks、actions、sourceBlock 或 now 中存在的数据。",
+    "Fragment 使用 fragment=true 和 params，禁止 method/request，不能包含 executeFragment，且每个终点必须返回非空、非 redirect object；Fragment 模板只能读取 params、blocks 和 now。"
   ]
 }

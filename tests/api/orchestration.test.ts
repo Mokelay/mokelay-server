@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http'
+import { readFile } from 'node:fs/promises'
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sql, type SQL } from 'drizzle-orm'
@@ -212,6 +213,7 @@ type PublicApi = {
   uuid: string
   name: string
   method: string
+  fragment: boolean
   status: string
   apiJson?: Record<string, unknown>
   layout?: Record<string, unknown>
@@ -223,6 +225,19 @@ type PublicApi = {
 
 type ApiResponse = {
   api: PublicApi | null
+}
+
+type DeleteEnterpriseResponse = {
+  affected: number
+  deleted: {
+    employeeAuthIdentities: number
+    datasources: number
+    employees: number
+    enterprises: number
+  }
+  schemas: string[]
+  dropped: number
+  message: string
 }
 
 type ApiListResponse = {
@@ -388,6 +403,18 @@ type EmployeeRow = {
   updated_at: string
 }
 
+type EmployeeAuthIdentityRow = {
+  id: string
+  employee_id: string
+  provider: string
+  provider_user_id: string
+  provider_email: string
+  email_verified: boolean
+  profile: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 type PageRow = {
   uuid: string
   name: string
@@ -421,6 +448,7 @@ type ApiRow = {
   uuid: string
   name: string
   method: string
+  fragment: boolean
   status: string
   api_json: Record<string, unknown>
   layout: Record<string, unknown>
@@ -433,6 +461,7 @@ type ApiSnapshotRow = {
   api_uuid: string
   name: string
   method: string
+  fragment: boolean
   status: string
   api_json: Record<string, unknown>
   created_at: string
@@ -453,6 +482,7 @@ type ApiBuilderSampleRow = {
 class FakeSqlExecutor {
   readonly enterprise: EnterpriseRow[] = []
   readonly employees: EmployeeRow[] = []
+  readonly employeeAuthIdentities: EmployeeAuthIdentityRow[] = []
   readonly users = this.employees
   readonly pages: PageRow[] = []
   readonly apps: AppRow[] = []
@@ -462,8 +492,11 @@ class FakeSqlExecutor {
   readonly apiSnapshots: ApiSnapshotRow[] = []
   readonly apiBuilderSamples: ApiBuilderSampleRow[] = []
   readonly datasources: string[] = []
+  readonly droppedSchemas: string[] = []
+  readonly queries: Array<{ datasource: string, sql: string, params: unknown[] }> = []
   failCreateSchemaAsDuplicate = false
   forceDatasourceUuidConflict = false
+  failOnSqlContaining = ''
 
   transaction: DatasourceTransactionRunner = async (datasource, callback) => {
     const snapshot = this.snapshotState()
@@ -491,12 +524,22 @@ class FakeSqlExecutor {
     const queryText = builtQuery.sql.replace(/\s+/g, ' ').trim()
     const params = builtQuery.params
 
+    this.queries.push({ datasource, sql: queryText, params })
+
+    if (this.failOnSqlContaining && queryText.includes(this.failOnSqlContaining)) {
+      throw new Error(`Forced SQL failure for test: ${this.failOnSqlContaining}`)
+    }
+
     if (queryText.startsWith('INSERT INTO "enterprise"')) {
       return this.result(databaseType, this.insertEnterprise<T>(queryText, params))
     }
 
     if (queryText.startsWith('CREATE SCHEMA ')) {
       return this.result(databaseType, this.createSchema<T>(queryText))
+    }
+
+    if (queryText.startsWith('DROP SCHEMA IF EXISTS ')) {
+      return this.result(databaseType, this.dropSchema<T>(queryText))
     }
 
     if (queryText.startsWith('INSERT INTO "employees"') || queryText.startsWith('INSERT INTO "users"')) {
@@ -567,6 +610,10 @@ class FakeSqlExecutor {
         return this.result(databaseType, this.selectEnterprise<T>(queryText, params))
       }
 
+      if (queryText.includes('FROM "employee_auth_identities"')) {
+        return this.result(databaseType, this.selectEmployeeAuthIdentities<T>(queryText, params))
+      }
+
       if (queryText.includes('FROM "datasources"')) {
         return this.result(databaseType, this.selectDatasourceRows<T>(queryText, params))
       }
@@ -614,6 +661,18 @@ class FakeSqlExecutor {
       return this.result(databaseType, this.deleteEmployees<T>(queryText, params))
     }
 
+    if (queryText.startsWith('DELETE FROM "employee_auth_identities"')) {
+      return this.result(databaseType, this.deleteEmployeeAuthIdentities<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('DELETE FROM "datasources"')) {
+      return this.result(databaseType, this.deleteDatasourceRows<T>(queryText, params))
+    }
+
+    if (queryText.startsWith('DELETE FROM "enterprise"')) {
+      return this.result(databaseType, this.deleteEnterprise<T>(queryText, params))
+    }
+
     if (queryText.startsWith('DELETE FROM "apis"')) {
       return this.result(databaseType, this.deleteApis<T>(queryText, params))
     }
@@ -630,6 +689,7 @@ class FakeSqlExecutor {
     return structuredClone({
       enterprise: this.enterprise,
       employees: this.employees,
+      employeeAuthIdentities: this.employeeAuthIdentities,
       pages: this.pages,
       apps: this.apps,
       datasourceRows: this.datasourceRows,
@@ -637,6 +697,7 @@ class FakeSqlExecutor {
       apis: this.apis,
       apiSnapshots: this.apiSnapshots,
       apiBuilderSamples: this.apiBuilderSamples,
+      droppedSchemas: this.droppedSchemas,
     })
   }
 
@@ -644,6 +705,7 @@ class FakeSqlExecutor {
     const restore = <T>(target: T[], source: T[]) => target.splice(0, target.length, ...source)
     restore(this.enterprise, snapshot.enterprise)
     restore(this.employees, snapshot.employees)
+    restore(this.employeeAuthIdentities, snapshot.employeeAuthIdentities)
     restore(this.pages, snapshot.pages)
     restore(this.apps, snapshot.apps)
     restore(this.datasourceRows, snapshot.datasourceRows)
@@ -651,6 +713,7 @@ class FakeSqlExecutor {
     restore(this.apis, snapshot.apis)
     restore(this.apiSnapshots, snapshot.apiSnapshots)
     restore(this.apiBuilderSamples, snapshot.apiBuilderSamples)
+    restore(this.droppedSchemas, snapshot.droppedSchemas)
   }
 
   private result<T extends Record<string, unknown>>(
@@ -800,6 +863,17 @@ class FakeSqlExecutor {
     return [] as T[]
   }
 
+  private dropSchema<T extends Record<string, unknown>>(queryText: string) {
+    const schemaName = /^DROP SCHEMA IF EXISTS "([^"]+)" CASCADE$/.exec(queryText)?.[1]
+
+    if (!schemaName) {
+      throw new Error(`Unsupported DROP SCHEMA in test fake: ${queryText}`)
+    }
+
+    this.droppedSchemas.push(schemaName)
+    return [] as T[]
+  }
+
   private upsertApi<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const columns = this.insertColumns(queryText, 'apis')
     const now = new Date().toISOString()
@@ -807,6 +881,7 @@ class FakeSqlExecutor {
       uuid: '',
       name: '',
       method: 'GET',
+      fragment: false,
       status: 'draft',
       api_json: {},
       layout: {},
@@ -824,6 +899,7 @@ class FakeSqlExecutor {
       Object.assign(existing, {
         name: nextRow.name,
         method: nextRow.method,
+        fragment: nextRow.fragment,
         status: nextRow.status,
         api_json: nextRow.api_json,
         layout: nextRow.layout,
@@ -846,6 +922,7 @@ class FakeSqlExecutor {
       api_uuid: '',
       name: '',
       method: 'GET',
+      fragment: false,
       status: 'draft',
       api_json: {},
       created_at: now,
@@ -861,15 +938,13 @@ class FakeSqlExecutor {
   }
 
   private selectEnterprise<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const fields = this.selectFields(queryText)
     const enterprise = this.filterEnterprise(queryText, params)
     const rows = queryText.includes(' LIMIT 1') ? enterprise.slice(0, 1) : enterprise
 
-    return rows.map((row) => this.projectFields(row, fields)) as T[]
+    return rows.map((row) => this.projectSelectedRow(row, queryText)) as T[]
   }
 
   private selectEmployees<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const fields = this.selectFields(queryText)
     const employees = this.filterEmployees(queryText, params)
     const rows = queryText.includes(' OFFSET ')
       ? employees.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
@@ -877,7 +952,12 @@ class FakeSqlExecutor {
         ? employees.slice(0, 1)
         : employees
 
-    return rows.map((row) => this.projectFields(row, fields)) as T[]
+    return rows.map((row) => this.projectSelectedRow(row, queryText)) as T[]
+  }
+
+  private selectEmployeeAuthIdentities<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    return this.filterEmployeeAuthIdentities(queryText, params)
+      .map((row) => this.projectSelectedRow(row, queryText)) as T[]
   }
 
   private selectPages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -914,18 +994,23 @@ class FakeSqlExecutor {
   }
 
   private selectDatasourceRows<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const fields = this.selectFields(queryText)
     const datasourceRows = this.filterDatasourceRows(queryText, params)
     const sortedRows = queryText.includes('ORDER BY "id" DESC')
       ? datasourceRows.sort((first, second) => second.id - first.id)
-      : datasourceRows
+      : queryText.includes('ORDER BY "uuid" ASC')
+        ? datasourceRows.sort((first, second) => first.uuid.localeCompare(second.uuid))
+        : datasourceRows
     const rows = queryText.includes(' OFFSET ')
       ? sortedRows.slice(Number(params.at(-1) ?? 0), Number(params.at(-1) ?? 0) + Number(params.at(-2) ?? 1))
       : queryText.includes(' LIMIT 1')
         ? sortedRows.slice(0, 1)
         : sortedRows
 
-    return rows.map((row) => this.projectFields(row, fields)) as T[]
+    if (queryText.startsWith('SELECT "uuid" AS "schema_name"')) {
+      return rows.map(row => ({ schema_name: row.uuid })) as unknown as T[]
+    }
+
+    return rows.map((row) => this.projectSelectedRow(row, queryText)) as T[]
   }
 
   private selectApis<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
@@ -1061,6 +1146,35 @@ class FakeSqlExecutor {
     return employees.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
+  private deleteEmployeeAuthIdentities<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const deleted = this.filterEmployeeAuthIdentities(queryText, params)
+    const ids = new Set(deleted.map(identity => identity.id))
+    for (let index = this.employeeAuthIdentities.length - 1; index >= 0; index -= 1) {
+      if (ids.has(this.employeeAuthIdentities[index]?.id ?? '')) {
+        this.employeeAuthIdentities.splice(index, 1)
+      }
+    }
+    return deleted.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
+  private deleteDatasourceRows<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const datasources = this.filterDatasourceRows(queryText, params)
+    const uuids = new Set(datasources.map(datasource => datasource.uuid))
+    for (let index = this.datasourceRows.length - 1; index >= 0; index -= 1) {
+      if (uuids.has(this.datasourceRows[index]?.uuid ?? '')) this.datasourceRows.splice(index, 1)
+    }
+    return datasources.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
+  private deleteEnterprise<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const enterprises = this.filterEnterprise(queryText, params)
+    const uuids = new Set(enterprises.map(enterprise => enterprise.uuid))
+    for (let index = this.enterprise.length - 1; index >= 0; index -= 1) {
+      if (uuids.has(this.enterprise[index]?.uuid ?? '')) this.enterprise.splice(index, 1)
+    }
+    return enterprises.map(() => ({ affected_marker: 1 })) as unknown as T[]
+  }
+
   private selectFields(queryText: string) {
     const fieldMatch = /^SELECT (.*?) FROM /.exec(queryText)
     return fieldMatch?.[1]?.match(/"([^"]+)"/g)?.map((field) => field.replaceAll('"', '')) ?? []
@@ -1068,6 +1182,17 @@ class FakeSqlExecutor {
 
   private projectFields(row: Record<string, unknown>, fields: string[]) {
     return Object.fromEntries(fields.map((field) => [field, row[field]]))
+  }
+
+  private projectSelectedRow(row: Record<string, unknown>, queryText: string) {
+    const selectClause = /^SELECT (.*?) FROM /.exec(queryText)?.[1] ?? ''
+    const aliases = Array.from(selectClause.matchAll(/"([^"]+)" AS "([^"]+)"/g))
+
+    if (aliases.length > 0) {
+      return Object.fromEntries(aliases.map(([, field, alias]) => [alias!, row[field!]]))
+    }
+
+    return this.projectFields(row, this.selectFields(queryText))
   }
 
   private projectReturning(row: Record<string, unknown>, queryText: string) {
@@ -1101,8 +1226,15 @@ class FakeSqlExecutor {
       return [...this.enterprise]
     }
 
+    const filterParams = this.filterParams(queryText, params)
+
+    if (queryText.includes('"uuid" IN')) {
+      const uuids = new Set(filterParams.map(String))
+      return this.enterprise.filter((item) => uuids.has(item.uuid))
+    }
+
     if (queryText.includes('"uuid" =')) {
-      const uuid = params.at(-1)
+      const uuid = filterParams.at(-1)
       return this.enterprise.filter((item) => item.uuid === uuid)
     }
 
@@ -1124,8 +1256,20 @@ class FakeSqlExecutor {
       return [...this.employees]
     }
 
+    const filterParams = this.filterParams(queryText, params)
+
+    if (queryText.includes('"id" IN')) {
+      const ids = new Set(filterParams.map(String))
+      return this.employees.filter((employee) => ids.has(employee.id))
+    }
+
+    if (queryText.includes('"enterprise_uuid" IN')) {
+      const enterpriseUuids = new Set(filterParams.map(String))
+      return this.employees.filter((employee) => enterpriseUuids.has(employee.enterprise_uuid))
+    }
+
     if (queryText.includes('"id" =')) {
-      const id = params.at(-1)
+      const id = filterParams.at(-1)
       return this.employees.filter((employee) => employee.id === id)
     }
 
@@ -1154,11 +1298,37 @@ class FakeSqlExecutor {
       ))
     }
 
-    if (queryText.includes('"id" IN')) {
-      return this.employees.filter((employee) => params.includes(employee.id))
+    return [...this.employees]
+  }
+
+  private filterEmployeeAuthIdentities(queryText: string, params: unknown[]) {
+    if (!queryText.includes(' WHERE ')) {
+      return [...this.employeeAuthIdentities]
     }
 
-    return [...this.employees]
+    const filterParams = this.filterParams(queryText, params)
+
+    if (queryText.includes('"id" IN')) {
+      const ids = new Set(filterParams.map(String))
+      return this.employeeAuthIdentities.filter(identity => ids.has(identity.id))
+    }
+
+    if (queryText.includes('"employee_id" IN')) {
+      const employeeIds = new Set(filterParams.map(String))
+      return this.employeeAuthIdentities.filter(identity => employeeIds.has(identity.employee_id))
+    }
+
+    if (queryText.includes('"id" =')) {
+      const id = filterParams.at(-1)
+      return this.employeeAuthIdentities.filter(identity => identity.id === id)
+    }
+
+    if (queryText.includes('"employee_id" =')) {
+      const employeeId = filterParams.at(-1)
+      return this.employeeAuthIdentities.filter(identity => identity.employee_id === employeeId)
+    }
+
+    return [...this.employeeAuthIdentities]
   }
 
   private filterPages(queryText: string, params: unknown[]) {
@@ -1222,8 +1392,22 @@ class FakeSqlExecutor {
       return [...this.datasourceRows]
     }
 
+    const filterParams = this.filterParams(queryText, params)
+
+    if (queryText.includes('"id" IN')) {
+      const ids = new Set(filterParams.map(Number))
+      return this.datasourceRows.filter((datasource) => ids.has(datasource.id))
+    }
+
+    if (queryText.includes('"enterprise_uuid" IN')) {
+      const enterpriseUuids = new Set(filterParams.map(String))
+      return this.datasourceRows.filter((datasource) => (
+        datasource.enterprise_uuid !== null && enterpriseUuids.has(datasource.enterprise_uuid)
+      ))
+    }
+
     if (queryText.includes('"id" =')) {
-      const id = Number(params.at(-1))
+      const id = Number(filterParams.at(-1))
       return this.datasourceRows.filter((datasource) => datasource.id === id)
     }
 
@@ -1249,6 +1433,14 @@ class FakeSqlExecutor {
     }
 
     return [...this.datasourceRows]
+  }
+
+  private filterParams(queryText: string, params: unknown[]) {
+    const postgresLimit = / LIMIT \$(\d+)/.exec(queryText)
+    if (!postgresLimit) return params
+
+    const limitParamIndex = Number(postgresLimit[1]) - 1
+    return params.filter((_value, index) => index !== limitParamIndex)
   }
 
   private filterApis(queryText: string, params: unknown[]) {
@@ -1459,6 +1651,185 @@ function configureApiR2Env() {
   process.env.MOKELAY_APIS_R2_PREFIX = 'mokelay-apis'
 }
 
+const oauthFixtureUser = {
+  id: '00000000-0000-4000-8000-000000000123',
+  enterprise_uuid: '00000000-0000-4000-8000-000000000456',
+  enterprise_name: 'OAuth Enterprise',
+  name: 'OAuth User',
+  email: 'oauth@mokelay.test',
+  plan: 'free',
+}
+
+const oauthCallbackFixtureAllowedOutputs = [
+  'user',
+  'isNewUser',
+  'linkedIdentity',
+  'provider',
+  'redirectUrl',
+  'errorCode',
+  'requiresRegistration',
+  'registration',
+]
+
+function oauthCallbackFixtureOutputs() {
+  return {
+    user: null,
+    isNewUser: true,
+    linkedIdentity: null,
+    provider: 'google',
+    redirectUrl: '/dashboard',
+    errorCode: null,
+    requiresRegistration: true,
+    registration: {
+      enterpriseName: oauthFixtureUser.enterprise_name,
+      name: oauthFixtureUser.name,
+      email: oauthFixtureUser.email,
+      passwordHash: 'oauth-password-hash',
+      provider: 'google',
+      providerUserId: 'google-user-id',
+      providerEmail: oauthFixtureUser.email,
+      emailVerified: true,
+      profile: {},
+    },
+  }
+}
+
+function successfulProvisionFragmentFixture() {
+  return {
+    uuid: 'provision_new_user',
+    fragment: true,
+    params: ['enterprise_name', 'name', 'email', 'password_hash'],
+    blocks: [{ uuid: 'starter', nextBlock: null }],
+    response: {
+      user: structuredClone(oauthFixtureUser),
+      free_datasource_uuid: 'e_oauth_fixture',
+    },
+  }
+}
+
+const enterpriseCleanupTargetUuid = '11111111-1111-4111-8111-111111111111'
+const enterpriseCleanupSurvivorUuid = '22222222-2222-4222-8222-222222222222'
+
+function seedEnterpriseCleanupFixture(fakeSqlExecutor: FakeSqlExecutor, includeRelations = true) {
+  const timestamp = '2026-07-15T00:00:00.000Z'
+  const targetEmployeeIds = [
+    '33333333-3333-4333-8333-333333333333',
+    '44444444-4444-4444-8444-444444444444',
+  ]
+  const survivorEmployeeId = '55555555-5555-4555-8555-555555555555'
+
+  fakeSqlExecutor.enterprise.push(
+    { id: 10, uuid: enterpriseCleanupTargetUuid, name: '待删除企业' },
+    { id: 11, uuid: enterpriseCleanupSurvivorUuid, name: '保留企业' },
+  )
+  fakeSqlExecutor.employees.push({
+    id: survivorEmployeeId,
+    enterprise_uuid: enterpriseCleanupSurvivorUuid,
+    name: 'Survivor',
+    email: 'survivor@mokelay.test',
+    password_hash: 'hashed:survivor',
+    plan: 'free',
+    created_at: timestamp,
+    updated_at: timestamp,
+  })
+  fakeSqlExecutor.employeeAuthIdentities.push({
+    id: '66666666-6666-4666-8666-666666666666',
+    employee_id: survivorEmployeeId,
+    provider: 'google',
+    provider_user_id: 'survivor-google',
+    provider_email: 'survivor@mokelay.test',
+    email_verified: true,
+    profile: {},
+    created_at: timestamp,
+    updated_at: timestamp,
+  })
+  fakeSqlExecutor.datasourceRows.push({
+    id: 30,
+    uuid: 'e_keep',
+    alias: '保留数据源',
+    description: '',
+    enterprise_uuid: enterpriseCleanupSurvivorUuid,
+    schema_data: [],
+  })
+
+  if (includeRelations) {
+    fakeSqlExecutor.employees.push(...targetEmployeeIds.map((id, index) => ({
+      id,
+      enterprise_uuid: enterpriseCleanupTargetUuid,
+      name: `Target ${index + 1}`,
+      email: `target-${index + 1}@mokelay.test`,
+      password_hash: `hashed:target-${index + 1}`,
+      plan: 'free',
+      created_at: timestamp,
+      updated_at: timestamp,
+    })))
+    fakeSqlExecutor.employeeAuthIdentities.push(...targetEmployeeIds.map((employeeId, index) => ({
+      id: `77777777-7777-4777-8777-77777777777${index}`,
+      employee_id: employeeId,
+      provider: index === 0 ? 'github' : 'google',
+      provider_user_id: `target-provider-${index + 1}`,
+      provider_email: `target-${index + 1}@mokelay.test`,
+      email_verified: true,
+      profile: {},
+      created_at: timestamp,
+      updated_at: timestamp,
+    })))
+    fakeSqlExecutor.datasourceRows.push(
+      {
+        id: 31,
+        uuid: 'e_alpha',
+        alias: 'Alpha',
+        description: '',
+        enterprise_uuid: enterpriseCleanupTargetUuid,
+        schema_data: [],
+      },
+      {
+        id: 32,
+        uuid: 'e_beta',
+        alias: 'Beta',
+        description: '',
+        enterprise_uuid: enterpriseCleanupTargetUuid,
+        schema_data: [],
+      },
+    )
+  }
+
+  return { targetEmployeeIds, survivorEmployeeId }
+}
+
+async function readApiAssetFixture(uuid: string) {
+  return JSON.parse(await readFile(
+    new URL(`../../server/assets/mokelay-apis/${uuid}.json`, import.meta.url),
+    'utf8',
+  )) as Record<string, unknown>
+}
+
+async function googleCallbackFixture(options: {
+  linkFunctionName?: string
+  sessionFunctionName?: string
+} = {}) {
+  const apiJson = await readApiAssetFixture('oauth_google_callback')
+  if (!Array.isArray(apiJson.blocks)) throw new Error('Google callback fixture has no blocks.')
+
+  const callbackBlock = apiJson.blocks.find(block => isRecord(block) && block.functionName === 'oauthCallback')
+  if (!isRecord(callbackBlock)) throw new Error('Google callback fixture has no oauthCallback Block.')
+  callbackBlock.functionName = 'oauthCallbackFixture'
+  callbackBlock.inputs = {}
+
+  if (options.linkFunctionName) {
+    const linkBlock = apiJson.blocks.find(block => isRecord(block) && block.functionName === 'linkOAuthIdentity')
+    if (!isRecord(linkBlock)) throw new Error('Google callback fixture has no linkOAuthIdentity Block.')
+    linkBlock.functionName = options.linkFunctionName
+  }
+  if (options.sessionFunctionName) {
+    const sessionBlock = apiJson.blocks.find(block => isRecord(block) && block.functionName === 'addSession')
+    if (!isRecord(sessionBlock)) throw new Error('Google callback fixture has no addSession Block.')
+    sessionBlock.functionName = options.sessionFunctionName
+  }
+
+  return apiJson
+}
+
 async function postJson(baseUrl: string, apiJsonUuid: string, body: Record<string, unknown>, query = '') {
   return await fetch(`${baseUrl}/api/mokelay/${apiJsonUuid}${query}`, {
     method: 'POST',
@@ -1618,6 +1989,203 @@ describe('mokelay orchestration API', () => {
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay']))
   })
 
+  it('deletes an enterprise dependency graph before dropping its free schemas', async () => {
+    const { survivorEmployeeId } = seedEnterpriseCleanupFixture(fakeSqlExecutor)
+
+    const response = await postJson(testServer.baseUrl, 'delete_enterprise_by_uuid', {
+      uuid: enterpriseCleanupTargetUuid,
+    })
+    const body = await readMokelayData<DeleteEnterpriseResponse>(response)
+
+    expect(body).toEqual({
+      affected: 1,
+      deleted: {
+        employeeAuthIdentities: 2,
+        datasources: 2,
+        employees: 2,
+        enterprises: 1,
+      },
+      schemas: ['e_alpha', 'e_beta'],
+      dropped: 2,
+      message: '删除成功',
+    })
+    expect(fakeSqlExecutor.enterprise).toEqual([
+      { id: 11, uuid: enterpriseCleanupSurvivorUuid, name: '保留企业' },
+    ])
+    expect(fakeSqlExecutor.employees.map(employee => employee.id)).toEqual([survivorEmployeeId])
+    expect(fakeSqlExecutor.employeeAuthIdentities.map(identity => identity.employee_id)).toEqual([survivorEmployeeId])
+    expect(fakeSqlExecutor.datasourceRows.map(datasource => datasource.uuid)).toEqual(['e_keep'])
+    expect(fakeSqlExecutor.droppedSchemas).toEqual(['e_alpha', 'e_beta'])
+
+    const cleanupQueries = fakeSqlExecutor.queries
+    const firstDeleteIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DELETE FROM'))
+    const authDeleteIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DELETE FROM "employee_auth_identities"'))
+    const datasourceDeleteIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DELETE FROM "datasources"'))
+    const employeeDeleteIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DELETE FROM "employees"'))
+    const enterpriseDeleteIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DELETE FROM "enterprise"'))
+    const firstSchemaDropIndex = cleanupQueries.findIndex(query => query.sql.startsWith('DROP SCHEMA'))
+
+    const preDeleteQueries = cleanupQueries.slice(0, firstDeleteIndex)
+    expect(preDeleteQueries).toHaveLength(4)
+    expect(preDeleteQueries.every(query => (
+      query.datasource === 'Mokelay' && query.sql.startsWith('SELECT')
+    ))).toBe(true)
+    expect(authDeleteIndex).toBeGreaterThan(firstDeleteIndex - 1)
+    expect(employeeDeleteIndex).toBeGreaterThan(authDeleteIndex)
+    expect(datasourceDeleteIndex).toBeGreaterThan(firstDeleteIndex - 1)
+    expect(enterpriseDeleteIndex).toBeGreaterThan(employeeDeleteIndex)
+    expect(enterpriseDeleteIndex).toBeGreaterThan(datasourceDeleteIndex)
+    expect(firstSchemaDropIndex).toBeGreaterThan(enterpriseDeleteIndex)
+    expect(cleanupQueries.slice(firstSchemaDropIndex).map(query => `${query.datasource}:${query.sql}`)).toEqual([
+      'MokelayFree:DROP SCHEMA IF EXISTS "e_alpha" CASCADE',
+      'MokelayFree:DROP SCHEMA IF EXISTS "e_beta" CASCADE',
+    ])
+  })
+
+  it('deletes an enterprise without related records and skips schema transactions', async () => {
+    seedEnterpriseCleanupFixture(fakeSqlExecutor, false)
+
+    const response = await postJson(testServer.baseUrl, 'delete_enterprise_by_uuid', {
+      uuid: enterpriseCleanupTargetUuid,
+    })
+    const body = await readMokelayData<DeleteEnterpriseResponse>(response)
+
+    expect(body).toEqual({
+      affected: 1,
+      deleted: {
+        employeeAuthIdentities: 0,
+        datasources: 0,
+        employees: 0,
+        enterprises: 1,
+      },
+      schemas: [],
+      dropped: 0,
+      message: '删除成功',
+    })
+    expect(fakeSqlExecutor.enterprise.map(enterprise => enterprise.uuid)).toEqual([enterpriseCleanupSurvivorUuid])
+    expect(fakeSqlExecutor.droppedSchemas).toEqual([])
+    expect(fakeSqlExecutor.queries.some(query => query.datasource === 'MokelayFree')).toBe(false)
+  })
+
+  it('deletes employee auth identities before deleting their employee', async () => {
+    const { targetEmployeeIds, survivorEmployeeId } = seedEnterpriseCleanupFixture(fakeSqlExecutor)
+    const targetEmployeeId = targetEmployeeIds[0]!
+    const otherTargetEmployeeId = targetEmployeeIds[1]!
+
+    const response = await postJson(testServer.baseUrl, 'delete_employee_by_id', {
+      id: targetEmployeeId,
+    })
+    const body = await readMokelayData<{ affected: number, message: string }>(response)
+
+    expect(body).toEqual({ affected: 1, message: '删除成功' })
+    expect(fakeSqlExecutor.employees.map(employee => employee.id)).toEqual([
+      survivorEmployeeId,
+      otherTargetEmployeeId,
+    ])
+    expect(fakeSqlExecutor.employeeAuthIdentities.map(identity => identity.employee_id)).toEqual([
+      survivorEmployeeId,
+      otherTargetEmployeeId,
+    ])
+
+    const authDeleteIndex = fakeSqlExecutor.queries.findIndex(query => (
+      query.sql.startsWith('DELETE FROM "employee_auth_identities"')
+    ))
+    const employeeDeleteIndex = fakeSqlExecutor.queries.findIndex(query => (
+      query.sql.startsWith('DELETE FROM "employees"')
+    ))
+    expect(authDeleteIndex).toBeGreaterThan(-1)
+    expect(employeeDeleteIndex).toBeGreaterThan(authDeleteIndex)
+  })
+
+  it('keeps committed metadata deletion when the later schema cleanup transaction fails', async () => {
+    const { survivorEmployeeId } = seedEnterpriseCleanupFixture(fakeSqlExecutor)
+    fakeSqlExecutor.failOnSqlContaining = 'DROP SCHEMA'
+
+    const response = await postJson(testServer.baseUrl, 'delete_enterprise_by_uuid', {
+      uuid: enterpriseCleanupTargetUuid,
+    })
+
+    await expectMokelayError(response, 'INTERNAL_ERROR')
+    expect(fakeSqlExecutor.enterprise).toEqual([
+      { id: 11, uuid: enterpriseCleanupSurvivorUuid, name: '保留企业' },
+    ])
+    expect(fakeSqlExecutor.employees.map(employee => employee.id)).toEqual([survivorEmployeeId])
+    expect(fakeSqlExecutor.employeeAuthIdentities.map(identity => identity.employee_id)).toEqual([survivorEmployeeId])
+    expect(fakeSqlExecutor.datasourceRows.map(datasource => datasource.uuid)).toEqual(['e_keep'])
+    expect(fakeSqlExecutor.droppedSchemas).toEqual([])
+  })
+
+  it('rejects reserved tenant schema names before deleting enterprise metadata', async () => {
+    seedEnterpriseCleanupFixture(fakeSqlExecutor)
+    const unsafeDatasource = fakeSqlExecutor.datasourceRows.find(datasource => (
+      datasource.enterprise_uuid === enterpriseCleanupTargetUuid
+    ))!
+    unsafeDatasource.uuid = 'PUBLIC'
+    const before = structuredClone({
+      enterprise: fakeSqlExecutor.enterprise,
+      employees: fakeSqlExecutor.employees,
+      employeeAuthIdentities: fakeSqlExecutor.employeeAuthIdentities,
+      datasourceRows: fakeSqlExecutor.datasourceRows,
+    })
+
+    const response = await postJson(testServer.baseUrl, 'delete_enterprise_by_uuid', {
+      uuid: enterpriseCleanupTargetUuid,
+    })
+
+    await expectMokelayError(response, 'PROCESSOR_VALIDATION_FAILED')
+    expect({
+      enterprise: fakeSqlExecutor.enterprise,
+      employees: fakeSqlExecutor.employees,
+      employeeAuthIdentities: fakeSqlExecutor.employeeAuthIdentities,
+      datasourceRows: fakeSqlExecutor.datasourceRows,
+    }).toEqual(before)
+    expect(fakeSqlExecutor.queries.some(query => query.sql.startsWith('DELETE FROM'))).toBe(false)
+    expect(fakeSqlExecutor.queries.some(query => query.sql.startsWith('DROP SCHEMA'))).toBe(false)
+  })
+
+  it('rolls back every enterprise record deletion and never drops schemas when cleanup fails', async () => {
+    seedEnterpriseCleanupFixture(fakeSqlExecutor)
+    const before = structuredClone({
+      enterprise: fakeSqlExecutor.enterprise,
+      employees: fakeSqlExecutor.employees,
+      employeeAuthIdentities: fakeSqlExecutor.employeeAuthIdentities,
+      datasourceRows: fakeSqlExecutor.datasourceRows,
+    })
+    fakeSqlExecutor.failOnSqlContaining = 'DELETE FROM "employees"'
+
+    const response = await postJson(testServer.baseUrl, 'delete_enterprise_by_uuid', {
+      uuid: enterpriseCleanupTargetUuid,
+    })
+
+    await expectMokelayError(response, 'INTERNAL_ERROR')
+    expect({
+      enterprise: fakeSqlExecutor.enterprise,
+      employees: fakeSqlExecutor.employees,
+      employeeAuthIdentities: fakeSqlExecutor.employeeAuthIdentities,
+      datasourceRows: fakeSqlExecutor.datasourceRows,
+    }).toEqual(before)
+    expect(fakeSqlExecutor.droppedSchemas).toEqual([])
+    expect(fakeSqlExecutor.queries.some(query => query.sql.startsWith('DROP SCHEMA'))).toBe(false)
+  })
+
+  it('lists and reads nested built-in Fragments only when fragment=true', async () => {
+    const rootListResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_mokelay_api_jsons`)
+    const rootList = await readMokelayData<{ apis: Array<Record<string, unknown>>, count: number }>(rootListResponse)
+    const fragmentListResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_mokelay_api_jsons?fragment=true`)
+    const fragmentList = await readMokelayData<{ apis: Array<Record<string, unknown>>, count: number }>(fragmentListResponse)
+    const fragmentReadResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_mokelay_api_json?uuid=provision_new_user&fragment=true`)
+    const fragmentRead = await readMokelayData<{ api: Record<string, unknown> }>(fragmentReadResponse)
+    const rootReadResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_mokelay_api_json?uuid=provision_new_user`)
+
+    expect(rootList.apis.some(api => api.uuid === 'provision_new_user')).toBe(false)
+    expect(fragmentList).toEqual({
+      apis: [expect.objectContaining({ uuid: 'provision_new_user', fragment: true })],
+      count: 1,
+    })
+    expect(fragmentRead.api).toMatchObject({ uuid: 'provision_new_user', fragment: true })
+    await expectMokelayError(rootReadResponse, 'API_JSON_NOT_FOUND')
+  })
+
   it('executes the stored register API JSON with request, output, and session processors', async () => {
     const response = await postJson(testServer.baseUrl, 'register', {
       enterprise_name: '  Register Enterprise  ',
@@ -1656,6 +2224,7 @@ describe('mokelay orchestration API', () => {
       schema_data: [],
     })
     expect(new Set(fakeSqlExecutor.datasources)).toEqual(new Set(['Mokelay', 'MokelayFree']))
+    expect(fakeSqlExecutor.apis.some(api => api.uuid === 'provision_new_user')).toBe(false)
   })
 
   it('stops stored register when the output processor detects a duplicate email', async () => {
@@ -1823,6 +2392,202 @@ describe('mokelay orchestration API', () => {
     expect(logoutResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
     expect(logoutResponse.headers.get('set-cookie')).toContain('Max-Age=0')
     expect(logoutBody).toEqual({ ok: true })
+  })
+
+  it('redirects Google OAuth Fragment provisioning failures through errorNextBlock', async () => {
+    const googleCallback = await googleCallbackFixture()
+
+    const fragmentFixture = {
+      uuid: 'provision_new_user',
+      fragment: true,
+      params: ['enterprise_name', 'name', 'email', 'password_hash'],
+      blocks: [
+        { uuid: 'starter', nextBlock: 'fail_oauth_registration' },
+        {
+          uuid: 'fail_oauth_registration',
+          functionName: 'failOAuthRegistrationFixture',
+          inputs: {},
+          outputs: [],
+          nextBlock: null,
+        },
+      ],
+      response: {
+        user: { id: 'not-reached' },
+        free_datasource_uuid: 'not-reached',
+      },
+    }
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async uuid => uuid === 'provision_new_user' ? fragmentFixture : googleCallback,
+      blockDefinitions: {
+        oauthCallbackFixture: {
+          allowedOutputs: oauthCallbackFixtureAllowedOutputs,
+          executor: async () => oauthCallbackFixtureOutputs(),
+        },
+        failOAuthRegistrationFixture: {
+          allowedOutputs: [],
+          executor: async () => {
+            throw new Error('fixture provisioning failed')
+          },
+        },
+      },
+    })
+    const oauthServer = await startServer(handler)
+
+    try {
+      const response = await fetch(
+        `${oauthServer.baseUrl}/api/mokelay/oauth_google_callback?code=fixture&state=fixture`,
+        { redirect: 'manual' },
+      )
+
+      expect(response.status).toBe(302)
+      expect(response.headers.get('location')).toBe('/login?oauth_error=registration_failed')
+    }
+    finally {
+      await oauthServer.close()
+    }
+  })
+
+  it('completes Google OAuth Fragment registration, links identity, and writes the real session', async () => {
+    const googleCallback = await googleCallbackFixture({
+      linkFunctionName: 'linkOAuthIdentityFixture',
+    })
+    const fragmentFixture = successfulProvisionFragmentFixture()
+    const meFixture = await readApiAssetFixture('me')
+    const linkIdentity = vi.fn(async () => ({
+      user: structuredClone(oauthFixtureUser),
+      linkedIdentity: { provider: 'google', providerUserId: 'google-user-id' },
+    }))
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async (uuid) => {
+        if (uuid === 'provision_new_user') return fragmentFixture
+        if (uuid === 'me') return meFixture
+        return googleCallback
+      },
+      blockDefinitions: {
+        oauthCallbackFixture: {
+          allowedOutputs: oauthCallbackFixtureAllowedOutputs,
+          executor: async () => oauthCallbackFixtureOutputs(),
+        },
+        linkOAuthIdentityFixture: {
+          allowedOutputs: ['user', 'linkedIdentity'],
+          executor: linkIdentity,
+        },
+      },
+    })
+    const oauthServer = await startServer(handler)
+
+    try {
+      const callbackResponse = await fetch(
+        `${oauthServer.baseUrl}/api/mokelay/oauth_google_callback?code=fixture&state=fixture`,
+        { redirect: 'manual' },
+      )
+      const cookie = responseCookie(callbackResponse, orchestrationSessionCookieName)
+      const meResponse = await fetch(`${oauthServer.baseUrl}/api/mokelay/me`, {
+        headers: { cookie },
+      })
+      const me = await readMokelayData<Record<string, unknown>>(meResponse)
+
+      expect(callbackResponse.status).toBe(302)
+      expect(callbackResponse.headers.get('location')).toBe('/dashboard')
+      expect(callbackResponse.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+      expect(linkIdentity).toHaveBeenCalledTimes(1)
+      expect(linkIdentity).toHaveBeenCalledWith(expect.objectContaining({
+        inputs: expect.objectContaining({
+          provider: 'google',
+          employeeId: oauthFixtureUser.id,
+          providerUserId: 'google-user-id',
+        }),
+      }))
+      expect(me).toEqual({
+        loggedIn: true,
+        user: oauthFixtureUser,
+      })
+    }
+    finally {
+      await oauthServer.close()
+    }
+  })
+
+  it('redirects Google OAuth identity linking failures through errorNextBlock', async () => {
+    const googleCallback = await googleCallbackFixture({
+      linkFunctionName: 'failLinkOAuthIdentityFixture',
+    })
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async uuid => uuid === 'provision_new_user'
+        ? successfulProvisionFragmentFixture()
+        : googleCallback,
+      blockDefinitions: {
+        oauthCallbackFixture: {
+          allowedOutputs: oauthCallbackFixtureAllowedOutputs,
+          executor: async () => oauthCallbackFixtureOutputs(),
+        },
+        failLinkOAuthIdentityFixture: {
+          allowedOutputs: ['user', 'linkedIdentity'],
+          executor: async () => {
+            throw new Error('fixture identity link failed')
+          },
+        },
+      },
+    })
+    const oauthServer = await startServer(handler)
+
+    try {
+      const response = await fetch(
+        `${oauthServer.baseUrl}/api/mokelay/oauth_google_callback?code=fixture&state=fixture`,
+        { redirect: 'manual' },
+      )
+
+      expect(response.status).toBe(302)
+      expect(response.headers.get('location')).toBe('/login?oauth_error=identity_link_failed')
+    }
+    finally {
+      await oauthServer.close()
+    }
+  })
+
+  it('redirects Google OAuth session failures through the dedicated error terminal', async () => {
+    const googleCallback = await googleCallbackFixture({
+      linkFunctionName: 'linkOAuthIdentityFixture',
+      sessionFunctionName: 'failAddSessionFixture',
+    })
+    const handler = createMokelayOrchestrationHandler({
+      loadApiJson: async uuid => uuid === 'provision_new_user'
+        ? successfulProvisionFragmentFixture()
+        : googleCallback,
+      blockDefinitions: {
+        oauthCallbackFixture: {
+          allowedOutputs: oauthCallbackFixtureAllowedOutputs,
+          executor: async () => oauthCallbackFixtureOutputs(),
+        },
+        linkOAuthIdentityFixture: {
+          allowedOutputs: ['user', 'linkedIdentity'],
+          executor: async () => ({
+            user: structuredClone(oauthFixtureUser),
+            linkedIdentity: { provider: 'google', providerUserId: 'google-user-id' },
+          }),
+        },
+        failAddSessionFixture: {
+          allowedOutputs: [],
+          executor: async () => {
+            throw new Error('fixture session write failed')
+          },
+        },
+      },
+    })
+    const oauthServer = await startServer(handler)
+
+    try {
+      const response = await fetch(
+        `${oauthServer.baseUrl}/api/mokelay/oauth_google_callback?code=fixture&state=fixture`,
+        { redirect: 'manual' },
+      )
+
+      expect(response.status).toBe(302)
+      expect(response.headers.get('location')).toBe('/login?oauth_error=session_failed')
+    }
+    finally {
+      await oauthServer.close()
+    }
   })
 
   it('rejects invalid stored register request processor inputs', async () => {

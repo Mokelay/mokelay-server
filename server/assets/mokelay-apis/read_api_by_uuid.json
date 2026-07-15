@@ -23,6 +23,7 @@
           "uuid",
           "name",
           "method",
+          "fragment",
           "status",
           "api_json",
           "layout",
@@ -57,6 +58,9 @@
         },
         "method": {
           "template": "{{blocks['read_api_block'].outputs.data.method}}"
+        },
+        "fragment": {
+          "template": "{{blocks['read_api_block'].outputs.data.fragment}}"
         },
         "status": {
           "template": "{{blocks['read_api_block'].outputs.data.status}}"

@@ -2,31 +2,44 @@ import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import { parseApiJson, type BlockExecutor } from 'mokelay-server-core/utils/orchestration-schema'
 import { readFile, readdir } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
+import { assertFragmentCallParams, executeFragmentCalls } from './fragmentContracts'
 
 export type MokelayApiAssetStorage = {
   getKeys: (base?: string, options?: { maxDepth?: number }) => Promise<string[]>
   getItem: (key: string) => Promise<unknown>
 }
 
-function assetFileName(key: string) {
-  const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
-  const prefix = 'mokelay-apis/'
-
-  if (!normalizedKey.startsWith(prefix)) {
-    return undefined
-  }
-
-  const fileName = normalizedKey.slice(prefix.length)
-
-  if (!fileName.endsWith('.json') || fileName.includes('/')) {
-    return undefined
-  }
-
-  return fileName
+type MokelayApiAssetEntry = {
+  key: string
+  relativePath: string
+  uuid: string
+  fragment: boolean
 }
 
-export function parseMokelayApiJsonAsset(fileName: string, value: unknown) {
-  const apiJsonUuid = fileName.slice(0, -'.json'.length)
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function assetEntry(key: string): MokelayApiAssetEntry | undefined {
+  const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
+  const match = /^mokelay-apis\/(?:(fragment)\/)?([A-Za-z0-9_-]{1,128})\.json$/.exec(normalizedKey)
+  const uuid = match?.[2]
+  if (!uuid) return undefined
+  const fragment = match[1] === 'fragment'
+  return {
+    key,
+    relativePath: fragment ? `fragment/${uuid}.json` : `${uuid}.json`,
+    uuid,
+    fragment,
+  }
+}
+
+export function parseMokelayApiJsonAsset(relativePath: string, value: unknown) {
+  const entry = assetEntry(`mokelay-apis/${relativePath}`)
+  if (!entry) {
+    throw mokelayError('API_JSON_UUID_INVALID', `API JSON 资产路径 ${relativePath} 无效。`, 400)
+  }
+  const apiJsonUuid = entry.uuid
   let apiJson = value
 
   if (typeof value === 'string') {
@@ -38,7 +51,44 @@ export function parseMokelayApiJsonAsset(fileName: string, value: unknown) {
   }
 
   parseApiJson(apiJsonUuid, apiJson)
+  if (!isRecord(apiJson) || (apiJson.fragment === true) !== entry.fragment) {
+    throw mokelayError(
+      'API_JSON_INVALID_SCHEMA',
+      entry.fragment
+        ? `内置 Fragment ${apiJsonUuid} 必须配置 fragment=true 并保存在 mokelay-apis/fragment。`
+        : `内置 API ${apiJsonUuid} 不能在 mokelay-apis 根目录声明为 Fragment。`,
+      400,
+    )
+  }
   return apiJson
+}
+
+function assertBuiltInFragmentReferences(
+  assets: Array<{ entry: MokelayApiAssetEntry, apiJson: unknown }>,
+) {
+  const fragments = new Map(
+    assets.filter(asset => asset.entry.fragment).map(asset => [asset.entry.uuid, asset.apiJson]),
+  )
+  for (const asset of assets) {
+    if (asset.entry.fragment) continue
+    for (const call of executeFragmentCalls(asset.apiJson)) {
+      const fragment = fragments.get(call.fragmentUuid)
+      if (!fragment) {
+        throw mokelayError(
+          'API_JSON_INVALID_FLOW',
+          `内置 API ${asset.entry.uuid} 只能引用 mokelay-apis/fragment 中的内置 Fragment：${call.fragmentUuid}。`,
+          409,
+        )
+      }
+      assertFragmentCallParams(asset.entry.uuid, call, fragment)
+    }
+  }
+}
+
+function fragmentSelector(value: unknown) {
+  if (value === undefined || value === null || value === '') return false
+  if (typeof value === 'boolean') return value
+  throw mokelayError('API_JSON_INVALID_SCHEMA', '内置 API 列表的 fragment 必须是 boolean。', 400)
 }
 
 export async function getMokelayApiAssetStorage() {
@@ -73,30 +123,39 @@ export async function getMokelayApiAssetStorage() {
   }
 }
 
-export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {
+export async function listMokelayApiJsons(fragment: unknown = false, storage?: MokelayApiAssetStorage) {
+  const selectedFragment = fragmentSelector(fragment)
   const assetStorage = storage ?? await getMokelayApiAssetStorage()
-  const keys = await assetStorage.getKeys('mokelay-apis')
-  const assetsByFileName = new Map<string, string>()
+  const keys = (await Promise.all([
+    assetStorage.getKeys('mokelay-apis'),
+    assetStorage.getKeys('mokelay-apis/fragment'),
+  ])).flat()
+  const assetsByPath = new Map<string, MokelayApiAssetEntry>()
 
   for (const key of keys) {
-    const fileName = assetFileName(key)
-
-    if (fileName) {
-      assetsByFileName.set(fileName, key)
-    }
+    const entry = assetEntry(key)
+    if (entry) assetsByPath.set(entry.relativePath, entry)
   }
 
-  const fileNames = [...assetsByFileName.keys()].sort()
-  const apis = await Promise.all(fileNames.map(async (fileName) => {
-    const key = assetsByFileName.get(fileName)!
-    const value = await assetStorage.getItem(key)
+  const entries = [...assetsByPath.values()].sort((left, right) => (
+    left.relativePath < right.relativePath ? -1 : left.relativePath > right.relativePath ? 1 : 0
+  ))
+  const assets = await Promise.all(entries.map(async (entry) => {
+    const value = await assetStorage.getItem(entry.key)
 
     if (value === null || value === undefined) {
-      throw mokelayError('API_JSON_NOT_FOUND', `API JSON 资产 ${fileName} 不存在。`, 404)
+      throw mokelayError('API_JSON_NOT_FOUND', `API JSON 资产 ${entry.relativePath} 不存在。`, 404)
     }
 
-    return parseMokelayApiJsonAsset(fileName, value)
+    return {
+      entry,
+      apiJson: parseMokelayApiJsonAsset(entry.relativePath, value),
+    }
   }))
+  assertBuiltInFragmentReferences(assets)
+  const apis = assets
+    .filter(asset => asset.entry.fragment === selectedFragment)
+    .map(asset => asset.apiJson)
 
   return {
     apis,
@@ -111,8 +170,10 @@ export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {
  *   "functionName": "listMokelayApiJsons",
  *   "displayName": "列出系统 API JSON",
  *   "category": "asset",
- *   "description": "从 Nitro server assets 的 mokelay-apis 目录读取并校验系统 API JSON 列表。",
- *   "inputs": [],
+ *   "description": "从 Nitro server assets 读取 mokelay-apis 根目录中的内置 API 与 fragment 子目录中的内置 Fragment，并校验引用不会跨到数据库命名空间。",
+ *   "inputs": [
+ *     { "key": "fragment", "type": "boolean", "required": false, "defaultValue": false, "description": "false 仅列出根目录内置 API；true 仅列出 fragment 子目录内置 Fragment。" }
+ *   ],
  *   "outputs": [
  *     { "key": "apis", "type": "ApiJson[]", "description": "已解析并校验的 API JSON 数组。" },
  *     { "key": "count", "type": "number", "description": "API JSON 数量。" }
@@ -126,13 +187,13 @@ export async function listMokelayApiJsons(storage?: MokelayApiAssetStorage) {
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-apis", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay-apis + mokelay-apis/fragment", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "列出系统 API", "block": { "uuid": "list_mokelay_api_jsons_block", "functionName": "listMokelayApiJsons", "inputs": {}, "outputs": ["apis", "count"], "nextBlock": null } }
  *   ]
  * }
  */
-export const executeListMokelayApiJsonsBlock: BlockExecutor = async () => {
-  return await listMokelayApiJsons()
+export const executeListMokelayApiJsonsBlock: BlockExecutor = async ({ inputs }) => {
+  return await listMokelayApiJsons(inputs.fragment)
 }

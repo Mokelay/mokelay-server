@@ -8,6 +8,7 @@ import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orc
 import { serverBlockDefinitions } from '../../server/utils/blocks'
 
 const apiJsonDir = resolve(process.cwd(), 'server/assets/mokelay-apis')
+const fragmentJsonDir = resolve(apiJsonDir, 'fragment')
 const pageJsonDir = resolve(process.cwd(), 'server/assets/mokelay-pages')
 const layoutJsonDir = resolve(process.cwd(), 'server/assets/mokelay-layouts')
 
@@ -18,10 +19,19 @@ vi.mock('nitropack/runtime', () => ({
         ? pageJsonDir
         : base === 'mokelay-layouts'
           ? layoutJsonDir
-          : apiJsonDir
+          : base === 'mokelay-apis/fragment'
+            ? fragmentJsonDir
+            : apiJsonDir
+      const keyBase = base === 'mokelay-pages'
+        ? 'mokelay-pages'
+        : base === 'mokelay-layouts'
+          ? 'mokelay-layouts'
+          : base === 'mokelay-apis/fragment'
+            ? 'mokelay-apis:fragment'
+            : 'mokelay-apis'
       return (await readdir(dir))
         .filter((fileName) => fileName.endsWith('.json'))
-        .map((fileName) => `${base === 'mokelay-pages' ? 'mokelay-pages' : base === 'mokelay-layouts' ? 'mokelay-layouts' : 'mokelay-apis'}:${fileName}`)
+        .map((fileName) => `${keyBase}:${fileName}`)
     },
     getItem: async (key: string) => {
       if (key.startsWith('mokelay-pages')) {
@@ -34,7 +44,7 @@ vi.mock('nitropack/runtime', () => ({
         return await readFile(resolve(layoutJsonDir, fileName), 'utf8')
       }
 
-      const fileName = key.replace(/^mokelay-apis[:/]/, '')
+      const fileName = key.replaceAll(':', '/').replace(/^mokelay-apis\//, '')
       return await readFile(resolve(apiJsonDir, fileName), 'utf8')
     },
   }),
@@ -91,6 +101,26 @@ describe('GET /api/mokelay/list_mokelay_api_jsons', () => {
     expect(body.data.apis.map((api) => `${api.uuid}.json`)).toEqual(expectedFileNames)
     expect(body.data.apis.some((api) => api.uuid === 'list_mokelay_api_jsons')).toBe(true)
   })
+
+  it('returns only nested built-in Fragments when fragment=true', async () => {
+    const expectedFileNames = (await readdir(fragmentJsonDir))
+      .filter((fileName) => fileName.endsWith('.json'))
+      .sort()
+    const response = await fetch(`${baseUrl}/api/mokelay/list_mokelay_api_jsons?fragment=true`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        apis: Array<{ uuid: string, fragment: boolean }>
+        count: number
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.count).toBe(expectedFileNames.length)
+    expect(body.data.apis.map(api => `${api.uuid}.json`)).toEqual(expectedFileNames)
+    expect(body.data.apis.every(api => api.fragment === true)).toBe(true)
+  })
 })
 
 describe('GET /api/mokelay/read_mokelay_api_json', () => {
@@ -109,6 +139,24 @@ describe('GET /api/mokelay/read_mokelay_api_json', () => {
       uuid: 'list_apis',
       alias: 'API 列表接口',
       method: 'GET',
+    })
+  })
+
+  it('returns one nested built-in Fragment only with the fragment selector', async () => {
+    const response = await fetch(`${baseUrl}/api/mokelay/read_mokelay_api_json?uuid=provision_new_user&fragment=true`)
+    const body = await response.json() as {
+      ok: boolean
+      data: {
+        api: { uuid: string, fragment: boolean, params: string[] }
+      }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.data.api).toMatchObject({
+      uuid: 'provision_new_user',
+      fragment: true,
+      params: ['enterprise_name', 'name', 'email', 'password_hash'],
     })
   })
 

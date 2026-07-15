@@ -2,7 +2,7 @@
 
 本文档说明当前编排接口支持的标准 Blocks，以及 `mokelay-server` 注册的 `listMokelayApiJsons` 宿主 Block。
 
-编排接口统一按本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json`、Nitro assets、R2 `mokelay-apis/{API_JSON_UUID}.json`、数据库 `apis` 表中已发布记录的顺序读取 API JSON。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走；任一 block 执行失败，后续节点不再执行，接口返回错误。
+编排接口优先读取本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 与 Nitro assets。内置 Fragment 固定读取 `server/assets/mokelay-apis/fragment/{FRAGMENT_UUID}.json`；内置 API 只能引用这里的 Fragment。动态普通 API 会并行读取 R2 内容和数据库元数据：数据库已配置时，当前记录必须存在且不能是 Fragment，查询失败采用 fail-closed；R2 miss 才使用数据库中的已发布 API JSON。用户 API 只能引用数据库中已发布的 Fragment。内置与数据库命名空间隔离，同 UUID 也按调用方来源解析，不允许跨来源引用。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走。Block 未配置 `errorNextBlock` 时，执行失败会终止编排并返回错误；配置后会沿错误边继续，值为 `null` 时当前 Block 成为错误终点。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
@@ -35,7 +35,8 @@
   "alias": "可选说明",
   "functionName": "list",
   "inputs": {},
-  "outputs": []
+  "outputs": [],
+  "nextBlock": null
 }
 ```
 
@@ -48,6 +49,8 @@
 | `functionName` | `string` | 是 | Block 类型。除 core 内置 Block 外，宿主服务可以通过 `blockDefinitions` 注册扩展 Block。 |
 | `inputs` | `object` | 否 | Block 输入参数。省略时默认为 `{}`。 |
 | `outputs` | `string[] \| null` | 否 | 声明该 block 预期输出字段。声明后，执行器会校验这些字段是否真的产生。 |
+| `nextBlock` | `string \| null` | 是 | 正常执行成功后的下一 Block；`null` 表示成功终点。 |
+| `errorNextBlock` | `string \| null` | 否 | Block 抛错后的错误边；省略时继续抛错，`null` 表示当前 Block 成为错误终点。错误响应不能读取该 Block 未产生的 outputs。 |
 
 数据库 block 的输出 key 是固定约定，不是可任意配置的字段名：
 
@@ -144,6 +147,7 @@
 
 - `starter.nextBlock` 为 `null` 时，终点是 `starter`。
 - 普通 block 的 `nextBlock` 为 `null` 时，终点是该 block 的 `uuid`。
+- 普通 block 显式配置 `errorNextBlock: null` 时，该 block 同时也是错误终点。
 - controller node 的 `nextBlock` 为 `null` 时，终点是该 node 的 `uuid`。
 
 响应选择规则：
@@ -1036,6 +1040,40 @@ UPDATE table SET assignments RETURNING 1 AS affected_marker
 
 ```
 
+## Fragment 与 OAuth 注册 Blocks
+
+### executeFragment
+
+执行与 caller 同来源的 Fragment；Fragment 加载不会读取 R2。内置 caller 只从 `mokelay-apis/fragment` 读取，数据库 caller 只从数据库已发布 Fragment 读取。`fragmentUuid` 必须是字面量，`params` 不能包含目标 Fragment 未声明的参数，并且必须映射字符串简写或带 `is_not_null` processor 的必填参数；V1 不允许 Fragment 嵌套调用。
+
+```json
+{
+  "uuid": "provision_user",
+  "functionName": "executeFragment",
+  "inputs": {
+    "fragmentUuid": "provision_new_user",
+    "params": {
+      "email": { "template": "{{request.body.email}}" }
+    }
+  },
+  "outputs": ["result"],
+  "nextBlock": null,
+  "errorNextBlock": null
+}
+```
+
+固定 output 为 `result`，内容是 Fragment 的 response object。
+
+### oauthCallback 延迟开户
+
+`oauthCallback` 增加 `deferNewUserProvisioning: true`。已有 identity/邮箱仍按原流程绑定并写入 Session；全新用户返回 `requiresRegistration: true` 和 `registration`，但不创建 enterprise、employee、identity 或 Session。`registration` 包含 `enterpriseName`、`name`、`email`、`passwordHash`、`provider`、`providerUserId`、`providerEmail`、`emailVerified`、`profile`。
+
+OAuth callback 中的 `executeFragment` 与 `linkOAuthIdentity` 都配置 `errorNextBlock: null`。开户失败会 302 到 `/login?oauth_error=registration_failed`，身份绑定失败会 302 到 `/login?oauth_error=identity_link_failed`。`addSession` 的错误边会进入无副作用 Controller 的独立终点，并 302 到 `/login?oauth_error=session_failed`，从而与同一 Block 的成功跳转分离。错误响应均使用静态 URL，不依赖失败 Block 未产生的 outputs。
+
+### linkOAuthIdentity
+
+在 Fragment 创建 employee 后幂等绑定 OAuth identity。inputs 为 `datasource`、`provider`、`employeeId`、`providerUserId`、`providerEmail`、`emailVerified`、`profile`；固定 outputs 为 `user`、`linkedIdentity`。
+
 ## Session Blocks
 
 Session blocks 不需要 `inputs.datasource`，使用独立签名 Cookie `mokelay_orchestration_session` 保存 `values` 对象。
@@ -1225,21 +1263,21 @@ inputs：
 
 ## 内置 API DSL 列表 Block
 
-`listMokelayApiJsons` 由 `mokelay-server` 注册，不属于 core 通用 Block。它枚举 Nitro `assets:server` 中 `mokelay-apis` 目录的一级 `.json` 文件，按文件名排序并返回完整原始 DSL。
+`listMokelayApiJsons` 由 `mokelay-server` 注册，不属于 core 通用 Block。`fragment=false`（默认）枚举 Nitro `assets:server` 中 `mokelay-apis` 根目录的内置 API；`fragment=true` 枚举 `mokelay-apis/fragment` 中的内置 Fragment。返回值保留 Fragment DSL 的 `fragment: true` 元数据，便于 IDE 以只读方式区分和打开。
 
-每个文件都会先解析 JSON，再按文件名对应的 UUID 调用 `parseApiJson` 校验。任一文件 JSON 损坏、DSL schema 无效或 UUID 不匹配时，整个 Block 失败，不会静默跳过。
+每个文件都会先解析 JSON，再按文件名对应的 UUID 调用 `parseApiJson` 校验。列表还会静态检查所有内置 API 的 `executeFragment` target 必须存在于 nested 内置 Fragment 集合。任一文件 JSON 损坏、DSL schema 无效、UUID 不匹配或跨来源引用时，整个 Block 失败，不会静默跳过。
 
 ```json
 {
   "uuid": "list_mokelay_api_jsons_block",
   "functionName": "listMokelayApiJsons",
-  "inputs": {},
+  "inputs": { "fragment": true },
   "outputs": ["apis", "count"],
   "nextBlock": null
 }
 ```
 
-对应公开 DSL 为 `GET /api/mokelay/list_mokelay_api_jsons`，响应 `data` 包含 `apis` 和 `count`。
+对应公开 DSL 为 `GET /api/mokelay/list_mokelay_api_jsons?fragment=true`，响应 `data` 包含 `apis` 和 `count`。`readMokelayApiJson` 与公开接口 `GET /api/mokelay/read_mokelay_api_json?uuid={uuid}&fragment=true` 使用相同 selector；省略 `fragment` 时只访问根目录 API。
 
 ## API DSL 发布示例
 

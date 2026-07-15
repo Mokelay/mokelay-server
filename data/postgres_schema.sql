@@ -130,6 +130,7 @@ CREATE TABLE public.apis (
     uuid character varying(128) NOT NULL,
     name character varying(120) NOT NULL,
     method character varying(16) NOT NULL,
+    fragment boolean DEFAULT false NOT NULL,
     status character varying(32) DEFAULT 'draft'::character varying NOT NULL,
     api_json jsonb NOT NULL,
     layout jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -147,6 +148,7 @@ CREATE TABLE public.apis_snapshot (
     api_uuid character varying(128) NOT NULL,
     name character varying(120) NOT NULL,
     method character varying(16) NOT NULL,
+    fragment boolean DEFAULT false NOT NULL,
     status character varying(32) NOT NULL,
     api_json jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
@@ -895,6 +897,13 @@ ALTER TABLE ONLY public.datasources
 --
 
 CREATE INDEX idx_datasources_enterprise_uuid ON public.datasources USING btree (enterprise_uuid);
+
+
+--
+-- Name: idx_apis_fragment_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_apis_fragment_status ON public.apis USING btree (fragment, status);
 
 
 --

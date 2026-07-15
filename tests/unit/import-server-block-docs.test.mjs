@@ -81,7 +81,7 @@ describe('collectServerBlockDocs', () => {
     const docs = await collectServerBlockDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(38)
+    expect(docs).toHaveLength(44)
     expect(functionNames).toContain('readAiDslPromptAsset')
     expect(functionNames).toContain('saveAiDslAssets')
     expect(functionNames).toContain('normalizePageUuid')
@@ -94,6 +94,12 @@ describe('collectServerBlockDocs', () => {
     expect(functionNames).toContain('createSchema')
     expect(functionNames).toContain('randomId')
     expect(functionNames).toContain('resolveLayoutBundle')
+    expect(functionNames).toContain('executeFragment')
+    expect(functionNames).toContain('linkOAuthIdentity')
+    expect(functionNames).toContain('validateApiDefinition')
+    expect(functionNames).toContain('assertApiDefinitionsDeletable')
+    expect(functionNames).toContain('cascadeDelete')
+    expect(functionNames).toContain('dropSchemas')
     expect(docs.find((doc) => doc.function_name === 'list')).toMatchObject({
       requires_datasource: true,
       source_kind: 'core',

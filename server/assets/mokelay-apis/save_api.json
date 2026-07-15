@@ -6,7 +6,12 @@
     "body": [
       "uuid",
       "name",
-      "method",
+      {
+        "key": "method"
+      },
+      {
+        "key": "fragment"
+      },
       "status",
       "apiJson",
       {
@@ -20,6 +25,37 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "validate_api_definition_block"
+    },
+    {
+      "uuid": "validate_api_definition_block",
+      "alias": "校验 API/Fragment 定义",
+      "functionName": "validateApiDefinition",
+      "inputs": {
+        "datasource": "Mokelay",
+        "uuid": {
+          "template": "{{request.body.uuid}}"
+        },
+        "method": {
+          "template": "{{request.body.method}}"
+        },
+        "fragment": {
+          "template": "{{request.body.fragment}}"
+        },
+        "status": {
+          "template": "{{request.body.status}}"
+        },
+        "apiJson": {
+          "template": "{{request.body.apiJson}}"
+        },
+        "originalUuid": {
+          "template": "{{request.body.originalUuid}}"
+        }
+      },
+      "outputs": [
+        "method",
+        "fragment"
+      ],
       "nextBlock": "assert_unique_api_uuid_block"
     },
     {
@@ -57,13 +93,38 @@
           "uuid": "publish_api_json_node",
           "alias": "已发布状态",
           "value": "published",
-          "nextBlock": "publish_api_json_to_r2_block"
+          "nextBlock": "publish_fragment_controller"
         },
         {
           "uuid": "skip_api_json_publish_node",
           "alias": "非发布状态",
           "type": "DEFAULT",
           "nextBlock": "save_api_block"
+        }
+      ]
+    },
+    {
+      "uuid": "publish_fragment_controller",
+      "alias": "Fragment 仅发布到数据库",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{blocks['validate_api_definition_block'].outputs.fragment}}"
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "skip_fragment_r2_publish_node",
+          "alias": "Fragment 不写入 R2",
+          "value": true,
+          "nextBlock": "save_api_block"
+        },
+        {
+          "uuid": "publish_endpoint_r2_node",
+          "alias": "普通 API 写入 R2",
+          "value": false,
+          "nextBlock": "publish_api_json_to_r2_block"
         }
       ]
     },
@@ -119,7 +180,10 @@
             "template": "{{request.body.name}}"
           },
           "method": {
-            "template": "{{request.body.method}}"
+            "template": "{{blocks['validate_api_definition_block'].outputs.method}}"
+          },
+          "fragment": {
+            "template": "{{blocks['validate_api_definition_block'].outputs.fragment}}"
           },
           "status": {
             "template": "{{request.body.status}}"
@@ -162,7 +226,10 @@
             "template": "{{request.body.name}}"
           },
           "method": {
-            "template": "{{request.body.method}}"
+            "template": "{{blocks['validate_api_definition_block'].outputs.method}}"
+          },
+          "fragment": {
+            "template": "{{blocks['validate_api_definition_block'].outputs.fragment}}"
           },
           "status": {
             "template": "{{request.body.status}}"
@@ -188,6 +255,7 @@
           "uuid",
           "name",
           "method",
+          "fragment",
           "status",
           "api_json",
           "layout",
@@ -222,6 +290,9 @@
         },
         "method": {
           "template": "{{blocks['read_api_block'].outputs.data.method}}"
+        },
+        "fragment": {
+          "template": "{{blocks['read_api_block'].outputs.data.fragment}}"
         },
         "status": {
           "template": "{{blocks['read_api_block'].outputs.data.status}}"

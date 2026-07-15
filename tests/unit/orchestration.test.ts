@@ -1,7 +1,5 @@
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { type SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
@@ -73,12 +71,39 @@ async function readJson<T>(response: Response) {
   return await response.json() as T
 }
 
-async function readApiJsonAsset(apiJsonUuid: string) {
-  return JSON.parse(await readFile(resolve(process.cwd(), `server/assets/mokelay-apis/${apiJsonUuid}.json`), 'utf8')) as unknown
-}
-
 function emptyApiJsonBlocks() {
   return [{ uuid: 'starter', nextBlock: null }]
+}
+
+function saveJsonToR2ApiJson() {
+  return {
+    uuid: 'save_json_to_r2',
+    method: 'POST',
+    request: { body: ['directory', 'fileName', 'data'] },
+    blocks: [
+      { uuid: 'starter', nextBlock: 'save' },
+      {
+        uuid: 'save',
+        functionName: 'saveJsonToR2',
+        inputs: {
+          directory: { template: '{{request.body.directory}}' },
+          fileName: { template: '{{request.body.fileName}}' },
+          data: { template: '{{request.body.data}}' },
+        },
+        outputs: ['key', 'directory', 'fileName', 'bucket', 'size', 'etag', 'skipped'],
+        nextBlock: null,
+      },
+    ],
+    response: {
+      key: { template: "{{blocks['save'].outputs.key}}" },
+      directory: { template: "{{blocks['save'].outputs.directory}}" },
+      fileName: { template: "{{blocks['save'].outputs.fileName}}" },
+      bucket: { template: "{{blocks['save'].outputs.bucket}}" },
+      size: { template: "{{blocks['save'].outputs.size}}" },
+      etag: { template: "{{blocks['save'].outputs.etag}}" },
+      skipped: { template: "{{blocks['save'].outputs.skipped}}" },
+    },
+  }
 }
 
 function configureR2Env() {
@@ -310,12 +335,12 @@ describe('loadApiJson', () => {
 
       expect(datasource).toBe('Mokelay')
       expect(databaseType).toBe('postgres')
-      expect(builtQuery.sql.replace(/\s+/g, ' ').trim()).toBe('SELECT "api_json" FROM "apis" WHERE "uuid" = $1 AND "status" = $2 LIMIT 1')
-      expect(builtQuery.params).toEqual(['db_published_api', 'published'])
+      expect(builtQuery.sql.replace(/\s+/g, ' ').trim()).toBe('SELECT "api_json", "fragment", "status" FROM "apis" WHERE "uuid" = $1 LIMIT 1')
+      expect(builtQuery.params).toEqual(['db_published_api'])
 
       return {
         databaseType,
-        rows: [{ api_json: apiJson }] as unknown as T[],
+        rows: [{ api_json: apiJson, fragment: false, status: 'published' }] as unknown as T[],
       }
     }
 
@@ -341,11 +366,16 @@ describe('loadApiJson', () => {
     ) => {
       const builtQuery = pgDialect.sqlToQuery(query)
 
-      expect(builtQuery.params).toEqual(['db_draft_api', 'published'])
+      expect(builtQuery.sql.replace(/\s+/g, ' ').trim()).toBe('SELECT "api_json", "fragment", "status" FROM "apis" WHERE "uuid" = $1 LIMIT 1')
+      expect(builtQuery.params).toEqual(['db_draft_api'])
 
       return {
         databaseType,
-        rows: [] as T[],
+        rows: [{
+          api_json: { uuid: 'db_draft_api', method: 'GET', blocks: [] },
+          fragment: false,
+          status: 'draft',
+        }] as unknown as T[],
       }
     }
 
@@ -704,7 +734,7 @@ describe('saveJsonToR2 block', () => {
 
     const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
-      loadApiJson: readApiJsonAsset,
+      loadApiJson: async () => saveJsonToR2ApiJson(),
     }))
 
     try {
@@ -817,7 +847,7 @@ describe('saveJsonToR2 block', () => {
 
     const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
-      loadApiJson: readApiJsonAsset,
+      loadApiJson: async () => saveJsonToR2ApiJson(),
     }))
 
     try {
@@ -994,7 +1024,7 @@ describe('saveJsonToR2 block', () => {
 
     const { createMokelayOrchestrationHandler } = await import('mokelay-server-core/utils/orchestration')
     const server = await startServer(createMokelayOrchestrationHandler({
-      loadApiJson: readApiJsonAsset,
+      loadApiJson: async () => saveJsonToR2ApiJson(),
     }))
 
     try {

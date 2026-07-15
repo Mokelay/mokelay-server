@@ -4,50 +4,10 @@
   "method": "GET",
   "request": {
     "query": [
-      {
-        "key": "code",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "state",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "error",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      },
-      {
-        "key": "error_description",
-        "processors": [
-          {
-            "processor": "default_value",
-            "param": [
-              ""
-            ]
-          }
-        ]
-      }
+      { "key": "code", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "state", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "error", "processors": [{ "processor": "default_value", "param": [""] }] },
+      { "key": "error_description", "processors": [{ "processor": "default_value", "param": [""] }] }
     ],
     "body": [],
     "header": []
@@ -64,19 +24,11 @@
       "inputs": {
         "datasource": "Mokelay",
         "provider": "google",
-        "code": {
-          "template": "{{request.query.code}}"
-        },
-        "state": {
-          "template": "{{request.query.state}}"
-        },
-        "error": {
-          "template": "{{request.query.error}}"
-        },
-        "errorDescription": {
-          "template": "{{request.query.error_description}}"
-        },
-        "autoCreateEnterprise": true
+        "code": { "template": "{{request.query.code}}" },
+        "state": { "template": "{{request.query.state}}" },
+        "error": { "template": "{{request.query.error}}" },
+        "errorDescription": { "template": "{{request.query.error_description}}" },
+        "deferNewUserProvisioning": true
       },
       "outputs": [
         "user",
@@ -84,18 +36,129 @@
         "linkedIdentity",
         "provider",
         "redirectUrl",
-        "errorCode"
+        "errorCode",
+        "requiresRegistration",
+        "registration"
       ],
-      "nextBlock": null
+      "nextBlock": "google_registration_controller"
+    },
+    {
+      "uuid": "google_registration_controller",
+      "alias": "是否需要创建新用户",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": { "template": "{{blocks.handle_google_callback.outputs.requiresRegistration}}" }
+      },
+      "nodes": [
+        {
+          "uuid": "google_registration_required_node",
+          "alias": "创建新用户",
+          "value": true,
+          "nextBlock": "provision_google_user"
+        },
+        {
+          "uuid": "google_registration_not_required_node",
+          "alias": "已有用户",
+          "value": false,
+          "nextBlock": null
+        }
+      ]
+    },
+    {
+      "uuid": "provision_google_user",
+      "alias": "执行新用户注册 Fragment",
+      "functionName": "executeFragment",
+      "inputs": {
+        "fragmentUuid": "provision_new_user",
+        "params": {
+          "enterprise_name": { "template": "{{blocks.handle_google_callback.outputs.registration.enterpriseName}}" },
+          "name": { "template": "{{blocks.handle_google_callback.outputs.registration.name}}" },
+          "email": { "template": "{{blocks.handle_google_callback.outputs.registration.email}}" },
+          "password_hash": { "template": "{{blocks.handle_google_callback.outputs.registration.passwordHash}}" }
+        }
+      },
+      "outputs": ["result"],
+      "nextBlock": "link_google_identity",
+      "errorNextBlock": null
+    },
+    {
+      "uuid": "link_google_identity",
+      "alias": "绑定 Google 身份",
+      "functionName": "linkOAuthIdentity",
+      "inputs": {
+        "datasource": "Mokelay",
+        "provider": { "template": "{{blocks.handle_google_callback.outputs.registration.provider}}" },
+        "employeeId": { "template": "{{blocks.provision_google_user.outputs.result.user.id}}" },
+        "providerUserId": { "template": "{{blocks.handle_google_callback.outputs.registration.providerUserId}}" },
+        "providerEmail": { "template": "{{blocks.handle_google_callback.outputs.registration.providerEmail}}" },
+        "emailVerified": { "template": "{{blocks.handle_google_callback.outputs.registration.emailVerified}}" },
+        "profile": { "template": "{{blocks.handle_google_callback.outputs.registration.profile}}" }
+      },
+      "outputs": ["user", "linkedIdentity"],
+      "nextBlock": "set_google_user_session",
+      "errorNextBlock": null
+    },
+    {
+      "uuid": "set_google_user_session",
+      "alias": "保存 Google 用户到 Session",
+      "functionName": "addSession",
+      "inputs": {
+        "key": "user",
+        "value": { "template": "{{blocks.provision_google_user.outputs.result.user}}" }
+      },
+      "outputs": [],
+      "nextBlock": null,
+      "errorNextBlock": "google_session_error_controller"
+    },
+    {
+      "uuid": "google_session_error_controller",
+      "alias": "Google Session 写入失败终点",
+      "functionName": "switch_controller",
+      "type": "controller",
+      "inputs": {
+        "value": "session_failed",
+        "dataType": "string"
+      },
+      "nodes": [
+        {
+          "uuid": "google_session_error_node",
+          "alias": "返回 Session 失败跳转",
+          "value": "session_failed",
+          "nextBlock": null
+        }
+      ]
     }
   ],
   "responses": {
-    "handle_google_callback": {
+    "google_registration_not_required_node": {
       "redirect": {
         "statusCode": 302,
-        "url": {
-          "template": "{{blocks['handle_google_callback'].outputs.redirectUrl}}"
-        }
+        "url": { "template": "{{blocks.handle_google_callback.outputs.redirectUrl}}" }
+      }
+    },
+    "provision_google_user": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=registration_failed"
+      }
+    },
+    "link_google_identity": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=identity_link_failed"
+      }
+    },
+    "google_session_error_node": {
+      "redirect": {
+        "statusCode": 302,
+        "url": "/login?oauth_error=session_failed"
+      }
+    },
+    "set_google_user_session": {
+      "redirect": {
+        "statusCode": 302,
+        "url": { "template": "{{blocks.handle_google_callback.outputs.redirectUrl}}" }
       }
     }
   }

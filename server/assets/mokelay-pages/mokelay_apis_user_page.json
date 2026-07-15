@@ -1,7 +1,7 @@
 {
   "uuid": "mokelay_apis_user_page",
   "subPage": true,
-  "quotes": ["apis"],
+  "quotes": ["mokelay_apis_user_tabs_page"],
   "dependencies": ["mokelay_api_create_page"],
   "createdAt": "2026-07-10T00:00:00.000Z",
   "updatedAt": "2026-07-12T06:05:00.000Z",
@@ -9,504 +9,577 @@
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
-      "id": "mokelay-apis-user-actions",
-      "type": "MActionToolbar",
+      "id": "mokelay-apis-user-grid",
+      "type": "MLayoutGrid",
       "data": {
-        "align": "right",
-        "buttons": [
-          {
-            "id": "create-api",
-            "label": "新建 API",
-            "variant": "primary",
-            "showLoading": false,
-            "events": [
-              {
-                "event": "click",
-                "actions": [
-                  {
-                    "uuid": "mokelay_api_user_open_create_dialog",
-                    "action": "open_dialog",
-                    "alias": "打开新建 API 弹窗",
-                    "inputs": {
-                      "title": "新建 API",
-                      "pageUUID": "mokelay_api_create_page",
-                      "pageSource": "system",
-                      "context": {
-                        "name": "未命名 API",
-                        "uuid": "",
-                        "method": "GET",
-                        "status": "draft"
-                      }
-                    },
-                    "outputs": [
-                      "close_result"
-                    ],
-                    "nextAction": "mokelay_api_user_refresh_after_create"
-                  },
-                  {
-                    "uuid": "mokelay_api_user_refresh_after_create",
-                    "action": "call_block_method",
-                    "alias": "刷新 API 列表",
-                    "inputs": {
-                      "blockId": "mokelay-apis-user-table",
-                      "method": "refresh"
-                    },
-                    "outputs": [
-                      "returnData"
-                    ],
-                    "nextAction": null
-                  }
-                ]
-              }
+        "gap": 16,
+        "columns": "minmax(0, 1fr) 320px",
+        "responsive": {
+          "mobile": {
+            "columns": 1,
+            "areaOrder": [
+              "main",
+              "samples"
             ]
           }
-        ]
-      },
-      "events": []
-    },
-    {
-      "id": "mokelay-apis-user-batch-actions",
-      "type": "MActionToolbar",
-      "data": {
-        "align": "right",
-        "size": "small",
-        "mode": "inline",
-        "buttons": [
-          {
-            "id": "batchDelete",
-            "label": "批量删除",
-            "variant": "danger",
-            "disabled": true,
-            "events": [
-              {
-                "event": "click",
-                "actions": [
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_confirm",
-                    "action": "confirm",
-                    "alias": "确认批量删除 API",
-                    "inputs": {
-                      "title": "确认批量删除 API",
-                      "content": "确定要删除选中的 API 吗？此操作不可恢复。"
-                    },
-                    "outputs": [
-                      "result"
-                    ],
-                    "nextAction": "mokelay_api_user_batch_delete_confirm_route"
-                  },
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_confirm_route",
-                    "action": "if_controller",
-                    "type": "controller",
-                    "alias": "确认结果",
-                    "inputs": {
-                      "value": {
-                        "template": "{{actions['mokelay_api_user_batch_delete_confirm'].outputs.result}}"
-                      }
-                    },
-                    "nodes": [
-                      {
-                        "uuid": "mokelay_api_user_batch_delete_confirm_true",
-                        "alias": "确认",
-                        "value": true,
-                        "nextAction": "mokelay_api_user_batch_delete_get_selected_uuids"
-                      },
-                      {
-                        "uuid": "mokelay_api_user_batch_delete_confirm_false",
-                        "alias": "取消",
-                        "value": false,
-                        "nextAction": null
-                      }
-                    ]
-                  },
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_get_selected_uuids",
-                    "action": "call_block_method",
-                    "alias": "获取选中 API UUID",
-                    "inputs": {
-                      "blockId": "mokelay-apis-user-table",
-                      "method": "getSelectedValues",
-                      "field": "uuid"
-                    },
-                    "outputs": [
-                      "returnData"
-                    ],
-                    "nextAction": "mokelay_api_user_batch_delete_execute_ds"
-                  },
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_execute_ds",
-                    "action": "execute_ds",
-                    "alias": "批量删除 API",
-                    "inputs": {
-                      "dsConfig": {
-                        "type": "API",
-                        "domain": "mokelay",
-                        "path": "/api/mokelay/batch_delete_apis",
-                        "method": "POST",
-                        "headerData": [],
-                        "bodyData": [
-                          {
-                            "key": "uuids",
-                            "dataType": "array",
-                            "value": {
-                              "template": "{{actions['mokelay_api_user_batch_delete_get_selected_uuids'].outputs.returnData}}"
-                            }
-                          }
-                        ],
-                        "queryData": []
-                      }
-                    },
-                    "outputs": [
-                      "rawResponse"
-                    ],
-                    "nextAction": "mokelay_api_user_batch_delete_clear_selection"
-                  },
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_clear_selection",
-                    "action": "call_block_method",
-                    "alias": "清空选中 API",
-                    "inputs": {
-                      "blockId": "mokelay-apis-user-table",
-                      "method": "clearSelection"
-                    },
-                    "outputs": [
-                      "returnData"
-                    ],
-                    "nextAction": "mokelay_api_user_batch_delete_refresh_table"
-                  },
-                  {
-                    "uuid": "mokelay_api_user_batch_delete_refresh_table",
-                    "action": "call_block_method",
-                    "alias": "刷新 API 列表",
-                    "inputs": {
-                      "blockId": "mokelay-apis-user-table",
-                      "method": "refresh"
-                    },
-                    "outputs": [
-                      "returnData"
-                    ],
-                    "nextAction": null
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "events": []
-    },
-    {
-      "id": "mokelay-apis-user-table",
-      "type": "MAdvanceTable",
-      "data": {
-        "rowKey": "uuid",
-        "selection": true,
-        "pageSize": 15,
-        "showPageBreak": true,
-        "ds": {
-          "type": "API",
-          "domain": "mokelay",
-          "path": "/api/mokelay/list_apis",
-          "method": "GET",
-          "headerData": [],
-          "queryData": [
-            {
-              "key": "page",
-              "dataType": "number",
-              "value": {
-                "mode": "variable",
-                "blockId": "mokelay-apis-user-table",
-                "blockType": "MAdvanceTable",
-                "variable": "page"
-              }
-            },
-            {
-              "key": "pageSize",
-              "dataType": "number",
-              "value": {
-                "mode": "variable",
-                "blockId": "mokelay-apis-user-table",
-                "blockType": "MAdvanceTable",
-                "variable": "pageSize"
-              }
-            }
-          ],
-          "bodyData": [],
-          "schemaSelections": [
-            {
-              "path": "data.apis[]",
-              "type": "array",
-              "label": "API 列表"
-            },
-            {
-              "path": "data.pagination.page",
-              "type": "number",
-              "label": "当前页"
-            },
-            {
-              "path": "data.pagination.pageSize",
-              "type": "number",
-              "label": "每页数量"
-            },
-            {
-              "path": "data.pagination.total",
-              "type": "number",
-              "label": "总数"
-            }
-          ],
-          "matchingExternalFields": [
-            {
-              "label": "API 列表",
-              "variable": "data",
-              "matchFieldPath": "data.apis[]"
-            },
-            {
-              "label": "当前页",
-              "variable": "page",
-              "matchFieldPath": "data.pagination.page"
-            },
-            {
-              "label": "每页数量",
-              "variable": "pageSize",
-              "matchFieldPath": "data.pagination.pageSize"
-            },
-            {
-              "label": "总数",
-              "variable": "total",
-              "matchFieldPath": "data.pagination.total"
-            }
-          ]
         },
-        "columns": [
+        "areas": [
           {
-            "fixed": null,
-            "width": 170,
-            "columnName": "名称",
-            "columnContent": [
+            "id": "main",
+            "name": "API 列表",
+            "width": "minmax(0, 1fr)",
+            "blocks": [
               {
-                "id": "api-name-text-{{uuid}}",
-                "type": "paragraph",
+                "id": "mokelay-apis-user-actions",
+                "type": "MActionToolbar",
                 "data": {
-                  "text": "{{name}}"
+                  "align": "right",
+                  "buttons": [
+                    {
+                      "id": "create-api",
+                      "label": "新建 API",
+                      "variant": "primary",
+                      "showLoading": false,
+                      "events": [
+                        {
+                          "event": "click",
+                          "actions": [
+                            {
+                              "uuid": "mokelay_api_user_open_create_dialog",
+                              "action": "open_dialog",
+                              "alias": "打开新建 API 弹窗",
+                              "inputs": {
+                                "title": "新建 API",
+                                "pageUUID": "mokelay_api_create_page",
+                                "pageSource": "system",
+                                "context": {
+                                  "name": "未命名 API",
+                                  "uuid": "",
+                                  "method": "GET",
+                                  "status": "draft"
+                                }
+                              },
+                              "outputs": [
+                                "close_result"
+                              ],
+                              "nextAction": "mokelay_api_user_refresh_after_create"
+                            },
+                            {
+                              "uuid": "mokelay_api_user_refresh_after_create",
+                              "action": "call_block_method",
+                              "alias": "刷新 API 列表",
+                              "inputs": {
+                                "blockId": "mokelay-apis-user-table",
+                                "method": "refresh"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": null
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 },
                 "events": []
-              }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "name"
-          },
-          {
-            "fixed": null,
-            "width": 205,
-            "columnName": "UUID",
-            "columnContent": [
-              {
-                "id": "api-uuid-text-{{uuid}}",
-                "type": "paragraph",
-                "data": {
-                  "text": "{{uuid}}"
-                },
-                "events": []
-              }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "uuid"
-          },
-          {
-            "fixed": null,
-            "width": 60,
-            "columnName": "方法",
-            "columnContent": [
-              {
-                "id": "api-method-tag-{{uuid}}",
-                "type": "MTag",
-                "data": {
-                  "tagName": "{{method}}",
-                  "type": "info",
-                  "size": "small"
-                },
-                "events": []
-              }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "method"
-          },
-          {
-            "fixed": null,
-            "width": 60,
-            "columnName": "状态",
-            "columnContent": [
-              {
-                "id": "api-status-tag-{{uuid}}",
-                "type": "MTag",
-                "data": {
-                  "tagName": "{{status}}",
-                  "type": "warning",
-                  "size": "small"
-                },
-                "events": []
-              }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "status"
-          },
-          {
-            "fixed": null,
-            "width": 135,
-            "columnName": "最近编辑",
-            "columnContent": [
-              {
-                "id": "api-updated-text-{{uuid}}",
-                "type": "paragraph",
-                "data": {
-                  "text": "{{updated_at}}"
-                },
-                "events": []
-              }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "updated_at"
-          },
-          {
-            "fixed": "right",
-            "width": 95,
-            "columnName": "操作",
-            "columnContent": [
-              {
-                "id": "open-api-{{uuid}}",
-                "type": "MButton",
-                "data": {
-                  "label": "打开",
-                  "variant": "secondary",
-                  "action": {
-                    "uuid": "{{uuid}}"
-                  }
-                },
-                "events": [
-                  {
-                    "event": "click",
-                    "actions": [
-                      {
-                        "uuid": "mokelay_api_user_open_detail",
-                        "action": "jump_url",
-                        "alias": "打开 API 详情",
-                        "inputs": {
-                          "url": {
-                            "template": "#/apis/{{sourceBlock.data.action.uuid}}"
-                          }
-                        },
-                        "outputs": [],
-                        "nextAction": null
-                      }
-                    ]
-                  }
-                ]
               },
               {
-                "id": "delete-api-{{uuid}}",
-                "type": "MButton",
+                "id": "mokelay-apis-user-batch-actions",
+                "type": "MActionToolbar",
                 "data": {
-                  "label": "删除",
-                  "variant": "danger",
-                  "action": {
-                    "uuid": "{{uuid}}",
-                    "name": "{{name}}"
-                  }
+                  "align": "right",
+                  "size": "small",
+                  "mode": "inline",
+                  "buttons": [
+                    {
+                      "id": "batchDelete",
+                      "label": "批量删除",
+                      "variant": "danger",
+                      "disabled": true,
+                      "events": [
+                        {
+                          "event": "click",
+                          "actions": [
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_confirm",
+                              "action": "confirm",
+                              "alias": "确认批量删除 API",
+                              "inputs": {
+                                "title": "确认批量删除 API",
+                                "content": "确定要删除选中的 API 吗？此操作不可恢复。"
+                              },
+                              "outputs": [
+                                "result"
+                              ],
+                              "nextAction": "mokelay_api_user_batch_delete_confirm_route"
+                            },
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_confirm_route",
+                              "action": "if_controller",
+                              "type": "controller",
+                              "alias": "确认结果",
+                              "inputs": {
+                                "value": {
+                                  "template": "{{actions['mokelay_api_user_batch_delete_confirm'].outputs.result}}"
+                                }
+                              },
+                              "nodes": [
+                                {
+                                  "uuid": "mokelay_api_user_batch_delete_confirm_true",
+                                  "alias": "确认",
+                                  "value": true,
+                                  "nextAction": "mokelay_api_user_batch_delete_get_selected_uuids"
+                                },
+                                {
+                                  "uuid": "mokelay_api_user_batch_delete_confirm_false",
+                                  "alias": "取消",
+                                  "value": false,
+                                  "nextAction": null
+                                }
+                              ]
+                            },
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_get_selected_uuids",
+                              "action": "call_block_method",
+                              "alias": "获取选中 API UUID",
+                              "inputs": {
+                                "blockId": "mokelay-apis-user-table",
+                                "method": "getSelectedValues",
+                                "field": "uuid"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "mokelay_api_user_batch_delete_execute_ds"
+                            },
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_execute_ds",
+                              "action": "execute_ds",
+                              "alias": "批量删除 API",
+                              "inputs": {
+                                "dsConfig": {
+                                  "type": "API",
+                                  "domain": "mokelay",
+                                  "path": "/api/mokelay/batch_delete_apis",
+                                  "method": "POST",
+                                  "headerData": [],
+                                  "bodyData": [
+                                    {
+                                      "key": "uuids",
+                                      "dataType": "array",
+                                      "value": {
+                                        "template": "{{actions['mokelay_api_user_batch_delete_get_selected_uuids'].outputs.returnData}}"
+                                      }
+                                    }
+                                  ],
+                                  "queryData": []
+                                }
+                              },
+                              "outputs": [
+                                "rawResponse"
+                              ],
+                              "nextAction": "mokelay_api_user_batch_delete_clear_selection"
+                            },
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_clear_selection",
+                              "action": "call_block_method",
+                              "alias": "清空选中 API",
+                              "inputs": {
+                                "blockId": "mokelay-apis-user-table",
+                                "method": "clearSelection"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": "mokelay_api_user_batch_delete_refresh_table"
+                            },
+                            {
+                              "uuid": "mokelay_api_user_batch_delete_refresh_table",
+                              "action": "call_block_method",
+                              "alias": "刷新 API 列表",
+                              "inputs": {
+                                "blockId": "mokelay-apis-user-table",
+                                "method": "refresh"
+                              },
+                              "outputs": [
+                                "returnData"
+                              ],
+                              "nextAction": null
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "events": []
+              },
+              {
+                "id": "mokelay-apis-user-table",
+                "type": "MAdvanceTable",
+                "data": {
+                  "rowKey": "uuid",
+                  "selection": true,
+                  "pageSize": 15,
+                  "showPageBreak": true,
+                  "ds": {
+                    "type": "API",
+                    "domain": "mokelay",
+                    "path": "/api/mokelay/list_apis",
+                    "method": "GET",
+                    "headerData": [],
+                    "queryData": [
+                      {
+                        "key": "page",
+                        "dataType": "number",
+                        "value": {
+                          "mode": "variable",
+                          "blockId": "mokelay-apis-user-table",
+                          "blockType": "MAdvanceTable",
+                          "variable": "page"
+                        }
+                      },
+                      {
+                        "key": "pageSize",
+                        "dataType": "number",
+                        "value": {
+                          "mode": "variable",
+                          "blockId": "mokelay-apis-user-table",
+                          "blockType": "MAdvanceTable",
+                          "variable": "pageSize"
+                        }
+                      },
+                      {
+                        "key": "fragment",
+                        "dataType": "boolean",
+                  "value": "false"
+                      }
+                    ],
+                    "bodyData": [],
+                    "schemaSelections": [
+                      {
+                        "path": "data.apis[]",
+                        "type": "array",
+                        "label": "API 列表"
+                      },
+                      {
+                        "path": "data.pagination.page",
+                        "type": "number",
+                        "label": "当前页"
+                      },
+                      {
+                        "path": "data.pagination.pageSize",
+                        "type": "number",
+                        "label": "每页数量"
+                      },
+                      {
+                        "path": "data.pagination.total",
+                        "type": "number",
+                        "label": "总数"
+                      }
+                    ],
+                    "matchingExternalFields": [
+                      {
+                        "label": "API 列表",
+                        "variable": "data",
+                        "matchFieldPath": "data.apis[]"
+                      },
+                      {
+                        "label": "当前页",
+                        "variable": "page",
+                        "matchFieldPath": "data.pagination.page"
+                      },
+                      {
+                        "label": "每页数量",
+                        "variable": "pageSize",
+                        "matchFieldPath": "data.pagination.pageSize"
+                      },
+                      {
+                        "label": "总数",
+                        "variable": "total",
+                        "matchFieldPath": "data.pagination.total"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "fixed": null,
+                      "width": 170,
+                      "columnName": "名称",
+                      "columnContent": [
+                        {
+                          "id": "api-name-text-{{uuid}}",
+                          "type": "paragraph",
+                          "data": {
+                            "text": "{{name}}"
+                          },
+                          "events": []
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "name"
+                    },
+                    {
+                      "fixed": null,
+                      "width": 205,
+                      "columnName": "UUID",
+                      "columnContent": [
+                        {
+                          "id": "api-uuid-text-{{uuid}}",
+                          "type": "paragraph",
+                          "data": {
+                            "text": "{{uuid}}"
+                          },
+                          "events": []
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "uuid"
+                    },
+                    {
+                      "fixed": null,
+                      "width": 60,
+                      "columnName": "方法",
+                      "columnContent": [
+                        {
+                          "id": "api-method-tag-{{uuid}}",
+                          "type": "MTag",
+                          "data": {
+                            "tagName": "{{method}}",
+                            "type": "info",
+                            "size": "small"
+                          },
+                          "events": []
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "method"
+                    },
+                    {
+                      "fixed": null,
+                      "width": 60,
+                      "columnName": "状态",
+                      "columnContent": [
+                        {
+                          "id": "api-status-tag-{{uuid}}",
+                          "type": "MTag",
+                          "data": {
+                            "tagName": "{{status}}",
+                            "type": "warning",
+                            "size": "small"
+                          },
+                          "events": []
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "status"
+                    },
+                    {
+                      "fixed": null,
+                      "width": 135,
+                      "columnName": "最近编辑",
+                      "columnContent": [
+                        {
+                          "id": "api-updated-text-{{uuid}}",
+                          "type": "paragraph",
+                          "data": {
+                            "text": "{{updated_at}}"
+                          },
+                          "events": []
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "updated_at"
+                    },
+                    {
+                      "fixed": "right",
+                      "width": 95,
+                      "columnName": "操作",
+                      "columnContent": [
+                        {
+                          "id": "open-api-{{uuid}}",
+                          "type": "MButton",
+                          "data": {
+                            "label": "打开",
+                            "variant": "secondary",
+                            "action": {
+                              "uuid": "{{uuid}}"
+                            }
+                          },
+                          "events": [
+                            {
+                              "event": "click",
+                              "actions": [
+                                {
+                                  "uuid": "mokelay_api_user_open_detail",
+                                  "action": "jump_url",
+                                  "alias": "打开 API 详情",
+                                  "inputs": {
+                                    "url": {
+                                      "template": "#/apis/{{sourceBlock.data.action.uuid}}"
+                                    }
+                                  },
+                                  "outputs": [],
+                                  "nextAction": null
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "delete-api-{{uuid}}",
+                          "type": "MButton",
+                          "data": {
+                            "label": "删除",
+                            "variant": "danger",
+                            "action": {
+                              "uuid": "{{uuid}}",
+                              "name": "{{name}}"
+                            }
+                          },
+                          "events": [
+                            {
+                              "event": "click",
+                              "actions": [
+                                {
+                                  "uuid": "mokelay_api_user_delete_confirm",
+                                  "action": "confirm",
+                                  "alias": "确认删除 API",
+                                  "inputs": {
+                                    "title": "删除 API",
+                                    "content": {
+                                      "template": "确认删除 {{sourceBlock.data.action.name}}？"
+                                    },
+                                    "confirmText": "删除",
+                                    "cancelText": "取消"
+                                  },
+                                  "outputs": [
+                                    "result"
+                                  ],
+                                  "nextAction": "mokelay_api_user_delete_if_confirmed"
+                                },
+                                {
+                                  "uuid": "mokelay_api_user_delete_if_confirmed",
+                                  "action": "if_controller",
+                                  "alias": "判断是否确认",
+                                  "inputs": {
+                                    "value": {
+                                      "template": "{{actions['mokelay_api_user_delete_confirm'].outputs.result}}"
+                                    }
+                                  },
+                                  "nodes": [
+                                    {
+                                      "uuid": "true",
+                                      "value": true,
+                                      "nextAction": "mokelay_api_user_delete_execute"
+                                    },
+                                    {
+                                      "uuid": "false",
+                                      "value": false,
+                                      "nextAction": null
+                                    }
+                                  ],
+                                  "nextAction": null
+                                },
+                                {
+                                  "uuid": "mokelay_api_user_delete_execute",
+                                  "action": "execute_ds",
+                                  "alias": "删除 API",
+                                  "inputs": {
+                                    "dsConfig": {
+                                      "type": "API",
+                                      "domain": "mokelay",
+                                      "path": "/api/mokelay/delete_api_by_uuid",
+                                      "method": "POST",
+                                      "headerData": [],
+                                      "queryData": [],
+                                      "bodyData": [
+                                        {
+                                          "key": "uuid",
+                                          "dataType": "string",
+                                          "value": {
+                                            "template": "{{sourceBlock.data.action.uuid}}"
+                                          }
+                                        }
+                                      ],
+                                      "schemaSelections": [
+                                        {
+                                          "path": "data.affected",
+                                          "type": "number",
+                                          "label": "影响行数"
+                                        }
+                                      ],
+                                      "matchingExternalFields": [
+                                        {
+                                          "label": "影响行数",
+                                          "variable": "affected",
+                                          "matchFieldPath": "data.affected"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "outputs": [
+                                    "rawResponse",
+                                    "affected"
+                                  ],
+                                  "nextAction": "mokelay_api_user_refresh_after_delete"
+                                },
+                                {
+                                  "uuid": "mokelay_api_user_refresh_after_delete",
+                                  "action": "call_block_method",
+                                  "alias": "刷新 API 列表",
+                                  "inputs": {
+                                    "blockId": "mokelay-apis-user-table",
+                                    "method": "refresh"
+                                  },
+                                  "outputs": [
+                                    "returnData"
+                                  ],
+                                  "nextAction": null
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "fieldDataType": "string",
+                      "fieldVariable": "uuid"
+                    }
+                  ]
                 },
                 "events": [
                   {
-                    "event": "click",
+                    "event": "havingSelectedRows",
                     "actions": [
                       {
-                        "uuid": "mokelay_api_user_delete_confirm",
-                        "action": "confirm",
-                        "alias": "确认删除 API",
+                        "uuid": "mokelay_api_user_enable_batch_delete",
+                        "action": "call_block_method",
+                        "alias": "启用批量删除",
                         "inputs": {
-                          "title": "删除 API",
-                          "content": {
-                            "template": "确认删除 {{sourceBlock.data.action.name}}？"
-                          },
-                          "confirmText": "删除",
-                          "cancelText": "取消"
+                          "blockId": "mokelay-apis-user-batch-actions",
+                          "method": "enable",
+                          "buttonId": "batchDelete"
                         },
                         "outputs": [
-                          "result"
-                        ],
-                        "nextAction": "mokelay_api_user_delete_if_confirmed"
-                      },
-                      {
-                        "uuid": "mokelay_api_user_delete_if_confirmed",
-                        "action": "if_controller",
-                        "alias": "判断是否确认",
-                        "inputs": {
-                          "value": {
-                            "template": "{{actions['mokelay_api_user_delete_confirm'].outputs.result}}"
-                          }
-                        },
-                        "nodes": [
-                          {
-                            "uuid": "true",
-                            "value": true,
-                            "nextAction": "mokelay_api_user_delete_execute"
-                          },
-                          {
-                            "uuid": "false",
-                            "value": false,
-                            "nextAction": null
-                          }
+                          "returnData"
                         ],
                         "nextAction": null
-                      },
+                      }
+                    ]
+                  },
+                  {
+                    "event": "emptySelectedRow",
+                    "actions": [
                       {
-                        "uuid": "mokelay_api_user_delete_execute",
-                        "action": "execute_ds",
-                        "alias": "删除 API",
-                        "inputs": {
-                          "dsConfig": {
-                            "type": "API",
-                            "domain": "mokelay",
-                            "path": "/api/mokelay/delete_api_by_uuid",
-                            "method": "POST",
-                            "headerData": [],
-                            "queryData": [],
-                            "bodyData": [
-                              {
-                                "key": "uuid",
-                                "dataType": "string",
-                                "value": {
-                                  "template": "{{sourceBlock.data.action.uuid}}"
-                                }
-                              }
-                            ],
-                            "schemaSelections": [
-                              {
-                                "path": "data.affected",
-                                "type": "number",
-                                "label": "影响行数"
-                              }
-                            ],
-                            "matchingExternalFields": [
-                              {
-                                "label": "影响行数",
-                                "variable": "affected",
-                                "matchFieldPath": "data.affected"
-                              }
-                            ]
-                          }
-                        },
-                        "outputs": [
-                          "rawResponse",
-                          "affected"
-                        ],
-                        "nextAction": "mokelay_api_user_refresh_after_delete"
-                      },
-                      {
-                        "uuid": "mokelay_api_user_refresh_after_delete",
+                        "uuid": "mokelay_api_user_disable_batch_delete",
                         "action": "call_block_method",
-                        "alias": "刷新 API 列表",
+                        "alias": "禁用批量删除",
                         "inputs": {
-                          "blockId": "mokelay-apis-user-table",
-                          "method": "refresh"
+                          "blockId": "mokelay-apis-user-batch-actions",
+                          "method": "disable",
+                          "buttonId": "batchDelete"
                         },
                         "outputs": [
                           "returnData"
@@ -517,52 +590,146 @@
                   }
                 ]
               }
-            ],
-            "fieldDataType": "string",
-            "fieldVariable": "uuid"
+            ]
+          },
+          {
+            "id": "samples",
+            "name": "内置样例",
+            "width": "320px",
+            "blocks": [
+              {
+                "id": "mokelay-api-samples-title",
+                "type": "MHeading",
+                "data": {
+                  "text": "内置样例",
+                  "level": 3,
+                  "align": "left"
+                },
+                "events": []
+              },
+              {
+                "id": "mokelay-api-samples-list",
+                "type": "MActionCardList",
+                "data": {
+                  "itemKey": "uuid",
+                  "titlePath": "title",
+                  "descriptionPath": "description",
+                  "activeKey": "login",
+                  "variant": "card",
+                  "size": "md",
+                  "emptyText": "暂无样例",
+                  "items": [
+                    {
+                      "uuid": "login",
+                      "title": "登录接口",
+                      "description": "读取用户、校验密码、写入 Session。",
+                      "method": "POST",
+                      "suggestedUuid": "login_users"
+                    },
+                    {
+                      "uuid": "register",
+                      "title": "注册接口",
+                      "description": "校验重复邮箱、创建用户、写入 Session。",
+                      "method": "POST",
+                      "suggestedUuid": "register_users"
+                    },
+                    {
+                      "uuid": "current-user",
+                      "title": "当前用户",
+                      "description": "读取 Session 并返回 loggedIn。",
+                      "method": "GET",
+                      "suggestedUuid": "current_user"
+                    },
+                    {
+                      "uuid": "logout",
+                      "title": "退出登录",
+                      "description": "清除 Session 并返回 success。",
+                      "method": "POST",
+                      "suggestedUuid": "logout"
+                    },
+                    {
+                      "uuid": "page-list",
+                      "title": "页面分页",
+                      "description": "分页查询 pages 并返回 pagination。",
+                      "method": "GET",
+                      "suggestedUuid": "list_pages"
+                    },
+                    {
+                      "uuid": "page-detail",
+                      "title": "页面详情",
+                      "description": "按 uuid 查询单个页面。",
+                      "method": "GET",
+                      "suggestedUuid": "get_page_by_uuid"
+                    },
+                    {
+                      "uuid": "page-create",
+                      "title": "创建页面",
+                      "description": "创建记录后读取完整数据。",
+                      "method": "POST",
+                      "suggestedUuid": "create_page"
+                    },
+                    {
+                      "uuid": "page-update",
+                      "title": "更新页面",
+                      "description": "更新 blocks 后读取最新页面。",
+                      "method": "POST",
+                      "suggestedUuid": "update_page"
+                    },
+                    {
+                      "uuid": "wallet-delete",
+                      "title": "删除钱包",
+                      "description": "按 id 删除钱包并返回 affected。",
+                      "method": "POST",
+                      "suggestedUuid": "delete_wallet"
+                    },
+                    {
+                      "uuid": "wallet-count",
+                      "title": "统计钱包",
+                      "description": "统计 BingX wallets 记录数量。",
+                      "method": "GET",
+                      "suggestedUuid": "count_wallets"
+                    }
+                  ]
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "mokelay_api_sample_open_create_dialog",
+                        "action": "open_dialog",
+                        "alias": "使用内置样例创建 API",
+                        "inputs": {
+                          "title": "新建 API",
+                          "pageUUID": "mokelay_api_create_page",
+                          "pageSource": "system",
+                          "context": {
+                            "name": {
+                              "template": "{{event.item.title}}"
+                            },
+                            "uuid": {
+                              "template": "{{event.item.suggestedUuid}}"
+                            },
+                            "method": {
+                              "template": "{{event.item.method}}"
+                            },
+                            "status": "draft"
+                          }
+                        },
+                        "outputs": [
+                          "close_result"
+                        ],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
-      "events": [
-        {
-          "event": "havingSelectedRows",
-          "actions": [
-            {
-              "uuid": "mokelay_api_user_enable_batch_delete",
-              "action": "call_block_method",
-              "alias": "启用批量删除",
-              "inputs": {
-                "blockId": "mokelay-apis-user-batch-actions",
-                "method": "enable",
-                "buttonId": "batchDelete"
-              },
-              "outputs": [
-                "returnData"
-              ],
-              "nextAction": null
-            }
-          ]
-        },
-        {
-          "event": "emptySelectedRow",
-          "actions": [
-            {
-              "uuid": "mokelay_api_user_disable_batch_delete",
-              "action": "call_block_method",
-              "alias": "禁用批量删除",
-              "inputs": {
-                "blockId": "mokelay-apis-user-batch-actions",
-                "method": "disable",
-                "buttonId": "batchDelete"
-              },
-              "outputs": [
-                "returnData"
-              ],
-              "nextAction": null
-            }
-          ]
-        }
-      ]
+      "events": []
     }
   ]
 }

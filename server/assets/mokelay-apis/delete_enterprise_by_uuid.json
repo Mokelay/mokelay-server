@@ -4,42 +4,150 @@
   "method": "POST",
   "request": {
     "body": [
-      "uuid"
+      {
+        "key": "uuid",
+        "processors": [
+          "trim",
+          "is_not_null",
+          {
+            "processor": "regex",
+            "param": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          }
+        ]
+      }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
-      "nextBlock": "delete_enterprise_block"
+      "nextBlock": "delete_enterprise_records"
     },
     {
-      "uuid": "delete_enterprise_block",
-      "alias": "删除企业 Block",
-      "functionName": "delete",
+      "uuid": "delete_enterprise_records",
+      "alias": "删除企业关联记录",
+      "functionName": "cascadeDelete",
       "inputs": {
         "datasource": "Mokelay",
-        "table": "enterprise",
-        "conditions": [
-          {
-            "group": false,
-            "conditionType": "EQ",
-            "fieldName": "uuid",
-            "fieldValue": {
-              "template": "{{request.body.uuid}}"
+        "root": {
+          "id": "enterprise",
+          "table": "enterprise",
+          "keyField": "uuid",
+          "conditions": [
+            {
+              "group": false,
+              "conditionType": "EQ",
+              "fieldName": "uuid",
+              "fieldValue": {
+                "template": "{{request.body.uuid}}"
+              }
             }
+          ]
+        },
+        "relations": [
+          {
+            "id": "employees",
+            "table": "employees",
+            "keyField": "id",
+            "parent": "enterprise",
+            "foreignKey": "enterprise_uuid"
+          },
+          {
+            "id": "employeeAuthIdentities",
+            "table": "employee_auth_identities",
+            "keyField": "id",
+            "parent": "employees",
+            "foreignKey": "employee_id"
+          },
+          {
+            "id": "datasources",
+            "table": "datasources",
+            "keyField": "id",
+            "parent": "enterprise",
+            "foreignKey": "enterprise_uuid"
           }
-        ]
+        ],
+        "collect": [
+          {
+            "key": "schemaNames",
+            "node": "datasources",
+            "mode": "values",
+            "fields": [
+              {
+                "key": "uuid",
+                "processors": [
+                  "trim",
+                  {
+                    "processor": "regex",
+                    "param": "/^(?!(?:public|information_schema)$)(?!pg_)[A-Za-z_][A-Za-z0-9_]{0,62}$/i"
+                  }
+                ]
+              }
+            ],
+            "distinct": true,
+            "orderBy": [
+              {
+                "fieldName": "uuid",
+                "direction": "ASC"
+              }
+            ]
+          }
+        ],
+        "limits": {
+          "maxRootRows": 1,
+          "maxAffectedRows": 100000,
+          "maxCollectedRows": 10000
+        }
       },
       "outputs": [
-        "affected"
+        "affected",
+        "affectedByNode",
+        "totalAffected",
+        "collected"
+      ],
+      "nextBlock": "drop_enterprise_schemas"
+    },
+    {
+      "uuid": "drop_enterprise_schemas",
+      "alias": "删除企业免费数据源 Schemas",
+      "functionName": "dropSchemas",
+      "inputs": {
+        "datasource": "MokelayFree",
+        "schemas": {
+          "template": "{{blocks.delete_enterprise_records.outputs.collected.schemaNames}}"
+        },
+        "cascade": true
+      },
+      "outputs": [
+        "schemas",
+        "dropped"
       ],
       "nextBlock": null
     }
   ],
   "responses": {
-    "delete_enterprise_block": {
+    "drop_enterprise_schemas": {
       "affected": {
-        "template": "{{blocks['delete_enterprise_block'].outputs.affected}}"
+        "template": "{{blocks.delete_enterprise_records.outputs.affected}}"
+      },
+      "deleted": {
+        "employeeAuthIdentities": {
+          "template": "{{blocks.delete_enterprise_records.outputs.affectedByNode.employeeAuthIdentities}}"
+        },
+        "datasources": {
+          "template": "{{blocks.delete_enterprise_records.outputs.affectedByNode.datasources}}"
+        },
+        "employees": {
+          "template": "{{blocks.delete_enterprise_records.outputs.affectedByNode.employees}}"
+        },
+        "enterprises": {
+          "template": "{{blocks.delete_enterprise_records.outputs.affectedByNode.enterprise}}"
+        }
+      },
+      "schemas": {
+        "template": "{{blocks.drop_enterprise_schemas.outputs.schemas}}"
+      },
+      "dropped": {
+        "template": "{{blocks.drop_enterprise_schemas.outputs.dropped}}"
       },
       "message": "删除成功"
     }
