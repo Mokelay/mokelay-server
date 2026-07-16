@@ -15,9 +15,16 @@
           "text": "Mokelay Editor",
           "showMark": false
         },
-        "items": {
-          "template": "{{resources.mainMenu.items}}"
-        },
+        "items": [
+          { "href": "#/", "label": "Apps" },
+          { "href": "#/datasources", "label": "数据源" },
+          { "href": "#/apis", "label": "接口" },
+          { "href": "#/pages", "label": "页面" },
+          { "href": "#/setting", "label": "设置" },
+          { "href": "#/layouts", "label": "布局" },
+          { "href": "#/docs", "label": "文档" },
+          { "href": "#/ai-chat", "label": "AI Chat" }
+        ],
         "userActions": [
           {
             "id": "current-user",
