@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "auth": {
-    "enabled": false,
+    "enabled": true,
     "endpoint": "/api/mokelay/me"
   },
   "name": "Mokelay编辑器布局",
@@ -18,7 +18,16 @@
         "items": {
           "template": "{{resources.mainMenu.items}}"
         },
-        "userActions": [],
+        "userActions": [
+          {
+            "id": "current-user",
+            "type": "MLink",
+            "data": {
+              "text": "{{auth.user.name}} · {{auth.user.enterprise_name}}",
+              "url": "https://www.mokelay.com/dashboard"
+            }
+          }
+        ],
         "guestActions": [],
         "utilityControls": [
           {

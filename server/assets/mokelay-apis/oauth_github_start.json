@@ -14,6 +14,9 @@
             ]
           }
         ]
+      },
+      {
+        "key": "redirect_origin"
       }
     ],
     "body": [],
@@ -32,6 +35,9 @@
         "provider": "github",
         "redirect": {
           "template": "{{request.query.redirect}}"
+        },
+        "redirectOrigin": {
+          "template": "{{request.query.redirect_origin}}"
         }
       },
       "outputs": [
