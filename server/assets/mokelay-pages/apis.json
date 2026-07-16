@@ -2,7 +2,7 @@
   "uuid": "apis",
   "subPage": false,
   "quotes": [],
-  "dependencies": ["mokelay_apis_system_tabs_page","mokelay_apis_user_tabs_page"],
+  "dependencies": ["mokelay_apis_user_tabs_page"],
   "createdAt": "2026-07-10T00:00:00.000Z",
   "updatedAt": "2026-07-10T00:00:00.000Z",
   "name": "接口",
@@ -61,15 +61,6 @@
                       "pageSource": "system",
                       "query": {
                         "source": [null, "user"]
-                      }
-                    },
-                    {
-                      "id": "system-built-in",
-                      "name": "系统内置",
-                      "pageUUID": "mokelay_apis_system_tabs_page",
-                      "pageSource": "system",
-                      "query": {
-                        "source": "system"
                       }
                     }
                   ]

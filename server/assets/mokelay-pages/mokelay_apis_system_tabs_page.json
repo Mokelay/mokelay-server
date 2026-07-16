@@ -1,7 +1,7 @@
 {
   "uuid": "mokelay_apis_system_tabs_page",
   "subPage": true,
-  "quotes": ["apis"],
+  "quotes": ["setting"],
   "dependencies": ["mokelay_apis_system_fragment_page","mokelay_apis_system_page"],
   "createdAt": "2026-07-15T00:00:00.000Z",
   "updatedAt": "2026-07-15T00:00:00.000Z",

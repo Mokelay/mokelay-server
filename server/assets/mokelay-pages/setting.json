@@ -2,7 +2,7 @@
   "uuid": "setting",
   "subPage": false,
   "quotes": [],
-  "dependencies": ["setting_employee_auth_identities_page","setting_employees_page","setting_enterprise_page"],
+  "dependencies": ["mokelay_apis_system_tabs_page","mokelay_layouts_system_page","mokelay_system_page","setting_employee_auth_identities_page","setting_employees_page","setting_enterprise_page"],
   "createdAt": "2026-07-12T00:00:00.000Z",
   "updatedAt": "2026-07-12T00:00:00.000Z",
   "name": "设置",
@@ -18,19 +18,43 @@
             "id": "enterprise",
             "name": "企业",
             "pageUUID": "setting_enterprise_page",
-            "pageSource": "system"
+            "pageSource": "system",
+            "query": { "section": [null, "enterprise"] }
           },
           {
             "id": "employees",
             "name": "员工",
             "pageUUID": "setting_employees_page",
-            "pageSource": "system"
+            "pageSource": "system",
+            "query": { "section": "employees" }
           },
           {
             "id": "employee-auth-identities",
             "name": "员工授权",
             "pageUUID": "setting_employee_auth_identities_page",
-            "pageSource": "system"
+            "pageSource": "system",
+            "query": { "section": "employee-auth-identities" }
+          },
+          {
+            "id": "system-apis",
+            "name": "系统接口",
+            "pageUUID": "mokelay_apis_system_tabs_page",
+            "pageSource": "system",
+            "query": { "section": "system-apis" }
+          },
+          {
+            "id": "system-pages",
+            "name": "系统页面",
+            "pageUUID": "mokelay_system_page",
+            "pageSource": "system",
+            "query": { "section": "system-pages" }
+          },
+          {
+            "id": "system-layouts",
+            "name": "系统布局",
+            "pageUUID": "mokelay_layouts_system_page",
+            "pageSource": "system",
+            "query": { "section": "system-layouts" }
           }
         ]
       }

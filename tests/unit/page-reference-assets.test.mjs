@@ -38,7 +38,7 @@ describe('system page reference assets', () => {
     })
     expect(analysis.relations.get('mokelay_apis_system_tabs_page')).toEqual({
       subPage: true,
-      quotes: ['apis'],
+      quotes: ['setting'],
       dependencies: ['mokelay_apis_system_fragment_page', 'mokelay_apis_system_page'],
     })
   })
