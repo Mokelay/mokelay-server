@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises'
+import { access, mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -72,11 +72,21 @@ const runtimeBlockTypes = [
   'columns',
 ]
 
-async function writeFixture({ comment = commentFor(), secondComment, secondToolSymbol = 'mSecondEditorTool', legacyMetadata = false, layoutEntry = false } = {}) {
+async function writeFixture({ comment = commentFor(), secondComment, secondToolSymbol = 'mSecondEditorTool', legacyMetadata = false, layoutEntry = false, runtimeEntry = false } = {}) {
   tempDir = await mkdtemp(join(tmpdir(), 'client-block-docs-'))
   await mkdir(join(tempDir, 'src/blocks'), { recursive: true })
   await mkdir(join(tempDir, 'src/editors'), { recursive: true })
   if (layoutEntry) await mkdir(join(tempDir, 'src/layouts'), { recursive: true })
+  const componentsRoot = join(tempDir, 'components')
+  if (runtimeEntry) {
+    await mkdir(join(componentsRoot, 'src/blocks'), { recursive: true })
+    await writeFile(join(componentsRoot, 'src/blocks/runtimeRegistry.ts'), `
+const builtInLoaders = {
+  MDemo: () => import('./MDemo.vue')
+}
+`)
+    await writeFile(join(componentsRoot, 'src/blocks/MDemo.vue'), '<template><div>Runtime demo</div></template>\n')
+  }
   await writeFile(join(tempDir, 'src/editors/editorComponentRegistry.ts'), `
 import MDemo, { mDemoEditorTool } from '@/blocks/MDemo.vue'
 ${secondComment ? `import MSecond, { ${secondToolSymbol} } from '@/blocks/MSecond.vue'` : ''}
@@ -133,6 +143,10 @@ export const mLayoutOnlyEditorTool = defineEditorTool({
   return {
     editorRoot: tempDir,
     registryFile: join(tempDir, 'src/editors/editorComponentRegistry.ts'),
+    ...(runtimeEntry ? {
+      componentsRoot,
+      runtimeRegistryFile: join(componentsRoot, 'src/blocks/runtimeRegistry.ts'),
+    } : {}),
     includeManual: false,
   }
 }
@@ -159,6 +173,7 @@ describe('collectClientBlockDocs', () => {
     const docs = await collectClientBlockDocs()
     const blockTypes = docs.map((doc) => doc.block_type)
     const editorDocs = docs.filter((doc) => doc.source_kind === 'mokelay-editor')
+    const componentDocs = docs.filter((doc) => doc.source_kind === 'mokelay-components')
 
     expect(docs).toHaveLength(55)
     expect(blockTypes).toContain('MButton')
@@ -178,14 +193,32 @@ describe('collectClientBlockDocs', () => {
       })
     })
     expect(docs.find((doc) => doc.block_type === 'MButton')).toMatchObject({
-      source_kind: 'mokelay-editor',
+      source_kind: 'mokelay-components',
+      source_package: 'mokelay-components',
+      source_file: 'submodule/mokelay-components/src/blocks/MButton.vue',
       component_name: 'MButton',
       tool_symbol: 'mButtonEditorTool',
       editor_enabled: true,
+      raw_meta: expect.objectContaining({
+        runtimeComponentModule: './MButton.vue',
+        sourcePackage: 'mokelay-components',
+        registryFile: 'submodule/mokelay-editor/src/editors/editorComponentRegistry.ts',
+      }),
+    })
+    expect(docs.find((doc) => doc.block_type === 'MForm')).toMatchObject({
+      source_kind: 'mokelay-components',
+      source_package: 'mokelay-components',
+      source_file: 'submodule/mokelay-components/src/blocks/MForm.vue',
+      raw_meta: expect.objectContaining({
+        componentModule: '@/editors/blocks/MFormEditor.vue',
+        runtimeComponentModule: './MForm.vue',
+      }),
     })
     expect(docs.find((doc) => doc.block_type === 'MJson')).toMatchObject({
       uuid: 'mokelay-editor-MJson',
-      source_kind: 'mokelay-editor',
+      source_kind: 'mokelay-components',
+      source_package: 'mokelay-components',
+      source_file: 'submodule/mokelay-components/src/blocks/MJson.vue',
       component_name: 'MJson',
       tool_symbol: 'mJsonTool',
       editor_enabled: true,
@@ -274,11 +307,14 @@ describe('collectClientBlockDocs', () => {
       tool_symbol: 'mBlockPlaygroundTool',
       editor_enabled: true,
       toolbox_visible: false,
-      editor_block: false,
+      editor_block: true,
       sort_order: 82,
     })
     expect(docs).not.toContainEqual(expect.objectContaining({ source_kind: 'layout' }))
     expect(docs.some((doc) => doc.source_file.includes('/src/layouts/'))).toBe(false)
+    expect(componentDocs).toHaveLength(41)
+    expect(editorDocs).toHaveLength(11)
+    expect(JSON.stringify(docs)).not.toMatch(/"line":\d+/)
     expect(editorDocs.every((doc) => doc.description.trim().length >= 8)).toBe(true)
     expect(editorDocs.some((doc) => doc.description.includes('属性、事件、方法由当前 mokelay-editor 源码自动抽取'))).toBe(false)
     expect(docs.flatMap((doc) => (
@@ -296,6 +332,11 @@ describe('collectClientBlockDocs', () => {
         .filter((method) => typeof method.label !== 'string' || method.label.trim() === '')
         .map((method) => `${doc.block_type}.${method.name}`)
     ))).toEqual([])
+
+    for (const ref of docs.flatMap((doc) => doc.source_refs ?? [])) {
+      if (typeof ref.file !== 'string' || !ref.file.startsWith('submodule/')) continue
+      await expect(access(resolve(process.cwd(), '../..', ref.file))).resolves.toBeUndefined()
+    }
   })
 
   it('normalizes a valid fixture doc', async () => {
@@ -315,6 +356,39 @@ describe('collectClientBlockDocs', () => {
       }),
     })
     expect(docs[0].raw_meta.counts.properties).toBe(1)
+  })
+
+  it('uses the components runtime registry as the source of truth for render blocks', async () => {
+    const componentDoc = validDoc({
+      registration: {
+        ...validDoc().registration,
+        sourceKind: 'mokelay-components',
+        sourcePackage: 'mokelay-components',
+      },
+    })
+    const options = await writeFixture({
+      comment: commentFor(componentDoc),
+      runtimeEntry: true,
+    })
+    const docs = await collectClientBlockDocs(options)
+
+    expect(docs).toMatchObject([{
+      block_type: 'MDemo',
+      source_kind: 'mokelay-components',
+      source_package: 'mokelay-components',
+      source_file: expect.stringMatching(/components\/src\/blocks\/MDemo\.vue$/),
+      raw_meta: expect.objectContaining({
+        componentModule: '@/blocks/MDemo.vue',
+        runtimeComponentModule: './MDemo.vue',
+      }),
+    }])
+  })
+
+  it('rejects editor ownership metadata for a components runtime block', async () => {
+    const options = await writeFixture({ runtimeEntry: true })
+
+    await expect(collectClientBlockDocs(options))
+      .rejects.toThrow('expected "mokelay-components" from the runtime registry')
   })
 
   it('ignores layout modules even when they appear in the editor component registry', async () => {

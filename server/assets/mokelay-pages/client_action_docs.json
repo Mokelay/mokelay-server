@@ -6,7 +6,7 @@
   "name":"客户端 Action 文档",
   "blocks":[
     {"id":"client-action-docs-title","type":"MHeading","data":{"text":"客户端 Action 文档","level":"1","align":"left"}},
-    {"id":"client-action-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-editor/src/actions 中注册的客户端 Action 和 Controller 文档。文档由源码中的 @clientActionDoc 注释扫描同步而来。"}},
+    {"id":"client-action-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-components/src/actions 中注册的客户端 Action 和 Controller 文档。文档由源码中的 @clientActionDoc 注释扫描同步而来。"}},
     {
       "id":"client-action-docs-table",
       "type":"MAdvanceTable",

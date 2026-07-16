@@ -6,7 +6,7 @@
   "name":"客户端 Processor 文档",
   "blocks":[
     {"id":"client-processor-docs-title","type":"MHeading","data":{"text":"客户端 Processor 文档","level":"1","align":"left"}},
-    {"id":"client-processor-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-editor/src/processors 中注册的客户端 Processor 文档。文档由源码中的 @clientProcessorDoc 注释扫描同步而来。"}},
+    {"id":"client-processor-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-components/src/processors 中注册的客户端 Processor 文档。文档由源码中的 @clientProcessorDoc 注释扫描同步而来。"}},
     {
       "id":"client-processor-docs-table",
       "type":"MAdvanceTable",

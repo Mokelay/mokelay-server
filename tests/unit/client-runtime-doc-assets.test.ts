@@ -7,8 +7,20 @@ import { collectClientRuntimeDocs } from '../../scripts/import-client-runtime-do
 const assetsDir = resolve(process.cwd(), 'server/assets')
 
 type RuntimeDocs = {
-  actions: Array<{ action_name: string }>
-  processors: Array<{ processor_name: string }>
+  actions: Array<{
+    action_name: string
+    source_kind: string
+    source_package: string
+    source_file: string
+    raw_meta: { registryFile?: string, sourcePackage?: string }
+  }>
+  processors: Array<{
+    processor_name: string
+    source_kind: string
+    source_package: string
+    source_file: string
+    raw_meta: { registryFile?: string, sourcePackage?: string }
+  }>
 }
 
 async function readJsonAsset<T>(relativePath: string) {
@@ -24,10 +36,23 @@ describe('client Action and Processor documentation assets', () => {
       'call_block_method', 'upload_file', 'download_blob', 'if_controller', 'switch_controller',
     ]))
     expect(docs.actions).toHaveLength(10)
+    expect(docs.actions.every((doc) => (
+      doc.source_kind === 'mokelay-components'
+      && doc.source_package === 'mokelay-components'
+      && doc.source_file.startsWith('submodule/mokelay-components/src/actions/')
+      && doc.raw_meta.sourcePackage === 'mokelay-components'
+    ))).toBe(true)
     expect(docs.processors.map((doc) => doc.processor_name)).toEqual([
       'ai_dsl_request_context', 'filter', 'date_time_format', 'merge_data', 'random_id', 'trim',
     ])
     expect(docs.processors).toHaveLength(6)
+    expect(docs.processors.every((doc) => (
+      doc.source_kind === 'mokelay-components'
+      && doc.source_package === 'mokelay-components'
+      && doc.source_file.startsWith('submodule/mokelay-components/src/processors/executors/')
+      && doc.raw_meta.sourcePackage === 'mokelay-components'
+      && doc.raw_meta.registryFile === 'submodule/mokelay-components/src/processors/registry.ts'
+    ))).toBe(true)
   })
 
   it.each([

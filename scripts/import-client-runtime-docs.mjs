@@ -9,16 +9,16 @@ import ts from 'typescript'
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const serverRoot = path.resolve(scriptDir, '..')
 const workspaceRoot = path.resolve(serverRoot, '../..')
-const editorRoot = path.resolve(serverRoot, '../mokelay-editor')
+const componentsRoot = path.resolve(serverRoot, '../mokelay-components')
 
 dotenv.config({ path: path.join(serverRoot, '.env'), quiet: true })
 
 const actionRequiredFields = [
-  'version', 'actionName', 'displayName', 'actionType', 'category', 'description',
+  'version', 'sourcePackage', 'actionName', 'displayName', 'actionType', 'category', 'description',
   'inputs', 'outputs', 'errors', 'config', 'nodeSchema', 'runtime', 'examples',
 ]
 const processorRequiredFields = [
-  'version', 'processorName', 'displayName', 'category', 'description',
+  'version', 'sourcePackage', 'processorName', 'displayName', 'category', 'description',
   'inputs', 'params', 'outputs', 'errors', 'config', 'runtime', 'examples',
 ]
 
@@ -171,13 +171,13 @@ async function resolveImportPath(fromFile, moduleSpecifier) {
 
 async function resolveAlias(moduleSpecifier) {
   if (!moduleSpecifier.startsWith('@/')) {
-    throw new Error(`Expected an editor alias import, received ${moduleSpecifier}.`)
+    throw new Error(`Expected a components alias import, received ${moduleSpecifier}.`)
   }
   const relative = moduleSpecifier.slice(2)
   const candidates = [
-    path.join(editorRoot, 'src', relative),
-    path.join(editorRoot, 'src', `${relative}.ts`),
-    path.join(editorRoot, 'src', `${relative}.js`),
+    path.join(componentsRoot, 'src', relative),
+    path.join(componentsRoot, 'src', `${relative}.ts`),
+    path.join(componentsRoot, 'src', `${relative}.js`),
   ]
   for (const candidate of candidates) {
     try {
@@ -187,7 +187,7 @@ async function resolveAlias(moduleSpecifier) {
       // try next candidate
     }
   }
-  throw new Error(`Cannot resolve editor alias ${moduleSpecifier}.`)
+  throw new Error(`Cannot resolve components alias ${moduleSpecifier}.`)
 }
 
 async function readRegistry(filePath, registryName) {
@@ -251,6 +251,9 @@ function normalizedSourceRefs(doc, sourceFile, reason) {
 
 function normalizeActionDoc(doc, entry, sourceFile, registryFile) {
   validateDoc(doc, actionRequiredFields, entry.name, '@clientActionDoc')
+  if (doc.sourcePackage !== 'mokelay-components') {
+    throw new Error(`${entry.name} @clientActionDoc.sourcePackage must be mokelay-components.`)
+  }
   if (doc.actionName !== entry.name) {
     throw new Error(`${entry.name} @clientActionDoc.actionName must match the registry.`)
   }
@@ -261,8 +264,8 @@ function normalizeActionDoc(doc, entry, sourceFile, registryFile) {
     display_name: String(doc.displayName),
     action_type: String(doc.actionType),
     category: String(doc.category),
-    source_kind: 'mokelay-editor',
-    source_package: 'mokelay-editor',
+    source_kind: 'mokelay-components',
+    source_package: doc.sourcePackage,
     source_file: workspaceRelative(sourceFile),
     executor_name: entry.symbol,
     description: String(doc.description),
@@ -275,12 +278,15 @@ function normalizeActionDoc(doc, entry, sourceFile, registryFile) {
     runtime_schema: doc.runtime,
     examples: doc.examples,
     source_refs: normalizedSourceRefs(doc, sourceFile, 'registered client action'),
-    raw_meta: { registryFile: workspaceRelative(registryFile), version: doc.version },
+    raw_meta: { registryFile: workspaceRelative(registryFile), sourcePackage: doc.sourcePackage, version: doc.version },
   }
 }
 
 function normalizeProcessorDoc(doc, entry, sourceFile, registryFile) {
   validateDoc(doc, processorRequiredFields, entry.name, '@clientProcessorDoc')
+  if (doc.sourcePackage !== 'mokelay-components') {
+    throw new Error(`${entry.name} @clientProcessorDoc.sourcePackage must be mokelay-components.`)
+  }
   if (doc.processorName !== entry.name) {
     throw new Error(`${entry.name} @clientProcessorDoc.processorName must match the registry.`)
   }
@@ -290,8 +296,8 @@ function normalizeProcessorDoc(doc, entry, sourceFile, registryFile) {
     processor_name: entry.name,
     display_name: String(doc.displayName),
     category: String(doc.category),
-    source_kind: 'mokelay-editor',
-    source_package: 'mokelay-editor',
+    source_kind: 'mokelay-components',
+    source_package: doc.sourcePackage,
     source_file: workspaceRelative(sourceFile),
     executor_name: entry.symbol,
     description: String(doc.description),
@@ -304,13 +310,13 @@ function normalizeProcessorDoc(doc, entry, sourceFile, registryFile) {
     runtime_schema: doc.runtime,
     examples: doc.examples,
     source_refs: normalizedSourceRefs(doc, sourceFile, 'registered client processor'),
-    raw_meta: { registryFile: workspaceRelative(registryFile), version: doc.version },
+    raw_meta: { registryFile: workspaceRelative(registryFile), sourcePackage: doc.sourcePackage, version: doc.version },
   }
 }
 
 async function collectActionDocs() {
-  const executorFile = path.join(editorRoot, 'src/actions/executors.ts')
-  const controllerFile = path.join(editorRoot, 'src/actions/controllers.ts')
+  const executorFile = path.join(componentsRoot, 'src/actions/executors.ts')
+  const controllerFile = path.join(componentsRoot, 'src/actions/controllers.ts')
   const executorRegistry = await readRegistry(executorFile, 'actionExecutors')
   const controllerRegistry = await readRegistry(controllerFile, 'controllerActionDefinitions')
   const entries = [
@@ -335,7 +341,7 @@ async function collectActionDocs() {
 }
 
 async function collectProcessorDocs() {
-  const registryFile = path.join(editorRoot, 'src/processors/registry.ts')
+  const registryFile = path.join(componentsRoot, 'src/processors/registry.ts')
   const registry = await readRegistry(registryFile, 'processorDefinitions')
   const importMap = collectNamedImports(registry.sourceFile)
   const docs = []

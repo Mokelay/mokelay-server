@@ -10,6 +10,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const serverRoot = path.resolve(scriptDir, '..')
 const workspaceRoot = path.resolve(serverRoot, '../..')
 const editorRoot = path.resolve(serverRoot, '../mokelay-editor')
+const componentsRoot = path.resolve(serverRoot, '../mokelay-components')
 
 const requiredDocFields = [
   'version',
@@ -67,7 +68,7 @@ const manualEditorJsDocs = [
     data_fields_schema: [{ label: 'text', variable: 'text', dataType: 'string' }],
     save_schema: [{ key: 'text', type: 'string', description: '保存为 data.text。' }],
     examples: [{ id: 'paragraph-example', type: 'paragraph', data: { text: 'Hello Mokelay' } }],
-    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/components/EditorPreviewBlock.vue', reason: 'renders paragraph' }],
+    source_refs: [{ file: 'submodule/mokelay-components/src/blocks/MokelayBlockRenderer.vue', reason: 'renders paragraph' }],
     raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
   {
@@ -100,7 +101,10 @@ const manualEditorJsDocs = [
     ],
     save_schema: [{ key: 'content', type: 'string[][]', description: '保存为 data.content。' }],
     examples: [{ id: 'table-example', type: 'table', data: { withHeadings: true, content: [['列1', '列2'], ['值1', '值2']] } }],
-    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers @editorjs/table' }],
+    source_refs: [
+      { file: 'submodule/mokelay-editor/src/editors/page/MPageEditor.vue', reason: 'registers @editorjs/table' },
+      { file: 'submodule/mokelay-components/src/blocks/MokelayBlockRenderer.vue', reason: 'renders table' },
+    ],
     raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
   {
@@ -127,7 +131,10 @@ const manualEditorJsDocs = [
     data_fields_schema: [{ label: 'cols', variable: 'cols', dataType: 'array' }],
     save_schema: [{ key: 'cols', type: 'Array<{ blocks: Block[] }>', description: '保存每列内部 EditorJS blocks。' }],
     examples: [{ id: 'columns-example', type: 'columns', data: { cols: [{ blocks: [] }, { blocks: [] }] } }],
-    source_refs: [{ file: 'submodule/mokelay-editor/src/blocks/MPage.vue', reason: 'registers columns' }],
+    source_refs: [
+      { file: 'submodule/mokelay-editor/src/editors/page/MPageEditor.vue', reason: 'registers columns' },
+      { file: 'submodule/mokelay-components/src/blocks/MokelayBlockRenderer.vue', reason: 'renders columns children' },
+    ],
     raw_meta: { managedBy: 'import-block-component-docs.mjs', manual: true },
   },
 ]
@@ -243,7 +250,18 @@ function parseImportMap(sourceFile) {
   return symbols
 }
 
-function resolveAlias(modulePath, root = editorRoot) {
+function resolveAlias(modulePath, root = editorRoot, componentsRootPath = componentsRoot) {
+  if (modulePath === 'mokelay-components') {
+    return [path.join(componentsRootPath, 'src/index.ts')]
+  }
+  if (modulePath.startsWith('mokelay-components/')) {
+    const subpath = modulePath.slice('mokelay-components/'.length)
+    return [
+      path.join(componentsRootPath, 'src', subpath),
+      path.join(componentsRootPath, 'src', `${subpath}.ts`),
+      path.join(componentsRootPath, 'src', `${subpath}.vue`),
+    ]
+  }
   const withoutAlias = modulePath.replace(/^@\//, '')
   return [
     path.join(root, 'src', withoutAlias),
@@ -252,8 +270,27 @@ function resolveAlias(modulePath, root = editorRoot) {
   ]
 }
 
-async function readModuleSource(modulePath, root = editorRoot) {
-  const filePath = await firstExistingPath(resolveAlias(modulePath, root), modulePath)
+async function readModuleSource(modulePath, root = editorRoot, componentsRootPath = componentsRoot) {
+  const filePath = await firstExistingPath(resolveAlias(modulePath, root, componentsRootPath), modulePath)
+  const raw = await readText(filePath)
+  const source = extractScriptContent(filePath, raw)
+
+  return {
+    filePath,
+    source,
+    sourceFile: parseSource(filePath, source),
+    label: workspaceRelative(filePath),
+  }
+}
+
+async function readRelativeModuleSource(modulePath, fromFile) {
+  const base = path.resolve(path.dirname(fromFile), modulePath)
+  const filePath = await firstExistingPath([
+    base,
+    `${base}.ts`,
+    `${base}.vue`,
+    path.join(base, 'index.ts'),
+  ], modulePath)
   const raw = await readText(filePath)
   const source = extractScriptContent(filePath, raw)
 
@@ -352,6 +389,46 @@ function extractRegistryEntries(sourceFile, importMap) {
   return entries
 }
 
+function extractRuntimeBlockEntries(sourceFile) {
+  let registry
+
+  visit(sourceFile, (node) => {
+    if (
+      !registry
+      && ts.isVariableDeclaration(node)
+      && ts.isIdentifier(node.name)
+      && node.name.text === 'builtInLoaders'
+      && node.initializer
+      && ts.isObjectLiteralExpression(node.initializer)
+    ) {
+      registry = node.initializer
+    }
+  })
+
+  if (!registry) {
+    throw new Error('Cannot find builtInLoaders in the mokelay-components runtime registry.')
+  }
+
+  return registry.properties.flatMap((property) => {
+    if (!ts.isPropertyAssignment(property)) return []
+    const blockType = propertyName(property.name)
+    let componentModule = ''
+
+    visit(property.initializer, (node) => {
+      if (
+        !componentModule
+        && ts.isCallExpression(node)
+        && node.expression.kind === ts.SyntaxKind.ImportKeyword
+        && ts.isStringLiteral(node.arguments[0])
+      ) {
+        componentModule = node.arguments[0].text
+      }
+    })
+
+    return blockType && componentModule ? [{ blockType, componentModule }] : []
+  })
+}
+
 function findToolDeclaration(sourceFile, toolSymbol) {
   let result
 
@@ -401,12 +478,12 @@ function leadingClientBlockDocComment(sourceFile, node, filePath) {
   return matching[0]
 }
 
-async function readEditorToolDoc(entry, root = editorRoot) {
+async function readEditorToolDoc(entry, root = editorRoot, componentsRootPath = componentsRoot) {
   if (!entry.toolModule) {
     throw new Error(`Cannot resolve tool module for registered client block ${entry.blockType}.`)
   }
 
-  const tool = await readModuleSource(entry.toolModule, root)
+  const tool = await readModuleSource(entry.toolModule, root, componentsRootPath)
   const declaration = findToolDeclaration(tool.sourceFile, entry.toolSymbol)
   if (!declaration) {
     throw new Error(`Cannot find editor tool ${entry.toolSymbol} in ${tool.label}.`)
@@ -479,6 +556,14 @@ function validateDocAgainstRegistry(doc, entry) {
     throw new Error(`${entry.blockType} documents componentName "${doc.registration.componentName}", expected "${entry.blockType}".`)
   }
 
+  const expectedSource = entry.runtimeComponentModule ? 'mokelay-components' : 'mokelay-editor'
+  if (doc.registration.sourceKind !== expectedSource) {
+    throw new Error(`${entry.blockType} documents sourceKind "${doc.registration.sourceKind}", expected "${expectedSource}" from the runtime registry.`)
+  }
+  if (doc.registration.sourcePackage !== expectedSource) {
+    throw new Error(`${entry.blockType} documents sourcePackage "${doc.registration.sourcePackage}", expected "${expectedSource}" from the runtime registry.`)
+  }
+
   validatePropertyComponents(doc.properties, entry.blockType)
 }
 
@@ -499,6 +584,19 @@ function normalizeDoc(entry, doc, tool, registryFile, index) {
     { file: tool.label, symbol: entry.toolSymbol, reason: 'Editor tool definition and @clientBlockDoc source' },
     { file: workspaceRelative(registryFile), reason: 'registered editor component' },
   ]
+
+  if (entry.editorComponentFilePath && entry.editorComponentFilePath !== entry.componentFilePath) {
+    requiredRefs.push({
+      file: workspaceRelative(entry.editorComponentFilePath),
+      reason: 'Editor component wrapper',
+    })
+  }
+  if (entry.runtimeRegistryFile) {
+    requiredRefs.push({
+      file: workspaceRelative(entry.runtimeRegistryFile),
+      reason: 'registered runtime component',
+    })
+  }
 
   for (const ref of requiredRefs) {
     if (!sourceRefs.some((item) => isRecord(item) && item.file === ref.file && item.reason === ref.reason)) {
@@ -544,8 +642,10 @@ function normalizeDoc(entry, doc, tool, registryFile, index) {
       editorBlock,
       managedBy: 'import-block-component-docs.mjs',
       sourceKind: registration.sourceKind ?? 'mokelay-editor',
+      sourcePackage: registration.sourcePackage ?? 'mokelay-editor',
       registryFile: workspaceRelative(registryFile),
       componentModule: entry.componentModule,
+      runtimeComponentModule: entry.runtimeComponentModule,
       toolModule: entry.toolModule,
       toolSymbol: entry.toolSymbol,
       counts: {
@@ -585,32 +685,46 @@ function normalizeManualDoc(doc) {
 
 export async function collectClientBlockDocs(options = {}) {
   const root = options.editorRoot ?? editorRoot
+  const componentsRootPath = options.componentsRoot ?? componentsRoot
   const registryFile = options.registryFile ?? path.join(root, 'src/editors/editorComponentRegistry.ts')
+  const runtimeRegistryFile = options.runtimeRegistryFile
+    ?? (options.editorRoot ? undefined : path.join(componentsRootPath, 'src/blocks/runtimeRegistry.ts'))
   const includeManual = options.includeManual !== false
   const registrySource = await readText(registryFile)
   const registrySourceFile = parseSource(registryFile, registrySource)
   const importMap = parseImportMap(registrySourceFile)
   const entries = extractRegistryEntries(registrySourceFile, importMap)
+  const runtimeEntries = runtimeRegistryFile
+    ? extractRuntimeBlockEntries(parseSource(runtimeRegistryFile, await readText(runtimeRegistryFile)))
+    : []
+  const runtimeEntriesByType = new Map(runtimeEntries.map((entry) => [entry.blockType, entry]))
   const docs = []
   const seenBlockTypes = new Set()
   const seenUuids = new Set()
 
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index]
-    const component = await readModuleSource(entry.componentModule, root)
+    const editorComponent = await readModuleSource(entry.componentModule, root, componentsRootPath)
 
     // docs_client_block is limited to editor blocks; layout rendering modules are not Block docs.
-    if (isLayoutModule(component.filePath, root)) continue
+    if (isLayoutModule(editorComponent.filePath, root)) continue
 
     if (seenBlockTypes.has(entry.blockType)) {
       throw new Error(`Duplicate registered client block type: ${entry.blockType}.`)
     }
     seenBlockTypes.add(entry.blockType)
 
-    const rawDoc = await readEditorToolDoc(entry, root)
+    const runtimeEntry = runtimeEntriesByType.get(entry.blockType)
+    const runtimeComponent = runtimeEntry
+      ? await readRelativeModuleSource(runtimeEntry.componentModule, runtimeRegistryFile)
+      : undefined
+    const rawDoc = await readEditorToolDoc(entry, root, componentsRootPath)
     const completeEntry = {
       ...entry,
-      componentFilePath: component.filePath,
+      componentFilePath: runtimeComponent?.filePath ?? editorComponent.filePath,
+      editorComponentFilePath: editorComponent.filePath,
+      runtimeComponentModule: runtimeEntry?.componentModule,
+      runtimeRegistryFile: runtimeEntry ? runtimeRegistryFile : undefined,
     }
 
     validateDocAgainstRegistry(rawDoc.doc, completeEntry)
@@ -621,6 +735,13 @@ export async function collectClientBlockDocs(options = {}) {
     }
     seenUuids.add(doc.uuid)
     docs.push(doc)
+  }
+
+  const undocumentedRuntimeBlocks = runtimeEntries
+    .map((entry) => entry.blockType)
+    .filter((blockType) => !seenBlockTypes.has(blockType))
+  if (undocumentedRuntimeBlocks.length) {
+    throw new Error(`Missing Editor @clientBlockDoc registration for mokelay-components runtime blocks: ${undocumentedRuntimeBlocks.join(', ')}.`)
   }
 
   const manualDocs = includeManual ? manualEditorJsDocs.map(normalizeManualDoc) : []
@@ -918,7 +1039,7 @@ async function pruneMysql(connection, docs) {
   if (!uuids.length) return
   const placeholders = uuids.map(() => '?').join(', ')
   await connection.execute(
-    `DELETE FROM docs_client_block WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor') AND uuid NOT IN (${placeholders})`,
+    `DELETE FROM docs_client_block WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-components', 'mokelay-editor') AND uuid NOT IN (${placeholders})`,
     uuids,
   )
 }
@@ -928,7 +1049,7 @@ async function prunePostgres(sql, docs) {
   if (!uuids.length) return
   await sql`
     DELETE FROM docs_client_block
-    WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-editor')
+    WHERE source_kind IN ('editorjs', 'editorjs-plugin', 'mokelay-components', 'mokelay-editor')
       AND uuid NOT IN ${sql(uuids)}
   `
 }
