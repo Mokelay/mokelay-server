@@ -1,7 +1,7 @@
 {
   "uuid": "mokelay_layout_create_page",
   "subPage": true,
-  "quotes": ["mokelay_layouts_user_page"],
+  "quotes": ["layouts"],
   "dependencies": [],
   "createdAt": "2026-06-29T00:00:00.000Z",
   "updatedAt": "2026-06-29T00:00:00.000Z",

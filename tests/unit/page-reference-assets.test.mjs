@@ -18,10 +18,10 @@ describe('system page reference assets', () => {
     const analysis = await analyzeSystemPageAssets()
 
     expect(analysis.summary).toEqual({
-      pageCount: 46,
-      dependencyCount: 32,
-      parentCount: 15,
-      subPageCount: 32,
+      pageCount: 45,
+      dependencyCount: 31,
+      parentCount: 14,
+      subPageCount: 31,
       mainPageCount: 14,
       multiQuotedPageCount: 0,
       changedFileCount: 0,
@@ -46,8 +46,8 @@ describe('system page reference assets', () => {
   it('exposes the asset check through the unified page-reference CLI', async () => {
     await expect(runPageReferencesCli('check')).resolves.toMatchObject({
       status: 'validated',
-      pageCount: 46,
-      dependencyCount: 32,
+      pageCount: 45,
+      dependencyCount: 31,
       changedFileCount: 0,
     })
   })

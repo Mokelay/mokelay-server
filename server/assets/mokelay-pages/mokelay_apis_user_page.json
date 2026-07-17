@@ -81,6 +81,11 @@
                                   "uuid": "",
                                   "method": "GET",
                                   "status": "draft",
+                                  "apiJson": {
+                                    "request": { "header": [], "query": [], "body": [] },
+                                    "blocks": [{ "uuid": "starter", "nextBlock": null }],
+                                    "response": {}
+                                  },
                                   "appUuid": { "template": "{{context.route.query.uuid}}" }
                                 }
                               },
@@ -681,6 +686,9 @@
                               "template": "{{event.item.method}}"
                             },
                             "status": "draft",
+                            "apiJson": {
+                              "template": "{{event.item.api_json}}"
+                            },
                             "appUuid": { "template": "{{context.route.query.uuid}}" }
                           }
                         },

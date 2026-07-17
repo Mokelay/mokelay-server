@@ -18,10 +18,10 @@
         "items": [
           { "href": "#/", "label": "Apps" },
           { "href": "#/datasources", "label": "数据源" },
-          { "href": "#/setting", "label": "设置" },
           { "href": "#/layouts", "label": "布局" },
           { "href": "#/docs", "label": "文档" },
-          { "href": "#/ai-chat", "label": "AI Chat" }
+          { "href": "#/ai-chat", "label": "AI Chat" },
+          { "href": "#/setting", "label": "设置" }
         ],
         "userActions": [
           {
@@ -103,26 +103,26 @@
           "children": []
         },
         {
-          "href": "#/setting",
-          "label": "设置",
+          "href": "#/layouts",
+          "label": "布局",
           "active": false,
           "children": []
         },
-      {
-        "href": "#/layouts",
-        "label": "布局",
-        "active": false,
-        "children": []
-      },
-      {
-        "href": "#/docs",
-        "label": "文档",
-        "active": false,
-        "children": []
-      },
-      {
-        "href": "#/ai-chat",
-        "label": "AI Chat",
+        {
+          "href": "#/docs",
+          "label": "文档",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/ai-chat",
+          "label": "AI Chat",
+          "active": false,
+          "children": []
+        },
+        {
+          "href": "#/setting",
+          "label": "设置",
           "active": false,
           "children": []
         }

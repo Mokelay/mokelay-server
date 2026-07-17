@@ -116,7 +116,7 @@ describe('server runtime documentation assets', () => {
 
   it('disables loading labels on create dialog entry buttons', async () => {
     const datasources = await readJsonAsset('mokelay-pages/datasources.json')
-    const layouts = await readJsonAsset('mokelay-pages/mokelay_layouts_user_page.json')
+    const layouts = await readJsonAsset('mokelay-pages/layouts.json')
     const pages = await readJsonAsset('mokelay-pages/mokelay_list_page.json')
 
     const datasourceCreate = datasources.blocks

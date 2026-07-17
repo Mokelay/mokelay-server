@@ -296,27 +296,23 @@
                             "key": "apiJson",
                             "dataType": "object",
                             "value": {
-                              "uuid": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
-                              },
-                              "alias": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}"
-                              },
-                              "method": {
-                                "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}"
-                              },
-                              "request": {
-                                "header": [],
-                                "query": [],
-                                "body": []
-                              },
-                              "blocks": [
+                              "template": "{{context.apiJson}}",
+                              "processors": [
                                 {
-                                  "uuid": "starter",
-                                  "nextBlock": null
+                                  "processor": "merge_data",
+                                  "param": {
+                                    "uuid": {
+                                      "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                                    },
+                                    "alias": {
+                                      "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.name}}"
+                                    },
+                                    "method": {
+                                      "template": "{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.method}}"
+                                    }
+                                  }
                                 }
-                              ],
-                              "response": {}
+                              ]
                             }
                           },
                           {
