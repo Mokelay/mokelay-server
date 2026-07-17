@@ -20,7 +20,7 @@ import {
 
 type RawPageRow = Record<string, unknown>
 const pageSelectFields = sql.join([
-  'uuid', 'name', 'blocks', 'app_uuid', 'layout_uuid',
+  'uuid', 'name', 'blocks', 'enterprise_uuid', 'app_uuid', 'layout_uuid',
   'sub_page', 'quotes', 'dependencies', 'created_at', 'updated_at',
 ].map(field => sql.identifier(field)), sql`, `)
 
@@ -32,12 +32,15 @@ export type PageSaveInput = {
   dependencies?: unknown
   quotes?: unknown
   subPage?: unknown
+  enterpriseUuid?: unknown
+  appUuid?: unknown
 }
 
 export type NormalizedPage = {
   uuid: string
   name: string
   blocks: unknown[]
+  enterpriseUuid: string
   appUuid: string | null
   layoutUuid: string | null
   subPage: boolean
@@ -94,6 +97,7 @@ export function normalizeUserPage(row: RawPageRow): NormalizedPage {
     uuid,
     name: readString(row.name) ?? '',
     blocks: parseBlocks(row.blocks, uuid),
+    enterpriseUuid: readString(row.enterprise_uuid) ?? '',
     appUuid: readString(row.app_uuid) ?? null,
     layoutUuid: readString(row.layout_uuid) ?? null,
     subPage: readBoolean(row.sub_page),
@@ -351,7 +355,13 @@ export async function savePageBatchWithRelations(
         }
         const candidateRow: RawPageRow = existingIndex >= 0
           ? { ...finalRows[existingIndex], uuid: candidate.uuid, name: candidate.name, blocks: candidate.blocks }
-          : { uuid: candidate.uuid, name: candidate.name, blocks: candidate.blocks }
+          : {
+              uuid: candidate.uuid,
+              name: candidate.name,
+              blocks: candidate.blocks,
+              enterprise_uuid: candidate.input.enterpriseUuid,
+              app_uuid: candidate.input.appUuid,
+            }
         if (existingIndex >= 0) finalRows[existingIndex] = candidateRow
         else finalRows.push(candidateRow)
       }
@@ -368,11 +378,13 @@ export async function savePageBatchWithRelations(
         if (candidate.input.mode === 'create') {
           await executeSql(sql`
             INSERT INTO ${sql.identifier('pages')}
-              (${sql.identifier('uuid')}, ${sql.identifier('name')}, ${sql.identifier('blocks')}, ${sql.identifier('sub_page')}, ${sql.identifier('quotes')}, ${sql.identifier('dependencies')})
+              (${sql.identifier('uuid')}, ${sql.identifier('name')}, ${sql.identifier('blocks')}, ${sql.identifier('enterprise_uuid')}, ${sql.identifier('app_uuid')}, ${sql.identifier('sub_page')}, ${sql.identifier('quotes')}, ${sql.identifier('dependencies')})
             VALUES (
               ${candidate.uuid},
               ${candidate.name},
               ${jsonSql(candidate.blocks, databaseType)},
+              ${candidate.input.enterpriseUuid},
+              ${candidate.input.appUuid},
               ${relations.subPage},
               ${jsonSql(relations.quotes, databaseType)},
               ${jsonSql(relations.dependencies, databaseType)}

@@ -35,6 +35,13 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": { "datasource": "Mokelay" },
+      "outputs": ["enterpriseUuid"],
       "nextBlock": "update_datasource_block"
     },
     {
@@ -60,7 +67,8 @@
             "fieldValue": {
               "template": "{{request.query.uuid}}"
             }
-          }
+          },
+          { "group": false, "conditionType": "EQ", "fieldName": "enterprise_uuid", "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" } }
         ]
       },
       "outputs": [
@@ -90,7 +98,8 @@
             "fieldValue": {
               "template": "{{request.query.uuid}}"
             }
-          }
+          },
+          { "group": false, "conditionType": "EQ", "fieldName": "enterprise_uuid", "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" } }
         ]
       },
       "outputs": [

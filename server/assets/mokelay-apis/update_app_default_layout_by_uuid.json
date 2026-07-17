@@ -22,6 +22,19 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_block"
+    },
+    {
+      "uuid": "require_tenant_block",
+      "alias": "校验 APP 与默认布局归属",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.query.uuid}}" },
+        "requireApp": true,
+        "layoutUuid": { "template": "{{request.body.defaultLayoutUuid}}" }
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
       "nextBlock": "update_app_layout_block"
     },
     {
@@ -43,6 +56,14 @@
             "fieldName": "uuid",
             "fieldValue": {
               "template": "{{request.query.uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": {
+              "template": "{{blocks['require_tenant_block'].outputs.enterpriseUuid}}"
             }
           }
         ]
@@ -73,6 +94,14 @@
             "fieldName": "uuid",
             "fieldValue": {
               "template": "{{request.query.uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": {
+              "template": "{{blocks['require_tenant_block'].outputs.enterpriseUuid}}"
             }
           }
         ]

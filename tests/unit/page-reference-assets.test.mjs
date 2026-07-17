@@ -18,11 +18,11 @@ describe('system page reference assets', () => {
     const analysis = await analyzeSystemPageAssets()
 
     expect(analysis.summary).toEqual({
-      pageCount: 47,
+      pageCount: 46,
       dependencyCount: 32,
-      parentCount: 16,
+      parentCount: 15,
       subPageCount: 32,
-      mainPageCount: 15,
+      mainPageCount: 14,
       multiQuotedPageCount: 0,
       changedFileCount: 0,
     })
@@ -33,7 +33,7 @@ describe('system page reference assets', () => {
     })
     expect(analysis.relations.get('mokelay_apis_user_tabs_page')).toEqual({
       subPage: true,
-      quotes: ['apis'],
+      quotes: ['app'],
       dependencies: ['mokelay_apis_user_fragment_page', 'mokelay_apis_user_page'],
     })
     expect(analysis.relations.get('mokelay_apis_system_tabs_page')).toEqual({
@@ -46,7 +46,7 @@ describe('system page reference assets', () => {
   it('exposes the asset check through the unified page-reference CLI', async () => {
     await expect(runPageReferencesCli('check')).resolves.toMatchObject({
       status: 'validated',
-      pageCount: 47,
+      pageCount: 46,
       dependencyCount: 32,
       changedFileCount: 0,
     })

@@ -34,7 +34,8 @@
                       "context": {
                         "name": "未命名 Fragment",
                         "uuid": "",
-                        "status": "draft"
+                        "status": "draft",
+                        "appUuid": { "template": "{{context.route.query.uuid}}" }
                       }
                     },
                     "outputs": [
@@ -233,6 +234,15 @@
               "key": "fragment",
               "dataType": "boolean",
               "value": "true"
+            },
+            {
+              "key": "appUuid",
+              "dataType": "string",
+              "value": {
+                "mode": "variable",
+                "source": "MPage",
+                "variable": "context.route.query.uuid"
+              }
             }
           ],
           "bodyData": [],
@@ -396,7 +406,7 @@
                         "alias": "打开 Fragment 详情",
                         "inputs": {
                           "url": {
-                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?fragment=true"
+                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?fragment=true&appUuid={{context.route.query.uuid}}"
                           }
                         },
                         "outputs": [],

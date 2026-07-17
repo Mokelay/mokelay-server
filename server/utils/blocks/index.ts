@@ -22,8 +22,14 @@ import {
   executeReadImageFromR2Block,
   executeSaveImageToR2Block,
 } from './r2Image'
+import { executeRequireTenantContextBlock } from './tenantContext'
 
 export const serverBlockDefinitions: Readonly<Record<string, BlockDefinition>> = {
+  requireTenantContext: {
+    executor: executeRequireTenantContextBlock,
+    allowedOutputs: ['enterpriseUuid', 'appUuid'],
+    requiresDatasource: true,
+  },
   validateApiDefinition: {
     executor: executeValidateApiDefinitionBlock,
     allowedOutputs: ['method', 'fragment'],

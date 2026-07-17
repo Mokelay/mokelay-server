@@ -1,7 +1,7 @@
 {
   "uuid": "mokelay_list_page",
   "subPage": true,
-  "quotes": ["pages"],
+  "quotes": ["app"],
   "dependencies": ["mokelay_create_page"],
   "createdAt": "2026-06-20T12:42:39.437Z",
   "updatedAt": "2026-06-23T00:00:00.000Z",
@@ -153,7 +153,10 @@
                       "inputs": {
                         "title": "创建页面",
                         "pageUUID": "mokelay_create_page",
-                        "pageSource": "system"
+                        "pageSource": "system",
+                        "context": {
+                          "appUuid": { "template": "{{context.route.query.uuid}}" }
+                        }
                       },
                       "outputs": [
                         "close_result"
@@ -456,7 +459,7 @@
                         "inputs": {
                           "openNew": false,
                           "url": {
-                            "template": "/#/pages/{{sourceBlock.data.action.uuid}}"
+                            "template": "/#/pages/{{sourceBlock.data.action.uuid}}?appUuid={{context.route.query.uuid}}"
                           }
                         },
                         "nextAction": null
@@ -647,6 +650,14 @@
                 "blockId": "mokelay-list-page-table",
                 "blockType": "MAdvanceTable",
                 "variable": "search.created_at_range.end"
+              }
+            },
+            {
+              "key": "appUuid",
+              "value": {
+                "mode": "variable",
+                "source": "MPage",
+                "variable": "context.route.query.uuid"
               }
             }
           ],

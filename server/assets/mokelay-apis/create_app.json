@@ -45,6 +45,14 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "alias": "读取当前企业",
+      "functionName": "requireTenantContext",
+      "inputs": { "datasource": "Mokelay" },
+      "outputs": ["enterpriseUuid"],
       "nextBlock": "create_app_block"
     },
     {
@@ -64,6 +72,9 @@
           },
           "description": {
             "template": "{{request.body.description}}"
+          },
+          "enterprise_uuid": {
+            "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}"
           }
         }
       },
@@ -84,6 +95,7 @@
           "uuid",
           "alias",
           "description"
+          ,"enterprise_uuid"
         ],
         "conditions": [
           {
@@ -116,6 +128,9 @@
         },
         "description": {
           "template": "{{blocks['read_app_block'].outputs.data.description}}"
+        },
+        "enterpriseUuid": {
+          "template": "{{blocks['read_app_block'].outputs.data.enterprise_uuid}}"
         }
       }
     }

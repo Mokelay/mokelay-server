@@ -6,6 +6,7 @@ import {
   requireDatabaseType,
 } from 'mokelay-server-core/utils/blocks/shared'
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
+import { readSessionValue } from 'mokelay-server-core/utils/session'
 import { readMokelayPageJson } from './readMokelayPageJson'
 import { readMokelayLayoutJson } from './readMokelayLayoutJson'
 import { mergeSystemPageRelations } from '../pageRelationStore'
@@ -125,7 +126,7 @@ function normalizePage(row: LayoutBundleRow) {
   }
 }
 
-async function resolveUserPageBundle(pageUuid: string, executeSql: SqlExecutor) {
+async function resolveUserPageBundle(pageUuid: string, enterpriseUuid: string, executeSql: SqlExecutor) {
   const pagesTable = identifierSql('pages', 'table', 'BLOCK_INVALID_TABLE')
   const appsTable = identifierSql('apps', 'table', 'BLOCK_INVALID_TABLE')
   const layoutsTable = identifierSql('layouts', 'table', 'BLOCK_INVALID_TABLE')
@@ -144,6 +145,7 @@ async function resolveUserPageBundle(pageUuid: string, executeSql: SqlExecutor) 
       ${identifierSql('updated_at', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_updated_at')}
     FROM ${pagesTable}
     WHERE ${identifierSql('uuid', 'fields', 'BLOCK_INVALID_FIELDS')} = ${pageUuid}
+      AND ${identifierSql('enterprise_uuid', 'fields', 'BLOCK_INVALID_FIELDS')} = ${enterpriseUuid}
     LIMIT 1
   `)
   const row = pageResult.rows[0] ?? {}
@@ -281,7 +283,7 @@ async function readSystemLayoutByUuid(
  *   ]
  * }
  */
-export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, executeSql, databaseType }) => {
+export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, executeSql, databaseType, event }) => {
   requireDatabaseType(databaseType)
 
   const pageUuid = readRequiredString(inputs.uuid, 'uuid')
@@ -291,5 +293,12 @@ export const executeResolveLayoutBundleBlock: BlockExecutor = async ({ inputs, e
     return await resolveSystemPageBundle(pageUuid, executeSql)
   }
 
-  return await resolveUserPageBundle(requireUserPageUuid(pageUuid), executeSql)
+  const user = event ? readSessionValue(event, 'user') : { enterprise_uuid: '' }
+  const enterpriseUuid = typeof user === 'object' && user !== null && !Array.isArray(user)
+    ? (user as Record<string, unknown>).enterprise_uuid
+    : undefined
+  if (event && (typeof enterpriseUuid !== 'string' || !enterpriseUuid)) {
+    throw mokelayError('BLOCK_SESSION_KEY_NOT_FOUND', '请先登录。', 401)
+  }
+  return await resolveUserPageBundle(requireUserPageUuid(pageUuid), String(enterpriseUuid ?? ''), executeSql)
 }

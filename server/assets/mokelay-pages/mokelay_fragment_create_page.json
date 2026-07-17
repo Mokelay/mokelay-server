@@ -319,6 +319,11 @@
                             "value": {
                               "blocks": []
                             }
+                          },
+                          {
+                            "key": "appUuid",
+                            "dataType": "string",
+                            "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
                           }
                         ],
                         "schemaSelections": [
@@ -368,7 +373,7 @@
                     "alias": "打开新建 Fragment",
                     "inputs": {
                       "url": {
-                        "template": "#/apis/{{actions['mokelay_fragment_create_execute_save'].outputs.api.uuid}}?fragment=true"
+                        "template": "#/apis/{{actions['mokelay_fragment_create_execute_save'].outputs.api.uuid}}?fragment=true&appUuid={{context.appUuid}}"
                       }
                     },
                     "outputs": [],

@@ -1,0 +1,56 @@
+{
+  "uuid": "read_app_by_uuid",
+  "alias": "读取当前企业 APP",
+  "method": "GET",
+  "request": {
+    "query": [{ "key": "uuid", "processors": ["trim", "is_not_null"] }]
+  },
+  "blocks": [
+    { "uuid": "starter", "nextBlock": "require_tenant_context" },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.query.uuid}}" },
+        "requireApp": true
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
+      "nextBlock": "read_app"
+    },
+    {
+      "uuid": "read_app",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "apps",
+        "fields": ["id", "uuid", "alias", "description", "default_layout_uuid", "enterprise_uuid"],
+        "conditions": [
+          { "group": false, "conditionType": "EQ", "fieldName": "uuid", "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.appUuid}}" } },
+          { "group": false, "conditionType": "EQ", "fieldName": "enterprise_uuid", "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" } }
+        ]
+      },
+      "outputs": ["data"],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "read_app": {
+      "app": {
+        "id": { "template": "{{blocks['read_app'].outputs.data.id}}" },
+        "uuid": { "template": "{{blocks['read_app'].outputs.data.uuid}}" },
+        "alias": { "template": "{{blocks['read_app'].outputs.data.alias}}" },
+        "description": { "template": "{{blocks['read_app'].outputs.data.description}}" },
+        "defaultLayoutUuid": { "template": "{{blocks['read_app'].outputs.data.default_layout_uuid}}" },
+        "enterpriseUuid": { "template": "{{blocks['read_app'].outputs.data.enterprise_uuid}}" }
+      },
+      "apps": [{
+        "uuid": { "template": "{{blocks['read_app'].outputs.data.uuid}}" },
+        "alias": { "template": "{{blocks['read_app'].outputs.data.alias}}" },
+        "description": { "template": "{{blocks['read_app'].outputs.data.description}}" },
+        "defaultLayoutUuid": { "template": "{{blocks['read_app'].outputs.data.default_layout_uuid}}" }
+      }],
+      "pagination": { "page": 1, "pageSize": 1, "total": 1, "totalPages": 1, "hasPreviousPage": false, "hasNextPage": false }
+    }
+  }
+}

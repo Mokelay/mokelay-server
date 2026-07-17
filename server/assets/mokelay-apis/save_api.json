@@ -19,12 +19,28 @@
       },
       {
         "key": "originalUuid"
+      },
+      {
+        "key": "appUuid",
+        "processors": ["trim", "is_not_null"]
       }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.body.appUuid}}" },
+        "apiUuid": { "template": "{{request.body.uuid}}" },
+        "requireApp": true
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
       "nextBlock": "validate_api_definition_block"
     },
     {
@@ -202,6 +218,12 @@
           },
           "updated_at": {
             "template": "{{now}}"
+          },
+          "enterprise_uuid": {
+            "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}"
+          },
+          "app_uuid": {
+            "template": "{{blocks['require_tenant_context'].outputs.appUuid}}"
           }
         }
       },
@@ -261,6 +283,7 @@
           "layout",
           "created_at",
           "updated_at"
+          ,"enterprise_uuid","app_uuid"
         ],
         "conditions": [
           {
@@ -270,6 +293,18 @@
             "fieldValue": {
               "template": "{{blocks['save_api_block'].outputs.uuid}}"
             }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "app_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.appUuid}}" }
           }
         ]
       },

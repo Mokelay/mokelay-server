@@ -147,9 +147,18 @@
             "fixed": "right",
             "width": 120,
             "columnName": "操作",
-            "columnContent": [
-              {
-                "id": "edit-app-button-{{uuid}}",
+          "columnContent": [
+            {
+              "id": "enter-app-link-{{uuid}}",
+              "type": "MLink",
+              "data": {
+                "text": "进入 APP",
+                "url": "#/app?uuid={{uuid}}"
+              },
+              "events": []
+            },
+            {
+              "id": "edit-app-button-{{uuid}}",
                 "type": "MButton",
                 "data": {
                   "label": "编辑",

@@ -1,6 +1,8 @@
 import type { DatabaseType, TransactionRunner } from 'mokelay-server-core/utils/db'
+import { sql } from 'drizzle-orm'
 import { mokelayError } from 'mokelay-server-core/utils/mokelay-error'
 import type { BlockExecutor } from 'mokelay-server-core/utils/orchestration-schema'
+import { readSessionValue } from 'mokelay-server-core/utils/session'
 import {
   deletePagesWithRelations,
   normalizeUserPage,
@@ -118,6 +120,17 @@ function requireTransactionRunner(value: TransactionRunner | undefined): Transac
   return value
 }
 
+function requireEnterpriseUuid(event: Parameters<BlockExecutor>[0]['event']) {
+  const user = readSessionValue(event, 'user')
+  const value = typeof user === 'object' && user !== null && !Array.isArray(user)
+    ? (user as Record<string, unknown>).enterprise_uuid
+    : undefined
+  if (typeof value !== 'string' || !value) {
+    throw mokelayError('BLOCK_SESSION_KEY_NOT_FOUND', '请先登录。', 401)
+  }
+  return value
+}
+
 /**
  * @serverBlockDoc
  * {
@@ -155,10 +168,23 @@ export const executeSavePageRelationsBlock: BlockExecutor = async ({
   inputs,
   databaseType,
   withTransaction,
+  executeSql,
+  event,
 }) => {
   if (inputs.mode !== 'create' && inputs.mode !== 'update') {
     throw mokelayError('REQUEST_INVALID_BODY', 'mode 仅支持 create 或 update。', 400)
   }
+  const enterpriseUuid = requireEnterpriseUuid(event)
+  let appUuid = typeof inputs.appUuid === 'string' ? inputs.appUuid : ''
+  if (inputs.mode === 'update') {
+    const existing = await executeSql(sql`SELECT app_uuid FROM ${sql.identifier('pages')} WHERE uuid = ${String(inputs.uuid)} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
+    if (!existing.rows[0]) throw mokelayError('BLOCK_PAGE_NOT_FOUND', '页面不存在。', 404)
+    appUuid = String((existing.rows[0] as Record<string, unknown>).app_uuid ?? '')
+  }
+  if (!appUuid) throw mokelayError('REQUEST_PARAMETER_MISSING', 'APP UUID 不能为空。', 400)
+  const app = await executeSql(sql`SELECT uuid FROM ${sql.identifier('apps')} WHERE uuid = ${appUuid} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
+  if (!app.rows[0]) throw mokelayError('BLOCK_PAGE_NOT_FOUND', 'APP 不存在。', 404)
+
   const input: PageSaveInput = {
     mode: inputs.mode,
     uuid: inputs.uuid,
@@ -167,6 +193,8 @@ export const executeSavePageRelationsBlock: BlockExecutor = async ({
     dependencies: inputs.dependencies,
     quotes: inputs.quotes,
     subPage: inputs.subPage,
+    enterpriseUuid,
+    appUuid,
   }
   return await savePageWithRelations(
     input,
@@ -208,8 +236,15 @@ export const executeDeletePageRelationsBlock: BlockExecutor = async ({
   inputs,
   databaseType,
   withTransaction,
+  executeSql,
+  event,
 }) => {
   const uuids = Array.isArray(inputs.uuids) ? inputs.uuids : [inputs.uuid]
+  const enterpriseUuid = requireEnterpriseUuid(event)
+  for (const uuid of uuids) {
+    const owned = await executeSql(sql`SELECT uuid FROM ${sql.identifier('pages')} WHERE uuid = ${String(uuid)} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
+    if (!owned.rows[0]) throw mokelayError('BLOCK_PAGE_NOT_FOUND', '页面不存在。', 404)
+  }
   return await deletePagesWithRelations(
     uuids,
     requireDatabaseType(databaseType),

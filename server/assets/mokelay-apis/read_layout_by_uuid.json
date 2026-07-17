@@ -10,6 +10,13 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": { "datasource": "Mokelay" },
+      "outputs": ["enterpriseUuid"],
       "nextBlock": "read_layout_block"
     },
     {
@@ -24,7 +31,7 @@
           "name",
           "layout_json",
           "created_at",
-          "updated_at"
+          "updated_at", "enterprise_uuid"
         ],
         "conditions": [
           {
@@ -34,7 +41,8 @@
             "fieldValue": {
               "template": "{{request.query.uuid}}"
             }
-          }
+          },
+          { "group": false, "conditionType": "EQ", "fieldName": "enterprise_uuid", "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" } }
         ]
       },
       "outputs": [

@@ -1,0 +1,63 @@
+{
+  "uuid": "app",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": ["mokelay_apis_user_tabs_page","mokelay_list_page"],
+  "createdAt": "2026-07-17T00:00:00.000Z",
+  "updatedAt": "2026-07-17T00:00:00.000Z",
+  "name": "APP 详情",
+  "layoutUuid": "mokelay_layout",
+  "dataSources": [],
+  "blocks": [
+    { "id": "app-title", "type": "MHeading", "data": { "text": "APP 详情", "level": 2, "align": "left" }, "events": [] },
+    {
+      "id": "app-detail-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": false,
+        "selection": false,
+        "showPageBreak": false,
+        "columns": [
+          { "columnName": "APP UUID", "fieldVariable": "uuid", "fieldDataType": "string", "width": 160, "fixed": null, "columnContent": [{ "id": "app-detail-uuid", "type": "paragraph", "data": { "text": "{{uuid}}" } }] },
+          { "columnName": "名称", "fieldVariable": "alias", "fieldDataType": "string", "width": 180, "fixed": null, "columnContent": [{ "id": "app-detail-alias", "type": "paragraph", "data": { "text": "{{alias}}" } }] },
+          { "columnName": "描述", "fieldVariable": "description", "fieldDataType": "string", "width": null, "fixed": null, "columnContent": [{ "id": "app-detail-description", "type": "paragraph", "data": { "text": "{{description}}" } }] },
+          { "columnName": "默认布局", "fieldVariable": "defaultLayoutUuid", "fieldDataType": "string", "width": 180, "fixed": null, "columnContent": [{ "id": "app-detail-layout", "type": "paragraph", "data": { "text": "{{defaultLayoutUuid}}" } }] }
+        ],
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/read_app_by_uuid",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [{ "key": "uuid", "value": { "mode": "variable", "source": "MPage", "pageId": "app", "variable": "context.route.query.uuid" } }],
+          "schemaSelections": [
+            { "path": "data.apps[]", "type": "array", "label": "APP 详情" },
+            { "path": "data.pagination.page", "type": "number", "label": "当前页" },
+            { "path": "data.pagination.pageSize", "type": "number", "label": "每页条数" },
+            { "path": "data.pagination.total", "type": "number", "label": "总数" }
+          ],
+          "matchingExternalFields": [
+            { "label": "APP 详情", "variable": "data", "matchFieldPath": "data.apps[]" },
+            { "label": "当前页", "variable": "page", "matchFieldPath": "data.pagination.page" },
+            { "label": "每页条数", "variable": "pageSize", "matchFieldPath": "data.pagination.pageSize" },
+            { "label": "总数", "variable": "total", "matchFieldPath": "data.pagination.total" }
+          ]
+        }
+      },
+      "events": []
+    },
+    {
+      "id": "app-resource-tabs",
+      "type": "MTabs",
+      "data": {
+        "activeTabId": "apis",
+        "tabs": [
+          { "id": "apis", "name": "接口", "pageUUID": "mokelay_apis_user_tabs_page", "pageSource": "system" },
+          { "id": "pages", "name": "页面", "pageUUID": "mokelay_list_page", "pageSource": "system" }
+        ]
+      },
+      "events": []
+    }
+  ]
+}

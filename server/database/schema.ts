@@ -40,12 +40,14 @@ export const pages = pgTable('pages', {
   subPage: boolean('sub_page').notNull().default(false),
   quotes: jsonb('quotes').$type<string[]>().notNull().default([]),
   dependencies: jsonb('dependencies').$type<string[]>().notNull().default([]),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
   appUuid: varchar('app_uuid', { length: 8 }),
   layoutUuid: varchar('layout_uuid', { length: 128 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_pages_sub_page').on(table.subPage),
+  index('idx_pages_enterprise_app').on(table.enterpriseUuid, table.appUuid),
   check(
     'pages_uuid_slug_check',
     sql`char_length(${table.uuid}) BETWEEN 1 AND 128 AND ${table.uuid} !~ '[^a-z0-9_-]'`,
@@ -66,24 +68,30 @@ export const apps = pgTable('apps', {
   uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
   defaultLayoutUuid: varchar('default_layout_uuid', { length: 128 }),
-})
+}, (table) => [
+  index('idx_apps_enterprise_uuid').on(table.enterpriseUuid),
+])
 
 export const layouts = pgTable('layouts', {
   id: serial('id').primaryKey(),
   uuid: varchar('uuid', { length: 128 }).notNull().unique(),
   name: varchar('name', { length: 120 }).notNull(),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
   layoutJson: jsonb('layout_json').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  index('idx_layouts_enterprise_uuid').on(table.enterpriseUuid),
+])
 
 export const datasources = pgTable('datasources', {
   id: serial('id').primaryKey(),
   uuid: varchar('uuid', { length: 8 }).notNull().unique(),
   alias: varchar('alias', { length: 120 }).notNull(),
   description: text('description').notNull().default(''),
-  enterpriseUuid: uuid('enterprise_uuid').references(() => enterprise.uuid, { onDelete: 'set null' }),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
   schemaData: jsonb('schema_data').$type<unknown[]>().notNull().default([]),
 }, (table) => [
   index('idx_datasources_enterprise_uuid').on(table.enterpriseUuid),
@@ -103,10 +111,13 @@ export const apis = pgTable('apis', {
   status: varchar('status', { length: 32 }).notNull().default('draft'),
   apiJson: jsonb('api_json').$type<Record<string, unknown>>().notNull(),
   layout: jsonb('layout').$type<Record<string, unknown>>().notNull().default({}),
+  enterpriseUuid: uuid('enterprise_uuid').notNull().references(() => enterprise.uuid),
+  appUuid: varchar('app_uuid', { length: 8 }).notNull().references(() => apps.uuid),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_apis_fragment_status').on(table.fragment, table.status),
+  index('idx_apis_enterprise_app_fragment').on(table.enterpriseUuid, table.appUuid, table.fragment),
 ])
 
 export const apisSnapshot = pgTable('apis_snapshot', {

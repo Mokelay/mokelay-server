@@ -28,17 +28,16 @@ function queryValue(table: Record<string, any> | undefined, key: string) {
 }
 
 describe('API and Fragment list page assets', () => {
-  it('nests API/Fragment tabs under both user and built-in sources', async () => {
+  it('nests API/Fragment tabs under the APP workbench and settings', async () => {
     const [root, userTabs, systemTabs] = await Promise.all([
-      page('apis'),
+      page('app'),
       page('mokelay_apis_user_tabs_page'),
       page('mokelay_apis_system_tabs_page'),
     ])
 
-    expect(byId(root, 'mokelay-apis-tabs')?.data?.tabs).toEqual([
-      expect.objectContaining({ name: '用户创建', pageUUID: 'mokelay_apis_user_tabs_page', pageSource: 'system' }),
-      expect.objectContaining({ name: '系统内置', pageUUID: 'mokelay_apis_system_tabs_page', pageSource: 'system' }),
-    ])
+    expect(byId(root, 'app-resource-tabs')?.data?.tabs).toContainEqual(
+      expect.objectContaining({ name: '接口', pageUUID: 'mokelay_apis_user_tabs_page', pageSource: 'system' }),
+    )
     expect(byId(userTabs, 'mokelay-apis-user-type-tabs')?.data).toMatchObject({
       activeTabId: 'user-api',
       tabs: [
@@ -86,7 +85,7 @@ describe('API and Fragment list page assets', () => {
 
   it('keeps samples on the user API tab and opens details with source and kind context', async () => {
     const [root, userApi, userFragment, systemApi, systemFragment] = await Promise.all([
-      page('apis'),
+      page('app'),
       page('mokelay_apis_user_page'),
       page('mokelay_apis_user_fragment_page'),
       page('mokelay_apis_system_page'),
@@ -96,8 +95,8 @@ describe('API and Fragment list page assets', () => {
     expect(byId(root, 'mokelay-api-samples-list')).toBeUndefined()
     expect(byId(userApi, 'mokelay-api-samples-list')).toBeTruthy()
     expect(byId(userFragment, 'mokelay-api-samples-list')).toBeUndefined()
-    expect(byUuid(userApi, 'mokelay_api_user_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}')
-    expect(byUuid(userFragment, 'mokelay_fragment_user_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?fragment=true')
+    expect(byUuid(userApi, 'mokelay_api_user_open_detail')?.inputs?.url?.template).toContain('appUuid={{context.route.query.uuid}}')
+    expect(byUuid(userFragment, 'mokelay_fragment_user_open_detail')?.inputs?.url?.template).toContain('appUuid={{context.route.query.uuid}}')
     expect(byUuid(systemApi, 'mokelay_api_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system')
     expect(byUuid(systemFragment, 'mokelay_fragment_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system&fragment=true')
   })
@@ -154,6 +153,6 @@ describe('API and Fragment list page assets', () => {
     expect(byKey('apiJson')?.value).not.toHaveProperty('method')
     expect(byKey('apiJson')?.value).not.toHaveProperty('request')
     expect(byUuid(createPage, 'mokelay_fragment_create_open_created_api')?.inputs?.url?.template)
-      .toBe("#/apis/{{actions['mokelay_fragment_create_execute_save'].outputs.api.uuid}}?fragment=true")
+      .toBe("#/apis/{{actions['mokelay_fragment_create_execute_save'].outputs.api.uuid}}?fragment=true&appUuid={{context.appUuid}}")
   })
 })

@@ -61,11 +61,14 @@ CREATE TABLE `apis` (
   `status` varchar(32) NOT NULL DEFAULT 'draft' COMMENT '发布状态',
   `api_json` json NOT NULL COMMENT 'API DSL 定义 JSON',
   `layout` json NOT NULL COMMENT 'API Builder 布局 JSON',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
+  `app_uuid` varchar(8) NOT NULL COMMENT '所属 APP UUID',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_apis_uuid` (`uuid`),
   KEY `idx_apis_fragment_status` (`fragment`,`status`)
+  ,KEY `idx_apis_enterprise_app_fragment` (`enterprise_uuid`,`app_uuid`,`fragment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='API 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `apis_snapshot`;
@@ -92,9 +95,11 @@ CREATE TABLE `apps` (
   `uuid` varchar(8) NOT NULL COMMENT 'App 唯一ID',
   `alias` varchar(120) NOT NULL COMMENT 'App 名称',
   `description` text NOT NULL COMMENT 'App 描述',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
   `default_layout_uuid` varchar(128) DEFAULT NULL COMMENT '默认布局 UUID',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_apps_uuid` (`uuid`)
+  UNIQUE KEY `uk_apps_uuid` (`uuid`),
+  KEY `idx_apps_enterprise_uuid` (`enterprise_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='App 定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `docs_client_block`;
@@ -248,7 +253,7 @@ CREATE TABLE `datasources` (
   `uuid` varchar(8) NOT NULL COMMENT '数据源唯一ID及数据库连接标识',
   `alias` varchar(120) NOT NULL COMMENT '数据源名称',
   `description` text NOT NULL COMMENT '数据源描述',
-  `enterprise_uuid` char(36) DEFAULT NULL COMMENT '所属企业 UUID',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
   `schema` json NOT NULL DEFAULT (json_array()) COMMENT '数据库表和字段 Schema JSON',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_datasources_uuid` (`uuid`),
@@ -262,11 +267,13 @@ CREATE TABLE `layouts` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '布局自增 ID',
   `uuid` varchar(128) NOT NULL COMMENT '布局唯一标识',
   `name` varchar(120) NOT NULL COMMENT '布局名称',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
   `layout_json` json NOT NULL COMMENT '布局 DSL JSON',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `updated_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_layouts_uuid` (`uuid`)
+  UNIQUE KEY `uk_layouts_uuid` (`uuid`),
+  KEY `idx_layouts_enterprise_uuid` (`enterprise_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='布局定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `pages`;
@@ -280,6 +287,7 @@ CREATE TABLE `pages` (
   `sub_page` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否为被其他页面直接引用的子页面',
   `quotes` json NOT NULL DEFAULT (json_array()) COMMENT '直接引用当前页面的页面 UUID 数组',
   `dependencies` json NOT NULL DEFAULT (json_array()) COMMENT '当前页面直接依赖的子页面 UUID 数组',
+  `enterprise_uuid` char(36) NOT NULL COMMENT '所属企业 UUID',
   `app_uuid` varchar(8) DEFAULT NULL COMMENT '所属 App UUID',
   `layout_uuid` varchar(128) DEFAULT NULL COMMENT '页面布局 UUID',
   `created_at` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
@@ -287,6 +295,7 @@ CREATE TABLE `pages` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_pages_uuid` (`uuid`),
   KEY `idx_pages_sub_page` (`sub_page`),
+  KEY `idx_pages_enterprise_app` (`enterprise_uuid`,`app_uuid`),
   CONSTRAINT `chk_pages_uuid_slug` CHECK (((char_length(`uuid`) between 1 and 128) and regexp_like(`uuid`,_ascii'^[a-z0-9_-]+$','c')))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='页面定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;

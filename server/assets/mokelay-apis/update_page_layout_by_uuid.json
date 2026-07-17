@@ -10,7 +10,20 @@
     ]
   },
   "blocks": [
-    { "uuid": "starter", "nextBlock": "normalize_page_uuid_block" },
+    { "uuid": "starter", "nextBlock": "require_tenant_block" },
+    {
+      "uuid": "require_tenant_block",
+      "alias": "校验页面 APP 与布局归属",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.body.appUuid}}" },
+        "requireApp": true,
+        "layoutUuid": { "template": "{{request.body.layoutUuid}}" }
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
+      "nextBlock": "normalize_page_uuid_block"
+    },
     {
       "uuid": "normalize_page_uuid_block",
       "alias": "规范化页面标识",
@@ -31,12 +44,20 @@
           "layout_uuid": { "template": "{{request.body.layoutUuid}}" },
           "updated_at": { "template": "{{now}}" }
         },
-        "conditions": [{
-          "group": false,
-          "conditionType": "EQ",
-          "fieldName": "uuid",
-          "fieldValue": { "template": "{{blocks['normalize_page_uuid_block'].outputs.uuid}}" }
-        }]
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": { "template": "{{blocks['normalize_page_uuid_block'].outputs.uuid}}" }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_block'].outputs.enterpriseUuid}}" }
+          }
+        ]
       },
       "outputs": ["affected"],
       "nextBlock": "read_page_block"
@@ -52,12 +73,20 @@
           "uuid", "name", "blocks", "app_uuid", "layout_uuid",
           "sub_page", "quotes", "dependencies", "created_at", "updated_at"
         ],
-        "conditions": [{
-          "group": false,
-          "conditionType": "EQ",
-          "fieldName": "uuid",
-          "fieldValue": { "template": "{{blocks['normalize_page_uuid_block'].outputs.uuid}}" }
-        }]
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": { "template": "{{blocks['normalize_page_uuid_block'].outputs.uuid}}" }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_block'].outputs.enterpriseUuid}}" }
+          }
+        ]
       },
       "outputs": ["data"],
       "nextBlock": "normalize_page_row_block"

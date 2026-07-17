@@ -35,6 +35,17 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.query.uuid}}" },
+        "requireApp": true
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
       "nextBlock": "update_app_block"
     },
     {

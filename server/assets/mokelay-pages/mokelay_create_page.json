@@ -244,6 +244,11 @@
                       "key": "blocks",
                       "dataType": "array",
                       "value": []
+                    },
+                    {
+                      "key": "appUuid",
+                      "dataType": "string",
+                      "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
                     }
                   ],
                   "queryData": [],

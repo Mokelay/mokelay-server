@@ -134,6 +134,8 @@ CREATE TABLE public.apis (
     status character varying(32) DEFAULT 'draft'::character varying NOT NULL,
     api_json jsonb NOT NULL,
     layout jsonb DEFAULT '{}'::jsonb NOT NULL,
+    enterprise_uuid uuid NOT NULL,
+    app_uuid character varying(8) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -164,6 +166,7 @@ CREATE TABLE public.apps (
     uuid character varying(8) NOT NULL,
     alias character varying(120) NOT NULL,
     description text DEFAULT ''::text NOT NULL,
+    enterprise_uuid uuid NOT NULL,
     default_layout_uuid character varying(128)
 );
 
@@ -400,7 +403,7 @@ CREATE TABLE public.datasources (
     uuid character varying(8) NOT NULL,
     alias character varying(120) NOT NULL,
     description text DEFAULT ''::text NOT NULL,
-    enterprise_uuid uuid,
+    enterprise_uuid uuid NOT NULL,
     schema_data jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
@@ -464,6 +467,7 @@ CREATE TABLE public.layouts (
     id integer NOT NULL,
     uuid character varying(128) NOT NULL,
     name character varying(120) NOT NULL,
+    enterprise_uuid uuid NOT NULL,
     layout_json jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -501,6 +505,7 @@ CREATE TABLE public.pages (
     sub_page boolean DEFAULT false NOT NULL,
     quotes jsonb DEFAULT '[]'::jsonb NOT NULL,
     dependencies jsonb DEFAULT '[]'::jsonb NOT NULL,
+    enterprise_uuid uuid NOT NULL,
     app_uuid character varying(8),
     layout_uuid character varying(128),
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -898,6 +903,14 @@ ALTER TABLE ONLY public.datasources
 
 CREATE INDEX idx_datasources_enterprise_uuid ON public.datasources USING btree (enterprise_uuid);
 
+CREATE INDEX idx_apps_enterprise_uuid ON public.apps USING btree (enterprise_uuid);
+
+CREATE INDEX idx_layouts_enterprise_uuid ON public.layouts USING btree (enterprise_uuid);
+
+CREATE INDEX idx_apis_enterprise_app ON public.apis USING btree (enterprise_uuid, app_uuid);
+
+CREATE INDEX idx_pages_enterprise_app ON public.pages USING btree (enterprise_uuid, app_uuid);
+
 
 --
 -- Name: idx_apis_fragment_status; Type: INDEX; Schema: public; Owner: -
@@ -974,7 +987,25 @@ ALTER TABLE ONLY public.employees
 --
 
 ALTER TABLE ONLY public.datasources
-    ADD CONSTRAINT datasources_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid) ON DELETE SET NULL;
+    ADD CONSTRAINT datasources_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+ALTER TABLE ONLY public.apps
+    ADD CONSTRAINT apps_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+ALTER TABLE ONLY public.layouts
+    ADD CONSTRAINT layouts_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+ALTER TABLE ONLY public.apis
+    ADD CONSTRAINT apis_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+ALTER TABLE ONLY public.apis
+    ADD CONSTRAINT apis_app_uuid_apps_uuid_fk FOREIGN KEY (app_uuid) REFERENCES public.apps(uuid);
+
+ALTER TABLE ONLY public.pages
+    ADD CONSTRAINT pages_enterprise_uuid_enterprise_uuid_fk FOREIGN KEY (enterprise_uuid) REFERENCES public.enterprise(uuid);
+
+ALTER TABLE ONLY public.pages
+    ADD CONSTRAINT pages_app_uuid_apps_uuid_fk FOREIGN KEY (app_uuid) REFERENCES public.apps(uuid) ON DELETE SET NULL;
 
 
 --

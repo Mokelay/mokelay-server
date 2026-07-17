@@ -325,6 +325,11 @@
                             "value": {
                               "blocks": []
                             }
+                          },
+                          {
+                            "key": "appUuid",
+                            "dataType": "string",
+                            "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
                           }
                         ],
                         "schemaSelections": [
@@ -374,7 +379,7 @@
                     "alias": "打开新建 API",
                     "inputs": {
                       "url": {
-                        "template": "#/apis/{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}"
+                        "template": "#/apis/{{actions['mokelay_api_create_submit_form'].outputs.returnData.values.uuid}}?appUuid={{context.appUuid}}"
                       }
                     },
                     "outputs": [],

@@ -11,6 +11,14 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "alias": "读取当前企业",
+      "functionName": "requireTenantContext",
+      "inputs": { "datasource": "Mokelay" },
+      "outputs": ["enterpriseUuid"],
       "nextBlock": "list_layouts_block"
     },
     {
@@ -26,7 +34,14 @@
           "layout_json",
           "created_at",
           "updated_at"
+          ,"enterprise_uuid"
         ],
+        "conditions": [{
+          "group": false,
+          "conditionType": "EQ",
+          "fieldName": "enterprise_uuid",
+          "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" }
+        }],
         "page": {
           "template": "{{request.query.page}}"
         },

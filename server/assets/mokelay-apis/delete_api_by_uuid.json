@@ -10,6 +10,13 @@
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": { "datasource": "Mokelay" },
+      "outputs": ["enterpriseUuid"],
       "nextBlock": "assert_api_deletable_block"
     },
     {
@@ -42,6 +49,12 @@
             "fieldValue": {
               "template": "{{request.body.uuid}}"
             }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" }
           }
         ]
       },

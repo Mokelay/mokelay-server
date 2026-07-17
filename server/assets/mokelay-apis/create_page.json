@@ -9,12 +9,24 @@
       { "key": "uuid" },
       { "key": "subPage" },
       { "key": "quotes" },
-      { "key": "dependencies" }
+      { "key": "dependencies" },
+      { "key": "appUuid", "processors": ["trim", "is_not_null"] }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.body.appUuid}}" },
+        "requireApp": true
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
       "nextBlock": "save_page_relations_block"
     },
     {
@@ -29,7 +41,9 @@
         "blocks": { "template": "{{request.body.blocks}}" },
         "subPage": { "template": "{{request.body.subPage}}" },
         "quotes": { "template": "{{request.body.quotes}}" },
-        "dependencies": { "template": "{{request.body.dependencies}}" }
+        "dependencies": { "template": "{{request.body.dependencies}}" },
+        "enterpriseUuid": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" },
+        "appUuid": { "template": "{{blocks['require_tenant_context'].outputs.appUuid}}" }
       },
       "outputs": ["affected", "page"],
       "nextBlock": null

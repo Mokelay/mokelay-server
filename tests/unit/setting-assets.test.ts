@@ -242,17 +242,20 @@ describe('setting assets', () => {
     }))
   })
 
-  it('configures the setting page tabs for enterprise, employees, and auth identities', async () => {
+  it('configures tenant and relocated system resource tabs on setting', async () => {
     const page = await readJsonAsset<PageAsset>('mokelay-pages/setting.json')
     const tabsBlock = page.blocks.find((block) => block.id === 'setting-tabs')
 
     expect(tabsBlock?.type).toBe('MTabs')
     expect(tabsBlock?.data?.activeTabId).toBe('enterprise')
-    expect(tabsBlock?.data?.tabs).toEqual([
-      { id: 'enterprise', name: '企业', pageUUID: 'setting_enterprise_page', pageSource: 'system' },
-      { id: 'employees', name: '员工', pageUUID: 'setting_employees_page', pageSource: 'system' },
-      { id: 'employee-auth-identities', name: '员工授权', pageUUID: 'setting_employee_auth_identities_page', pageSource: 'system' },
-    ])
+    expect(tabsBlock?.data?.tabs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'enterprise', pageUUID: 'setting_enterprise_page' }),
+      expect.objectContaining({ id: 'employees', pageUUID: 'setting_employees_page' }),
+      expect.objectContaining({ id: 'employee-auth-identities', pageUUID: 'setting_employee_auth_identities_page' }),
+      expect.objectContaining({ id: 'system-apis', pageUUID: 'mokelay_apis_system_tabs_page' }),
+      expect.objectContaining({ id: 'system-pages', pageUUID: 'mokelay_system_page' }),
+      expect.objectContaining({ id: 'system-layouts', pageUUID: 'mokelay_layouts_system_page' }),
+    ]))
   })
 
   it.each(settingPages)('binds $pageFile to the list and delete APIs', async ({

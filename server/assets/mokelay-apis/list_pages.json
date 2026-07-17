@@ -35,12 +35,27 @@
         "processors": [
           "trim"
         ]
+      },
+      {
+        "key": "appUuid",
+        "processors": ["trim", "is_not_null"]
       }
     ]
   },
   "blocks": [
     {
       "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay",
+        "appUuid": { "template": "{{request.query.appUuid}}" },
+        "requireApp": true
+      },
+      "outputs": ["enterpriseUuid", "appUuid"],
       "nextBlock": "normalize_page_uuid_filter_block"
     },
     {
@@ -76,6 +91,7 @@
           "dependencies",
           "created_at",
           "updated_at"
+          ,"enterprise_uuid"
         ],
         "page": {
           "template": "{{request.query.page}}"
@@ -84,6 +100,18 @@
           "template": "{{request.query.pageSize}}"
         },
         "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "app_uuid",
+            "fieldValue": { "template": "{{blocks['require_tenant_context'].outputs.appUuid}}" }
+          },
           {
             "group": false,
             "conditionType": "EQ",
