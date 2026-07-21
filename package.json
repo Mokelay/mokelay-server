@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nitro dev --host 127.0.0.1 --port 8787",
-    "build": "nitro build",
+    "build": "nitro build && node scripts/include-render-page-assets.mjs",
     "preview": "nitro preview --host 127.0.0.1 --port 8787",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:api && vitest run tests/integration",
