@@ -12,7 +12,12 @@
       "id": "mokelay-layouts-system-heading",
       "type": "MHeading",
       "data": {
-        "text": "系统内置布局",
+        "text": {
+          "$i18n": {
+            "zh-CN": "系统内置布局",
+            "en-US": "Built-in Layouts"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -44,7 +49,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-system-name",
@@ -60,7 +70,12 @@
           {
             "fixed": null,
             "width": 220,
-            "columnName": "更新时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "更新时间",
+                "en-US": "Updated At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-system-updated-at",
@@ -76,13 +91,23 @@
           {
             "fixed": "right",
             "width": 112,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-system-open-button",
                 "type": "MButton",
                 "data": {
-                  "label": "打开",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "打开",
+                      "en-US": "Open"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -103,7 +128,12 @@
                         "action": "open_dialog",
                         "alias": "查看内置布局",
                         "inputs": {
-                          "title": "查看内置布局",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "查看内置布局",
+                              "en-US": "View Built-in Layout"
+                            }
+                          },
                           "pageUUID": "mokelay_layout_system_editor_page",
                           "pageSource": "system",
                           "context": {
@@ -174,5 +204,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

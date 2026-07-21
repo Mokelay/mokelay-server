@@ -37,6 +37,7 @@ export const pages = pgTable('pages', {
   uuid: varchar('uuid', { length: 128 }).primaryKey().default(sql`gen_random_uuid()::text`),
   name: varchar('name', { length: 120 }).notNull(),
   blocks: jsonb('blocks').$type<unknown[]>().notNull().default([]),
+  localeConfig: jsonb('locale_config').$type<{ defaultLocale: string; supportedLocales: string[] }>(),
   subPage: boolean('sub_page').notNull().default(false),
   quotes: jsonb('quotes').$type<string[]>().notNull().default([]),
   dependencies: jsonb('dependencies').$type<string[]>().notNull().default([]),

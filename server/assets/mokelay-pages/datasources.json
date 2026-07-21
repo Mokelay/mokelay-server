@@ -12,7 +12,12 @@
       "id": "mokelay-datasources-heading",
       "type": "MHeading",
       "data": {
-        "text": "数据源管理",
+        "text": {
+          "$i18n": {
+            "zh-CN": "数据源管理",
+            "en-US": "Datasource Management"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -27,7 +32,12 @@
         "buttons": [
           {
             "id": "create",
-            "label": "创建数据源",
+            "label": {
+              "$i18n": {
+                "zh-CN": "创建数据源",
+                "en-US": "Create Datasource"
+              }
+            },
             "variant": "primary",
             "events": [
               {
@@ -38,7 +48,12 @@
                     "action": "open_dialog",
                     "alias": "创建数据源",
                     "inputs": {
-                      "title": "创建数据源",
+                      "title": {
+                        "$i18n": {
+                          "zh-CN": "创建数据源",
+                          "en-US": "Create Datasource"
+                        }
+                      },
                       "pageUUID": "mokelay_datasource_create_page",
                       "pageSource": "system",
                       "context": {}
@@ -113,7 +128,12 @@
           {
             "fixed": null,
             "width": 180,
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-datasources-alias",
@@ -129,7 +149,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "描述",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "描述",
+                "en-US": "Description"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-datasources-description",
@@ -151,7 +176,12 @@
                 "id": "mokelay-datasources-schema",
                 "type": "paragraph",
                 "data": {
-                  "text": "{{schema_data.length}} 张表"
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "{{schema_data.length}} 张表",
+                      "en-US": "{{schema_data.length}} tables"
+                    }
+                  }
                 }
               }
             ],
@@ -161,13 +191,23 @@
           {
             "fixed": "right",
             "width": 260,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-datasources-edit-button",
                 "type": "MButton",
                 "data": {
-                  "label": "编辑",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "编辑",
+                      "en-US": "Edit"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -187,7 +227,12 @@
                         "action": "open_dialog",
                         "alias": "编辑数据源",
                         "inputs": {
-                          "title": "编辑数据源",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "编辑数据源",
+                              "en-US": "Edit Datasource"
+                            }
+                          },
                           "pageUUID": "mokelay_datasource_edit_page",
                           "pageSource": "system",
                           "context": {
@@ -231,7 +276,12 @@
                 "id": "mokelay-datasources-schema-button",
                 "type": "MButton",
                 "data": {
-                  "label": "详情",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "详情",
+                      "en-US": "Details"
+                    }
+                  },
                   "variant": "ghost",
                   "align": "left",
                   "action": {
@@ -250,7 +300,12 @@
                         "action": "open_dialog",
                         "alias": "查看 Schema",
                         "inputs": {
-                          "title": "Schema 详情",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "Schema 详情",
+                              "en-US": "Schema Details"
+                            }
+                          },
                           "pageUUID": "mokelay_datasource_schema_details_page",
                           "pageSource": "system",
                           "context": {
@@ -278,7 +333,12 @@
                 "id": "mokelay-datasources-sync-button",
                 "type": "MButton",
                 "data": {
-                  "label": "同步",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "同步",
+                      "en-US": "Sync"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "action": {
@@ -414,5 +474,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

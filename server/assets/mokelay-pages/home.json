@@ -12,7 +12,12 @@
       "id": "home-heading",
       "type": "MHeading",
       "data": {
-        "text": "应用管理",
+        "text": {
+          "$i18n": {
+            "zh-CN": "应用管理",
+            "en-US": "App Management"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -21,14 +26,24 @@
       "id": "home-intro",
       "type": "MRichText",
       "data": {
-        "content": "集中维护 Mokelay 应用空间。应用用于承载页面、布局和运行时配置，后续能力会继续沉到 JSON DSL 中。"
+        "content": {
+          "$i18n": {
+            "zh-CN": "集中维护 Mokelay 应用空间。应用用于承载页面、布局和运行时配置，后续能力会继续沉到 JSON DSL 中。",
+            "en-US": "Manage Mokelay application spaces in one place. Apps contain pages, layouts, and runtime configuration, with future capabilities continuing to use the JSON DSL."
+          }
+        }
       }
     },
     {
       "id": "create-app-button",
       "type": "MButton",
       "data": {
-        "label": "创建 App",
+        "label": {
+          "$i18n": {
+            "zh-CN": "创建 App",
+            "en-US": "Create App"
+          }
+        },
         "variant": "primary",
         "align": "right",
         "action": {
@@ -44,7 +59,12 @@
               "action": "open_dialog",
               "alias": "创建 App",
               "inputs": {
-                "title": "创建 App",
+                "title": {
+                  "$i18n": {
+                    "zh-CN": "创建 App",
+                    "en-US": "Create App"
+                  }
+                },
                 "pageUUID": "mokelay_app_create_page",
                 "pageSource": "system",
                 "context": {}
@@ -114,7 +134,12 @@
           {
             "fixed": null,
             "width": 220,
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "home-app-alias",
@@ -130,7 +155,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "描述",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "描述",
+                "en-US": "Description"
+              }
+            },
             "columnContent": [
               {
                 "id": "home-app-description",
@@ -146,22 +176,37 @@
           {
             "fixed": "right",
             "width": 120,
-            "columnName": "操作",
-          "columnContent": [
-            {
-              "id": "enter-app-link-{{uuid}}",
-              "type": "MLink",
-              "data": {
-                "text": "进入 APP",
-                "url": "#/app?uuid={{uuid}}"
-              },
-              "events": []
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
             },
-            {
-              "id": "edit-app-button-{{uuid}}",
+            "columnContent": [
+              {
+                "id": "enter-app-link-{{uuid}}",
+                "type": "MLink",
+                "data": {
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "进入 APP",
+                      "en-US": "Open App"
+                    }
+                  },
+                  "url": "#/app?uuid={{uuid}}"
+                },
+                "events": []
+              },
+              {
+                "id": "edit-app-button-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "编辑",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "编辑",
+                      "en-US": "Edit"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -180,7 +225,12 @@
                         "action": "open_dialog",
                         "alias": "编辑 App",
                         "inputs": {
-                          "title": "编辑 App",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "编辑 App",
+                              "en-US": "Edit App"
+                            }
+                          },
                           "pageUUID": "mokelay_app_edit_page",
                           "pageSource": "system",
                           "context": {
@@ -297,5 +347,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

@@ -6,22 +6,26 @@
   },
   "name": "Mokelay编辑器布局",
   "uuid": "mokelay_layout",
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": ["zh-CN", "en-US"]
+  },
   "blocks": [
     {
       "id": "editor-top-nav",
       "data": {
         "brand": {
           "href": "#/",
-          "text": "Mokelay Editor",
+          "text": { "$i18n": { "zh-CN": "Mokelay Editor", "en-US": "Mokelay Editor" } },
           "showMark": false
         },
         "items": [
-          { "href": "#/", "label": "Apps" },
-          { "href": "#/datasources", "label": "数据源" },
-          { "href": "#/layouts", "label": "布局" },
-          { "href": "#/docs", "label": "文档" },
-          { "href": "#/ai-chat", "label": "AI Chat" },
-          { "href": "#/setting", "label": "设置" }
+          { "href": "#/", "label": { "$i18n": { "zh-CN": "Apps", "en-US": "Apps" } } },
+          { "href": "#/datasources", "label": { "$i18n": { "zh-CN": "数据源", "en-US": "Data Sources" } } },
+          { "href": "#/layouts", "label": { "$i18n": { "zh-CN": "布局", "en-US": "Layouts" } } },
+          { "href": "#/docs", "label": { "$i18n": { "zh-CN": "文档", "en-US": "Docs" } } },
+          { "href": "#/ai-chat", "label": { "$i18n": { "zh-CN": "AI Chat", "en-US": "AI Chat" } } },
+          { "href": "#/setting", "label": { "$i18n": { "zh-CN": "设置", "en-US": "Settings" } } }
         ],
         "userActions": [
           {
@@ -38,18 +42,18 @@
           {
             "id": "theme",
             "type": "select",
-            "label": "主题",
+            "label": { "$i18n": { "zh-CN": "主题", "en-US": "Theme" } },
             "binding": {
               "source": "globalSetting",
               "key": "theme"
             },
             "options": [
               {
-                "label": "浅色",
+                "label": { "$i18n": { "zh-CN": "浅色", "en-US": "Light" } },
                 "value": "light"
               },
               {
-                "label": "深色",
+                "label": { "$i18n": { "zh-CN": "深色", "en-US": "Dark" } },
                 "value": "dark"
               }
             ]
@@ -57,18 +61,18 @@
           {
             "id": "language",
             "type": "select",
-            "label": "语言",
+            "label": { "$i18n": { "zh-CN": "语言", "en-US": "Language" } },
             "binding": {
               "source": "globalSetting",
               "key": "language"
             },
             "options": [
               {
-                "label": "中文",
+                "label": { "$i18n": { "zh-CN": "中文", "en-US": "中文" } },
                 "value": "zh"
               },
               {
-                "label": "English",
+                "label": { "$i18n": { "zh-CN": "English", "en-US": "English" } },
                 "value": "en"
               }
             ]
@@ -92,37 +96,37 @@
       "items": [
         {
           "href": "#/",
-          "label": "Apps",
+          "label": { "$i18n": { "zh-CN": "Apps", "en-US": "Apps" } },
           "active": false,
           "children": []
         },
         {
           "href": "#/datasources",
-          "label": "数据源",
+          "label": { "$i18n": { "zh-CN": "数据源", "en-US": "Data Sources" } },
           "active": false,
           "children": []
         },
         {
           "href": "#/layouts",
-          "label": "布局",
+          "label": { "$i18n": { "zh-CN": "布局", "en-US": "Layouts" } },
           "active": false,
           "children": []
         },
         {
           "href": "#/docs",
-          "label": "文档",
+          "label": { "$i18n": { "zh-CN": "文档", "en-US": "Docs" } },
           "active": false,
           "children": []
         },
         {
           "href": "#/ai-chat",
-          "label": "AI Chat",
+          "label": { "$i18n": { "zh-CN": "AI Chat", "en-US": "AI Chat" } },
           "active": false,
           "children": []
         },
         {
           "href": "#/setting",
-          "label": "设置",
+          "label": { "$i18n": { "zh-CN": "设置", "en-US": "Settings" } },
           "active": false,
           "children": []
         }

@@ -13,7 +13,7 @@ type LayoutAsset = {
     mainMenu: {
       items: Array<{
         href?: string
-        label?: string
+        label?: string | { $i18n: Record<string, string> }
       }>
     }
   }
@@ -238,7 +238,7 @@ describe('setting assets', () => {
 
     expect(layout.resources.mainMenu.items).toContainEqual(expect.objectContaining({
       href: '#/setting',
-      label: '设置',
+      label: { $i18n: { 'zh-CN': '设置', 'en-US': 'Settings' } },
     }))
   })
 

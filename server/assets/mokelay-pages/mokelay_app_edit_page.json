@@ -48,7 +48,12 @@
             "events": []
           },
           {
-            "labelName": "名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "variableName": "alias",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -56,7 +61,12 @@
               "id": "create-app-alias",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入 App 名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入 App 名称",
+                    "en-US": "Enter an App name"
+                  }
+                },
                 "value": "",
                 "required": true,
                 "maxLength": 120
@@ -65,7 +75,12 @@
             "events": []
           },
           {
-            "labelName": "描述",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "描述",
+                "en-US": "Description"
+              }
+            },
             "variableName": "description",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -73,7 +88,12 @@
               "id": "create-app-description",
               "type": "MTextareaField",
               "data": {
-                "placeholder": "请输入 App 描述",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入 App 描述",
+                    "en-US": "Enter an App description"
+                  }
+                },
                 "value": "",
                 "rows": 4
               }
@@ -88,7 +108,12 @@
       "id": "create-app-submit",
       "type": "MButton",
       "data": {
-        "label": "保存 App",
+        "label": {
+          "$i18n": {
+            "zh-CN": "保存 App",
+            "en-US": "Save App"
+          }
+        },
         "variant": "primary",
         "align": "right",
         "action": {
@@ -201,5 +226,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

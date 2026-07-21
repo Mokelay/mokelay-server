@@ -49,7 +49,12 @@
       "id": "server-controller-detail-back",
       "type": "MButton",
       "data": {
-        "label": "返回服务端 Controller 文档",
+        "label": {
+          "$i18n": {
+            "zh-CN": "返回服务端 Controller 文档",
+            "en-US": "Back to Server Controller Docs"
+          }
+        },
         "variant": "secondary",
         "align": "left",
         "bare": true
@@ -76,7 +81,12 @@
       "id": "server-controller-detail-title",
       "type": "MHeading",
       "data": {
-        "text": "服务端 Controller 文档详情",
+        "text": {
+          "$i18n": {
+            "zh-CN": "服务端 Controller 文档详情",
+            "en-US": "Server Controller Doc Details"
+          }
+        },
         "level": "1",
         "align": "left"
       }
@@ -103,7 +113,12 @@
           "pageId": "server_controller_doc_detail",
           "variable": "dataSources.doc.doc.function_name"
         },
-        "emptyText": "未找到对应的服务端 Controller 文档。",
+        "emptyText": {
+          "$i18n": {
+            "zh-CN": "未找到对应的服务端 Controller 文档。",
+            "en-US": "The requested server Controller documentation was not found."
+          }
+        },
         "showCount": false,
         "titleFields": [
           "display_name",
@@ -127,17 +142,72 @@
         "fieldLabels": {
           "uuid": "UUID",
           "function_name": "Function",
-          "display_name": "名称",
-          "category": "分类",
-          "description": "说明",
-          "status": "状态",
-          "source_kind": "来源类型",
-          "source_package": "来源包",
-          "source_file": "源码",
-          "executor_name": "执行器",
-          "requires_datasource": "数据源",
-          "created_at": "创建时间",
-          "updated_at": "更新时间"
+          "display_name": {
+            "$i18n": {
+              "zh-CN": "名称",
+              "en-US": "Name"
+            }
+          },
+          "category": {
+            "$i18n": {
+              "zh-CN": "分类",
+              "en-US": "Category"
+            }
+          },
+          "description": {
+            "$i18n": {
+              "zh-CN": "说明",
+              "en-US": "Description"
+            }
+          },
+          "status": {
+            "$i18n": {
+              "zh-CN": "状态",
+              "en-US": "Status"
+            }
+          },
+          "source_kind": {
+            "$i18n": {
+              "zh-CN": "来源类型",
+              "en-US": "Source Type"
+            }
+          },
+          "source_package": {
+            "$i18n": {
+              "zh-CN": "来源包",
+              "en-US": "Source Package"
+            }
+          },
+          "source_file": {
+            "$i18n": {
+              "zh-CN": "源码",
+              "en-US": "Source"
+            }
+          },
+          "executor_name": {
+            "$i18n": {
+              "zh-CN": "执行器",
+              "en-US": "Executor"
+            }
+          },
+          "requires_datasource": {
+            "$i18n": {
+              "zh-CN": "数据源",
+              "en-US": "Datasource"
+            }
+          },
+          "created_at": {
+            "$i18n": {
+              "zh-CN": "创建时间",
+              "en-US": "Created At"
+            }
+          },
+          "updated_at": {
+            "$i18n": {
+              "zh-CN": "更新时间",
+              "en-US": "Updated At"
+            }
+          }
         },
         "hiddenFields": [
           "input_schema",
@@ -155,7 +225,12 @@
       "id": "server-controller-detail-input_schema-heading",
       "type": "MHeading",
       "data": {
-        "text": "输入",
+        "text": {
+          "$i18n": {
+            "zh-CN": "输入",
+            "en-US": "Inputs"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -174,7 +249,12 @@
         },
         "columns": [
           {
-            "columnName": "标识",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标识",
+                "en-US": "Identifier"
+              }
+            },
             "fieldVariable": "key",
             "fieldDataType": "string",
             "width": 180,
@@ -190,7 +270,12 @@
             ]
           },
           {
-            "columnName": "标题",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标题",
+                "en-US": "Title"
+              }
+            },
             "fieldVariable": "title",
             "fieldDataType": "string",
             "width": 180,
@@ -205,7 +290,12 @@
             ]
           },
           {
-            "columnName": "类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "类型",
+                "en-US": "Type"
+              }
+            },
             "fieldVariable": "type",
             "fieldDataType": "string",
             "width": 160,
@@ -220,7 +310,12 @@
             ]
           },
           {
-            "columnName": "必填",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "必填",
+                "en-US": "Required"
+              }
+            },
             "fieldVariable": "required",
             "fieldDataType": "boolean",
             "width": 90,
@@ -235,7 +330,12 @@
             ]
           },
           {
-            "columnName": "默认值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "默认值",
+                "en-US": "Default Value"
+              }
+            },
             "fieldVariable": "defaultValue",
             "fieldDataType": "string",
             "width": 160,
@@ -250,7 +350,12 @@
             ]
           },
           {
-            "columnName": "值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "值",
+                "en-US": "Value"
+              }
+            },
             "fieldVariable": "value",
             "fieldDataType": "string",
             "width": 160,
@@ -265,7 +370,12 @@
             ]
           },
           {
-            "columnName": "节点类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "节点类型",
+                "en-US": "Node Type"
+              }
+            },
             "fieldVariable": "typeValue",
             "fieldDataType": "string",
             "width": 160,
@@ -280,7 +390,12 @@
             ]
           },
           {
-            "columnName": "可选值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "可选值",
+                "en-US": "Allowed Values"
+              }
+            },
             "fieldVariable": "enum",
             "fieldDataType": "string",
             "width": 220,
@@ -295,7 +410,12 @@
             ]
           },
           {
-            "columnName": "说明",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "说明",
+                "en-US": "Description"
+              }
+            },
             "fieldVariable": "description",
             "fieldDataType": "string",
             "width": 460,
@@ -316,7 +436,12 @@
       "id": "server-controller-detail-node_schema-heading",
       "type": "MHeading",
       "data": {
-        "text": "节点",
+        "text": {
+          "$i18n": {
+            "zh-CN": "节点",
+            "en-US": "Nodes"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -335,7 +460,12 @@
         },
         "columns": [
           {
-            "columnName": "标识",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标识",
+                "en-US": "Identifier"
+              }
+            },
             "fieldVariable": "key",
             "fieldDataType": "string",
             "width": 180,
@@ -351,7 +481,12 @@
             ]
           },
           {
-            "columnName": "标题",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标题",
+                "en-US": "Title"
+              }
+            },
             "fieldVariable": "title",
             "fieldDataType": "string",
             "width": 180,
@@ -366,7 +501,12 @@
             ]
           },
           {
-            "columnName": "类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "类型",
+                "en-US": "Type"
+              }
+            },
             "fieldVariable": "type",
             "fieldDataType": "string",
             "width": 160,
@@ -381,7 +521,12 @@
             ]
           },
           {
-            "columnName": "必填",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "必填",
+                "en-US": "Required"
+              }
+            },
             "fieldVariable": "required",
             "fieldDataType": "boolean",
             "width": 90,
@@ -396,7 +541,12 @@
             ]
           },
           {
-            "columnName": "默认值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "默认值",
+                "en-US": "Default Value"
+              }
+            },
             "fieldVariable": "defaultValue",
             "fieldDataType": "string",
             "width": 160,
@@ -411,7 +561,12 @@
             ]
           },
           {
-            "columnName": "值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "值",
+                "en-US": "Value"
+              }
+            },
             "fieldVariable": "value",
             "fieldDataType": "string",
             "width": 160,
@@ -426,7 +581,12 @@
             ]
           },
           {
-            "columnName": "节点类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "节点类型",
+                "en-US": "Node Type"
+              }
+            },
             "fieldVariable": "typeValue",
             "fieldDataType": "string",
             "width": 160,
@@ -441,7 +601,12 @@
             ]
           },
           {
-            "columnName": "可选值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "可选值",
+                "en-US": "Allowed Values"
+              }
+            },
             "fieldVariable": "enum",
             "fieldDataType": "string",
             "width": 220,
@@ -456,7 +621,12 @@
             ]
           },
           {
-            "columnName": "说明",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "说明",
+                "en-US": "Description"
+              }
+            },
             "fieldVariable": "description",
             "fieldDataType": "string",
             "width": 460,
@@ -477,7 +647,12 @@
       "id": "server-controller-detail-json-heading",
       "type": "MHeading",
       "data": {
-        "text": "配置与示例",
+        "text": {
+          "$i18n": {
+            "zh-CN": "配置与示例",
+            "en-US": "Configuration and Examples"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -507,7 +682,12 @@
                 "id": "server-controller-detail-config-json",
                 "type": "MJson",
                 "data": {
-                  "label": "配置",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "配置",
+                      "en-US": "Config"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -522,7 +702,12 @@
                 "id": "server-controller-detail-error-json",
                 "type": "MJson",
                 "data": {
-                  "label": "错误",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "错误",
+                      "en-US": "Error"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -537,7 +722,12 @@
                 "id": "server-controller-detail-runtime-json",
                 "type": "MJson",
                 "data": {
-                  "label": "运行时",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "运行时",
+                      "en-US": "Runtime"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -559,7 +749,12 @@
                 "id": "server-controller-detail-examples-json",
                 "type": "MJson",
                 "data": {
-                  "label": "示例",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "示例",
+                      "en-US": "Examples"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -574,7 +769,12 @@
                 "id": "server-controller-detail-source-refs-json",
                 "type": "MJson",
                 "data": {
-                  "label": "源码引用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "源码引用",
+                      "en-US": "Source References"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -589,7 +789,12 @@
                 "id": "server-controller-detail-raw-meta-json",
                 "type": "MJson",
                 "data": {
-                  "label": "原始元数据",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "原始元数据",
+                      "en-US": "Raw Metadata"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -609,7 +814,12 @@
       "id": "server-controller-detail-raw-json",
       "type": "MJson",
       "data": {
-        "label": "只读文档数据",
+        "label": {
+          "$i18n": {
+            "zh-CN": "只读文档数据",
+            "en-US": "Read-only Documentation Data"
+          }
+        },
         "value": {
           "mode": "variable",
           "source": "MPage",
@@ -620,5 +830,12 @@
         "expandDepth": 1
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

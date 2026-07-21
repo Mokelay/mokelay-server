@@ -16,7 +16,12 @@
         "buttons": [
           {
             "id": "create-fragment",
-            "label": "新建 Fragment",
+            "label": {
+              "$i18n": {
+                "zh-CN": "新建 Fragment",
+                "en-US": "New Fragment"
+              }
+            },
             "variant": "primary",
             "showLoading": false,
             "events": [
@@ -28,14 +33,21 @@
                     "action": "open_dialog",
                     "alias": "打开新建 Fragment 弹窗",
                     "inputs": {
-                      "title": "新建 Fragment",
+                      "title": {
+                        "$i18n": {
+                          "zh-CN": "新建 Fragment",
+                          "en-US": "New Fragment"
+                        }
+                      },
                       "pageUUID": "mokelay_fragment_create_page",
                       "pageSource": "system",
                       "context": {
                         "name": "未命名 Fragment",
                         "uuid": "",
                         "status": "draft",
-                        "appUuid": { "template": "{{context.route.query.uuid}}" }
+                        "appUuid": {
+                          "template": "{{context.route.query.uuid}}"
+                        }
                       }
                     },
                     "outputs": [
@@ -74,7 +86,12 @@
         "buttons": [
           {
             "id": "batchDelete",
-            "label": "批量删除",
+            "label": {
+              "$i18n": {
+                "zh-CN": "批量删除",
+                "en-US": "Delete Selected"
+              }
+            },
             "variant": "danger",
             "disabled": true,
             "events": [
@@ -86,8 +103,18 @@
                     "action": "confirm",
                     "alias": "确认批量删除 Fragment",
                     "inputs": {
-                      "title": "确认批量删除 Fragment",
-                      "content": "确定要删除选中的 Fragment 吗？此操作不可恢复。"
+                      "title": {
+                        "$i18n": {
+                          "zh-CN": "确认批量删除 Fragment",
+                          "en-US": "Confirm Fragment Deletion"
+                        }
+                      },
+                      "content": {
+                        "$i18n": {
+                          "zh-CN": "确定要删除选中的 Fragment 吗？此操作不可恢复。",
+                          "en-US": "Delete the selected Fragments? This action cannot be undone."
+                        }
+                      }
                     },
                     "outputs": [
                       "result"
@@ -295,7 +322,12 @@
           {
             "fixed": null,
             "width": 170,
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "fragment-name-text-{{uuid}}",
@@ -329,7 +361,12 @@
           {
             "fixed": null,
             "width": 60,
-            "columnName": "类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "类型",
+                "en-US": "Type"
+              }
+            },
             "columnContent": [
               {
                 "id": "fragment-type-tag-{{uuid}}",
@@ -348,7 +385,12 @@
           {
             "fixed": null,
             "width": 60,
-            "columnName": "状态",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "状态",
+                "en-US": "Status"
+              }
+            },
             "columnContent": [
               {
                 "id": "fragment-status-tag-{{uuid}}",
@@ -367,7 +409,12 @@
           {
             "fixed": null,
             "width": 135,
-            "columnName": "最近编辑",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "最近编辑",
+                "en-US": "Last Edited"
+              }
+            },
             "columnContent": [
               {
                 "id": "fragment-updated-text-{{uuid}}",
@@ -384,13 +431,23 @@
           {
             "fixed": "right",
             "width": 95,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "open-fragment-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "打开",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "打开",
+                      "en-US": "Open"
+                    }
+                  },
                   "variant": "secondary",
                   "action": {
                     "uuid": "{{uuid}}"
@@ -420,7 +477,12 @@
                 "id": "delete-fragment-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "删除",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "删除",
+                      "en-US": "Delete"
+                    }
+                  },
                   "variant": "danger",
                   "action": {
                     "uuid": "{{uuid}}",
@@ -436,7 +498,12 @@
                         "action": "confirm",
                         "alias": "确认删除 Fragment",
                         "inputs": {
-                          "title": "删除 Fragment",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "删除 Fragment",
+                              "en-US": "Delete Fragment"
+                            }
+                          },
                           "content": {
                             "template": "确认删除 {{sourceBlock.data.action.name}}？"
                           },
@@ -578,5 +645,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

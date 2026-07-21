@@ -12,7 +12,12 @@
       "id": "mokelay-datasource-schema-heading",
       "type": "MHeading",
       "data": {
-        "text": "Schema 详情",
+        "text": {
+          "$i18n": {
+            "zh-CN": "Schema 详情",
+            "en-US": "Schema Details"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -36,15 +41,30 @@
           "source": "MPage",
           "variable": "context.uuid"
         },
-        "emptyText": "暂无 Schema 数据，请先同步 Schema。",
+        "emptyText": {
+          "$i18n": {
+            "zh-CN": "暂无 Schema 数据，请先同步 Schema。",
+            "en-US": "No schema data. Sync the schema first."
+          }
+        },
         "showCount": true,
         "fieldOrder": [
           "name",
           "columns"
         ],
         "fieldLabels": {
-          "name": "表名",
-          "columns": "字段"
+          "name": {
+            "$i18n": {
+              "zh-CN": "表名",
+              "en-US": "Table Name"
+            }
+          },
+          "columns": {
+            "$i18n": {
+              "zh-CN": "字段",
+              "en-US": "Field"
+            }
+          }
         },
         "titleFields": [
           "name"
@@ -52,5 +72,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

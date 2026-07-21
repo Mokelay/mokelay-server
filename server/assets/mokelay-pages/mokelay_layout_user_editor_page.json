@@ -12,7 +12,12 @@
       "id": "mokelay_layout_user_editor_page-heading",
       "type": "MHeading",
       "data": {
-        "text": "编辑布局",
+        "text": {
+          "$i18n": {
+            "zh-CN": "编辑布局",
+            "en-US": "Edit Layout"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -30,7 +35,12 @@
         },
         "items": [
           {
-            "labelName": "布局名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "布局名称",
+                "en-US": "Layout Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -38,7 +48,12 @@
               "id": "mokelay-layout-edit-name-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入布局名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入布局名称",
+                    "en-US": "Enter a layout name"
+                  }
+                },
                 "value": ""
               }
             },
@@ -52,7 +67,12 @@
       "id": "mokelay-layout-edit-save-button",
       "type": "MButton",
       "data": {
-        "label": "保存布局",
+        "label": {
+          "$i18n": {
+            "zh-CN": "保存布局",
+            "en-US": "Save Layout"
+          }
+        },
         "variant": "primary",
         "align": "left",
         "action": {
@@ -175,7 +195,12 @@
       "id": "mokelay-layout-json-editor",
       "type": "MJsonEditor",
       "data": {
-        "label": "布局 DSL JSON",
+        "label": {
+          "$i18n": {
+            "zh-CN": "布局 DSL JSON",
+            "en-US": "Layout DSL JSON"
+          }
+        },
         "rows": 22,
         "value": {
           "mode": "variable",
@@ -199,7 +224,12 @@
       "id": "mokelay_layout_user_editor_page-preview",
       "type": "MLayoutPreview",
       "data": {
-        "title": "布局预览",
+        "title": {
+          "$i18n": {
+            "zh-CN": "布局预览",
+            "en-US": "Layout Preview"
+          }
+        },
         "layout": {
           "mode": "variable",
           "blockId": "mokelay-layout-json-editor",
@@ -209,5 +239,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

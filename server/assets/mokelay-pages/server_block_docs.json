@@ -10,7 +10,12 @@
       "id": "server-block-docs-title",
       "type": "MHeading",
       "data": {
-        "text": "服务端 Block 文档",
+        "text": {
+          "$i18n": {
+            "zh-CN": "服务端 Block 文档",
+            "en-US": "Server Block Docs"
+          }
+        },
         "level": "1",
         "align": "left"
       }
@@ -40,7 +45,12 @@
             ]
           },
           {
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "fieldVariable": "display_name",
             "fieldDataType": "string",
             "width": 180,
@@ -56,7 +66,12 @@
             ]
           },
           {
-            "columnName": "分类",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "分类",
+                "en-US": "Category"
+              }
+            },
             "fieldVariable": "category",
             "fieldDataType": "string",
             "width": 170,
@@ -72,7 +87,12 @@
             ]
           },
           {
-            "columnName": "数据源",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "数据源",
+                "en-US": "Datasource"
+              }
+            },
             "fieldVariable": "requires_datasource",
             "fieldDataType": "boolean",
             "width": 100,
@@ -88,7 +108,12 @@
             ]
           },
           {
-            "columnName": "说明",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "说明",
+                "en-US": "Description"
+              }
+            },
             "fieldVariable": "description",
             "fieldDataType": "string",
             "width": 420,
@@ -104,7 +129,12 @@
             ]
           },
           {
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "fieldVariable": "uuid",
             "fieldDataType": "string",
             "width": 112,
@@ -114,7 +144,12 @@
                 "id": "server-block-docs-open-detail-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "查看详情",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "查看详情",
+                      "en-US": "View Details"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -220,5 +255,12 @@
         }
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

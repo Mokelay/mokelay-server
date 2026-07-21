@@ -51,7 +51,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "企业名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "企业名称",
+                "en-US": "Enterprise Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-enterprise-name",
@@ -67,13 +72,23 @@
           {
             "fixed": "right",
             "width": 100,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-enterprise-delete-button",
                 "type": "MButton",
                 "data": {
-                  "label": "删除",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "删除",
+                      "en-US": "Delete"
+                    }
+                  },
                   "variant": "ghost",
                   "align": "left",
                   "action": {
@@ -91,7 +106,12 @@
                         "action": "confirm",
                         "alias": "确认删除企业",
                         "inputs": {
-                          "title": "确认删除企业",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "确认删除企业",
+                              "en-US": "Confirm Enterprise Deletion"
+                            }
+                          },
                           "content": {
                             "template": "确定要删除企业「{{sourceBlock.data.action.name}}」吗？"
                           }
@@ -251,5 +271,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

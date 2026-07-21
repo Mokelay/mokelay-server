@@ -195,6 +195,7 @@ export const executeSavePageRelationsBlock: BlockExecutor = async ({
     subPage: inputs.subPage,
     enterpriseUuid,
     appUuid,
+    localeConfig: inputs.localeConfig,
   }
   return await savePageWithRelations(
     input,

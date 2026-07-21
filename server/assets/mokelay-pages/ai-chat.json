@@ -137,7 +137,12 @@
                   "layout": "Vertical",
                   "items": [
                     {
-                      "labelName": "用户需求",
+                      "labelName": {
+                        "$i18n": {
+                          "zh-CN": "用户需求",
+                          "en-US": "User Requirements"
+                        }
+                      },
                       "variableName": "requirementDocument",
                       "fieldDataType": "string",
                       "layout": "Vertical",
@@ -145,7 +150,12 @@
                         "id": "ai-chat-requirement-document",
                         "type": "MTextareaField",
                         "data": {
-                          "placeholder": "描述要生成的页面、数据和交互，例如：生成一个 CRM，包含客户列表、新增、编辑和删除。",
+                          "placeholder": {
+                            "$i18n": {
+                              "zh-CN": "描述要生成的页面、数据和交互，例如：生成一个 CRM，包含客户列表、新增、编辑和删除。",
+                              "en-US": "Describe the pages, data, and interactions to generate. For example: create a CRM with customer listing, creation, editing, and deletion."
+                            }
+                          },
                           "value": "生成一个CRM：包括客户管理，列表，添加，修改，删除",
                           "rows": 18,
                           "required": true,
@@ -162,7 +172,12 @@
                         "id": "ai-chat-app-select",
                         "type": "MSelectField",
                         "data": {
-                          "placeholder": "请选择 APP",
+                          "placeholder": {
+                            "$i18n": {
+                              "zh-CN": "请选择 APP",
+                              "en-US": "Select an App"
+                            }
+                          },
                           "value": "",
                           "options": {
                             "mode": "variable",
@@ -177,7 +192,12 @@
                       }
                     },
                     {
-                      "labelName": "数据源",
+                      "labelName": {
+                        "$i18n": {
+                          "zh-CN": "数据源",
+                          "en-US": "Datasource"
+                        }
+                      },
                       "variableName": "datasource",
                       "fieldDataType": "string",
                       "layout": "Vertical",
@@ -185,7 +205,12 @@
                         "id": "ai-chat-datasource-select",
                         "type": "MSelectField",
                         "data": {
-                          "placeholder": "请选择数据源",
+                          "placeholder": {
+                            "$i18n": {
+                              "zh-CN": "请选择数据源",
+                              "en-US": "Select a datasource"
+                            }
+                          },
                           "value": "",
                           "options": {
                             "mode": "variable",
@@ -218,8 +243,18 @@
                   "buttons": [
                     {
                       "id": "generate",
-                      "label": "AI生成",
-                      "loadingLabel": "生成中...",
+                      "label": {
+                        "$i18n": {
+                          "zh-CN": "AI生成",
+                          "en-US": "Generate with AI"
+                        }
+                      },
+                      "loadingLabel": {
+                        "$i18n": {
+                          "zh-CN": "生成中...",
+                          "en-US": "Generating..."
+                        }
+                      },
                       "showLoading": true,
                       "variant": "primary",
                       "align": "left",
@@ -720,7 +755,12 @@
                     },
                     {
                       "id": "clear",
-                      "label": "清空会话",
+                      "label": {
+                        "$i18n": {
+                          "zh-CN": "清空会话",
+                          "en-US": "Clear Session"
+                        }
+                      },
                       "showLoading": false,
                       "variant": "secondary",
                       "align": "left",
@@ -850,7 +890,12 @@
                 "id": "ai-chat-result-heading",
                 "type": "MHeading",
                 "data": {
-                  "text": "生成结果",
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "生成结果",
+                      "en-US": "Generated Result"
+                    }
+                  },
                   "level": "3",
                   "align": "left"
                 },
@@ -860,11 +905,21 @@
                 "id": "ai-chat-save-json",
                 "type": "MJson",
                 "data": {
-                  "label": "保存摘要",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "保存摘要",
+                      "en-US": "Save Summary"
+                    }
+                  },
                   "value": null,
                   "height": 240,
                   "expandDepth": 3,
-                  "emptyText": "暂无保存结果。"
+                  "emptyText": {
+                    "$i18n": {
+                      "zh-CN": "暂无保存结果。",
+                      "en-US": "No saved result."
+                    }
+                  }
                 },
                 "events": []
               },
@@ -872,7 +927,12 @@
                 "id": "ai-chat-saved-pages-heading",
                 "type": "MHeading",
                 "data": {
-                  "text": "已保存页面",
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "已保存页面",
+                      "en-US": "Saved Page"
+                    }
+                  },
                   "level": "3",
                   "align": "left"
                 },
@@ -909,7 +969,12 @@
                   "descriptionPath": "href",
                   "variant": "compact",
                   "size": "sm",
-                  "emptyText": "暂无已保存页面。"
+                  "emptyText": {
+                    "$i18n": {
+                      "zh-CN": "暂无已保存页面。",
+                      "en-US": "No saved page."
+                    }
+                  }
                 },
                 "events": [
                   {
@@ -936,7 +1001,12 @@
                 "id": "ai-chat-saved-apis-heading",
                 "type": "MHeading",
                 "data": {
-                  "text": "已保存接口",
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "已保存接口",
+                      "en-US": "Saved API"
+                    }
+                  },
                   "level": "3",
                   "align": "left"
                 },
@@ -973,7 +1043,12 @@
                   "descriptionPath": "href",
                   "variant": "compact",
                   "size": "sm",
-                  "emptyText": "暂无已保存接口。"
+                  "emptyText": {
+                    "$i18n": {
+                      "zh-CN": "暂无已保存接口。",
+                      "en-US": "No saved API."
+                    }
+                  }
                 },
                 "events": [
                   {
@@ -1000,11 +1075,21 @@
                 "id": "ai-chat-response-json",
                 "type": "MJson",
                 "data": {
-                  "label": "响应 JSON",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "响应 JSON",
+                      "en-US": "Response JSON"
+                    }
+                  },
                   "value": null,
                   "height": 680,
                   "expandDepth": 2,
-                  "emptyText": "暂无生成响应。"
+                  "emptyText": {
+                    "$i18n": {
+                      "zh-CN": "暂无生成响应。",
+                      "en-US": "No generated response."
+                    }
+                  }
                 },
                 "events": []
               }
@@ -1026,5 +1111,12 @@
     "会话 history 按 oldest_first 存储，由 ai_dsl_request_context 选取最近五轮。",
     "客户端仅提交用户需求与 APP/数据源组成的 projectContext；DSL 文档上下文与生成偏好由服务端提供。",
     "生成成功后自动调用 save_ai_dsl_assets，并展示 partial-aware 保存摘要。"
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

@@ -204,6 +204,13 @@
       "when": 1784217600000,
       "tag": "0029_enterprise_app_isolation",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1784563200000,
+      "tag": "0030_page_locale_config",
+      "breakpoints": true
     }
   ]
 }

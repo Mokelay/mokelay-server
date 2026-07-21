@@ -116,6 +116,7 @@ function normalizePage(row: LayoutBundleRow) {
     uuid,
     name: readString(row.page_name) ?? '',
     blocks: normalizeBlocks(row.page_blocks),
+    localeConfig: normalizeLayoutJson(row.page_locale_config),
     appUuid: readString(row.page_app_uuid) ?? null,
     layoutUuid: readString(row.page_layout_uuid_value) ?? null,
     subPage: row.page_sub_page === true || row.page_sub_page === 1 || row.page_sub_page === '1' || row.page_sub_page === 'true',
@@ -141,6 +142,7 @@ async function resolveUserPageBundle(pageUuid: string, enterpriseUuid: string, e
       ${identifierSql('sub_page', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_sub_page')},
       ${identifierSql('quotes', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_quotes')},
       ${identifierSql('dependencies', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_dependencies')},
+      ${identifierSql('locale_config', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_locale_config')},
       ${identifierSql('created_at', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_created_at')},
       ${identifierSql('updated_at', 'fields', 'BLOCK_INVALID_FIELDS')} AS ${sql.identifier('page_updated_at')}
     FROM ${pagesTable}

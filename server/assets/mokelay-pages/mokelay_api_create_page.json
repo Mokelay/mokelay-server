@@ -90,7 +90,12 @@
         },
         "items": [
           {
-            "labelName": "接口名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "接口名称",
+                "en-US": "API Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -98,16 +103,31 @@
               "id": "api-create-name",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入接口名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入接口名称",
+                    "en-US": "Enter an API name"
+                  }
+                },
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入接口名称"
+                "validationMessage": {
+                  "$i18n": {
+                    "zh-CN": "请输入接口名称",
+                    "en-US": "Enter an API name"
+                  }
+                }
               }
             },
             "events": []
           },
           {
-            "labelName": "API 标识",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "API 标识",
+                "en-US": "API Identifier"
+              }
+            },
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -115,16 +135,31 @@
               "id": "api-create-uuid",
               "type": "MInput",
               "data": {
-                "placeholder": "例如 api_list_customers",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "例如 api_list_customers",
+                    "en-US": "For example: api_list_customers"
+                  }
+                },
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入 API 标识"
+                "validationMessage": {
+                  "$i18n": {
+                    "zh-CN": "请输入 API 标识",
+                    "en-US": "Enter an API identifier"
+                  }
+                }
               }
             },
             "events": []
           },
           {
-            "labelName": "请求方法",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "请求方法",
+                "en-US": "HTTP Method"
+              }
+            },
             "variableName": "method",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -132,7 +167,12 @@
               "id": "api-create-method",
               "type": "MSelectField",
               "data": {
-                "placeholder": "请选择请求方法",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请选择请求方法",
+                    "en-US": "Select an HTTP method"
+                  }
+                },
                 "value": "GET",
                 "required": true,
                 "options": [
@@ -157,7 +197,12 @@
       "id": "mokelay-api-create-preview",
       "type": "paragraph",
       "data": {
-        "text": "路径预览：/api/mokelay/{{blocks['api-create-uuid'].value}}"
+        "text": {
+          "$i18n": {
+            "zh-CN": "路径预览：/api/mokelay/{{blocks['api-create-uuid'].value}}",
+            "en-US": "Path preview: /api/mokelay/{{blocks['api-create-uuid'].value}}"
+          }
+        }
       },
       "events": []
     },
@@ -169,7 +214,12 @@
         "buttons": [
           {
             "id": "cancel",
-            "label": "取消",
+            "label": {
+              "$i18n": {
+                "zh-CN": "取消",
+                "en-US": "Cancel"
+              }
+            },
             "variant": "secondary",
             "events": [
               {
@@ -194,7 +244,12 @@
           },
           {
             "id": "save",
-            "label": "保存并打开",
+            "label": {
+              "$i18n": {
+                "zh-CN": "保存并打开",
+                "en-US": "Save and Open"
+              }
+            },
             "variant": "primary",
             "events": [
               {
@@ -325,7 +380,11 @@
                           {
                             "key": "appUuid",
                             "dataType": "string",
-                            "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
+                            "value": {
+                              "mode": "variable",
+                              "source": "MPage",
+                              "variable": "context.appUuid"
+                            }
                           }
                         ],
                         "schemaSelections": [
@@ -389,5 +448,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

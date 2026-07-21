@@ -9,7 +9,21 @@
   "layoutUuid": "mokelay_layout",
   "dataSources": [],
   "blocks": [
-    { "id": "app-title", "type": "MHeading", "data": { "text": "APP 详情", "level": 2, "align": "left" }, "events": [] },
+    {
+      "id": "app-title",
+      "type": "MHeading",
+      "data": {
+        "text": {
+          "$i18n": {
+            "zh-CN": "APP 详情",
+            "en-US": "App Details"
+          }
+        },
+        "level": 2,
+        "align": "left"
+      },
+      "events": []
+    },
     {
       "id": "app-detail-table",
       "type": "MAdvanceTable",
@@ -18,10 +32,85 @@
         "selection": false,
         "showPageBreak": false,
         "columns": [
-          { "columnName": "APP UUID", "fieldVariable": "uuid", "fieldDataType": "string", "width": 160, "fixed": null, "columnContent": [{ "id": "app-detail-uuid", "type": "paragraph", "data": { "text": "{{uuid}}" } }] },
-          { "columnName": "名称", "fieldVariable": "alias", "fieldDataType": "string", "width": 180, "fixed": null, "columnContent": [{ "id": "app-detail-alias", "type": "paragraph", "data": { "text": "{{alias}}" } }] },
-          { "columnName": "描述", "fieldVariable": "description", "fieldDataType": "string", "width": null, "fixed": null, "columnContent": [{ "id": "app-detail-description", "type": "paragraph", "data": { "text": "{{description}}" } }] },
-          { "columnName": "默认布局", "fieldVariable": "defaultLayoutUuid", "fieldDataType": "string", "width": 180, "fixed": null, "columnContent": [{ "id": "app-detail-layout", "type": "paragraph", "data": { "text": "{{defaultLayoutUuid}}" } }] }
+          {
+            "columnName": "APP UUID",
+            "fieldVariable": "uuid",
+            "fieldDataType": "string",
+            "width": 160,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "app-detail-uuid",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{uuid}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
+            "fieldVariable": "alias",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "app-detail-alias",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{alias}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "描述",
+                "en-US": "Description"
+              }
+            },
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": null,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "app-detail-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "默认布局",
+                "en-US": "Default Layout"
+              }
+            },
+            "fieldVariable": "defaultLayoutUuid",
+            "fieldDataType": "string",
+            "width": 180,
+            "fixed": null,
+            "columnContent": [
+              {
+                "id": "app-detail-layout",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{defaultLayoutUuid}}"
+                }
+              }
+            ]
+          }
         ],
         "ds": {
           "type": "API",
@@ -30,18 +119,60 @@
           "method": "GET",
           "headerData": [],
           "bodyData": [],
-          "queryData": [{ "key": "uuid", "value": { "mode": "variable", "source": "MPage", "pageId": "app", "variable": "context.route.query.uuid" } }],
+          "queryData": [
+            {
+              "key": "uuid",
+              "value": {
+                "mode": "variable",
+                "source": "MPage",
+                "pageId": "app",
+                "variable": "context.route.query.uuid"
+              }
+            }
+          ],
           "schemaSelections": [
-            { "path": "data.apps[]", "type": "array", "label": "APP 详情" },
-            { "path": "data.pagination.page", "type": "number", "label": "当前页" },
-            { "path": "data.pagination.pageSize", "type": "number", "label": "每页条数" },
-            { "path": "data.pagination.total", "type": "number", "label": "总数" }
+            {
+              "path": "data.apps[]",
+              "type": "array",
+              "label": "APP 详情"
+            },
+            {
+              "path": "data.pagination.page",
+              "type": "number",
+              "label": "当前页"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "type": "number",
+              "label": "每页条数"
+            },
+            {
+              "path": "data.pagination.total",
+              "type": "number",
+              "label": "总数"
+            }
           ],
           "matchingExternalFields": [
-            { "label": "APP 详情", "variable": "data", "matchFieldPath": "data.apps[]" },
-            { "label": "当前页", "variable": "page", "matchFieldPath": "data.pagination.page" },
-            { "label": "每页条数", "variable": "pageSize", "matchFieldPath": "data.pagination.pageSize" },
-            { "label": "总数", "variable": "total", "matchFieldPath": "data.pagination.total" }
+            {
+              "label": "APP 详情",
+              "variable": "data",
+              "matchFieldPath": "data.apps[]"
+            },
+            {
+              "label": "当前页",
+              "variable": "page",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页条数",
+              "variable": "pageSize",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "matchFieldPath": "data.pagination.total"
+            }
           ]
         }
       },
@@ -53,11 +184,38 @@
       "data": {
         "activeTabId": "apis",
         "tabs": [
-          { "id": "apis", "name": "接口", "pageUUID": "mokelay_apis_user_tabs_page", "pageSource": "system" },
-          { "id": "pages", "name": "页面", "pageUUID": "mokelay_list_page", "pageSource": "system" }
+          {
+            "id": "apis",
+            "name": {
+              "$i18n": {
+                "zh-CN": "接口",
+                "en-US": "APIs"
+              }
+            },
+            "pageUUID": "mokelay_apis_user_tabs_page",
+            "pageSource": "system"
+          },
+          {
+            "id": "pages",
+            "name": {
+              "$i18n": {
+                "zh-CN": "页面",
+                "en-US": "Pages"
+              }
+            },
+            "pageUUID": "mokelay_list_page",
+            "pageSource": "system"
+          }
         ]
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

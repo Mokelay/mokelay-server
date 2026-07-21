@@ -5,13 +5,17 @@
   },
   "name": "Web顶部布局",
   "uuid": "web_layout",
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": ["zh-CN", "en-US"]
+  },
   "blocks": [
     {
       "id": "top-nav",
       "data": {
         "brand": {
           "href": "#",
-          "text": "Mokelay",
+          "text": { "$i18n": { "zh-CN": "Mokelay", "en-US": "Mokelay" } },
           "showMark": false
         },
         "items": {
@@ -30,7 +34,7 @@
           {
             "id": "deposit",
             "data": {
-              "label": "充值",
+              "label": { "$i18n": { "zh-CN": "充值", "en-US": "Deposit" } },
               "variant": "web-primary"
             },
             "type": "MButton"
@@ -39,7 +43,7 @@
             "id": "assets",
             "data": {
               "url": "#",
-              "text": "資產",
+              "text": { "$i18n": { "zh-CN": "资产", "en-US": "Assets" } },
               "variant": "ghost"
             },
             "type": "MLink"
@@ -109,47 +113,47 @@
         {
           "href": "#",
           "caret": true,
-          "label": "買幣"
+          "label": { "$i18n": { "zh-CN": "买币", "en-US": "Buy Crypto" } }
         },
         {
           "href": "#",
-          "label": "行情"
+          "label": { "$i18n": { "zh-CN": "行情", "en-US": "Markets" } }
         },
         {
           "href": "#",
           "caret": true,
-          "label": "現貨交易"
+          "label": { "$i18n": { "zh-CN": "现货交易", "en-US": "Spot" } }
         },
         {
           "href": "#",
           "badge": "🔥",
           "caret": true,
-          "label": "合約交易",
+          "label": { "$i18n": { "zh-CN": "合约交易", "en-US": "Derivatives" } },
           "highlight": true
         },
         {
           "href": "#",
           "caret": true,
-          "label": "策略交易"
+          "label": { "$i18n": { "zh-CN": "策略交易", "en-US": "Trading Bots" } }
         },
         {
           "href": "#",
           "caret": true,
-          "label": "跟單"
+          "label": { "$i18n": { "zh-CN": "跟单", "en-US": "Copy Trading" } }
         },
         {
           "href": "#",
           "caret": true,
-          "label": "理財"
+          "label": { "$i18n": { "zh-CN": "理财", "en-US": "Earn" } }
         },
         {
           "href": "#",
-          "label": "福利中心"
+          "label": { "$i18n": { "zh-CN": "福利中心", "en-US": "Rewards Hub" } }
         },
         {
           "href": "#",
           "caret": true,
-          "label": "更多"
+          "label": { "$i18n": { "zh-CN": "更多", "en-US": "More" } }
         }
       ]
     }

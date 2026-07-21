@@ -5,6 +5,10 @@
   },
   "name": "内部管理后台布局",
   "uuid": "internal_admin_layout",
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": ["zh-CN", "en-US"]
+  },
   "blocks": [
     {
       "id": "admin-shell",
@@ -12,44 +16,44 @@
         "tabs": [
           {
             "href": "#/admin",
-            "label": "首页",
+            "label": { "$i18n": { "zh-CN": "首页", "en-US": "Home" } },
             "active": true,
             "closable": true
           }
         ],
         "header": {
           "user": {
-            "name": "管理员"
+            "name": { "$i18n": { "zh-CN": "管理员", "en-US": "Administrator" } }
           },
           "tools": [
             {
               "id": "fullscreen",
               "href": "#",
               "icon": "fullscreen",
-              "label": "全屏"
+              "label": { "$i18n": { "zh-CN": "全屏", "en-US": "Fullscreen" } }
             },
             {
               "id": "type-scale",
               "href": "#",
               "icon": "type",
-              "label": "文字"
+              "label": { "$i18n": { "zh-CN": "文字", "en-US": "Text size" } }
             },
             {
               "id": "translate",
               "href": "#",
               "icon": "translate",
-              "label": "翻译"
+              "label": { "$i18n": { "zh-CN": "翻译", "en-US": "Translate" } }
             }
           ],
           "breadcrumb": [
-            "首页"
+            { "$i18n": { "zh-CN": "首页", "en-US": "Home" } }
           ],
           "tutorialUrl": "#/admin/permission-guide",
-          "tutorialLabel": "权限申请教程"
+          "tutorialLabel": { "$i18n": { "zh-CN": "权限申请教程", "en-US": "Permission guide" } }
         },
-        "environmentLabel": "测试环境",
-        "favoriteMenuTitle": "收藏菜单",
-        "searchPlaceholder": "搜索菜单..."
+        "environmentLabel": { "$i18n": { "zh-CN": "测试环境", "en-US": "Test environment" } },
+        "favoriteMenuTitle": { "$i18n": { "zh-CN": "收藏菜单", "en-US": "Favorites" } },
+        "searchPlaceholder": { "$i18n": { "zh-CN": "搜索菜单...", "en-US": "Search menu..." } }
       },
       "type": "MInternalAdminShell",
       "slots": {
@@ -72,47 +76,47 @@
         {
           "href": "#/admin/customers",
           "count": 101,
-          "label": "客户管理"
+          "label": { "$i18n": { "zh-CN": "客户管理", "en-US": "Customer Management" } }
         },
         {
           "href": "#/admin",
           "count": 44,
-          "label": "首页"
+          "label": { "$i18n": { "zh-CN": "首页", "en-US": "Home" } }
         },
         {
           "href": "#/admin/faqs",
           "count": 43,
-          "label": "常见问题"
+          "label": { "$i18n": { "zh-CN": "常见问题", "en-US": "FAQs" } }
         },
         {
           "href": "#/admin/campaigns",
           "count": 32,
-          "label": "新活动配置"
+          "label": { "$i18n": { "zh-CN": "新活动配置", "en-US": "Campaign Configuration" } }
         },
         {
           "href": "#/admin/mokelay-pages",
           "count": 29,
-          "label": "Mokelay页面配置集锦"
+          "label": { "$i18n": { "zh-CN": "Mokelay页面配置集锦", "en-US": "Mokelay Page Gallery" } }
         },
         {
           "href": "#/admin/banner-new",
           "count": 28,
-          "label": "Banner(新)"
+          "label": { "$i18n": { "zh-CN": "Banner(新)", "en-US": "Banner (New)" } }
         },
         {
           "href": "#/admin/fund-alerts",
           "count": 24,
-          "label": "资金调拨告警配置"
+          "label": { "$i18n": { "zh-CN": "资金调拨告警配置", "en-US": "Fund Transfer Alerts" } }
         },
         {
           "href": "#/admin/customer-alerts",
           "count": 22,
-          "label": "客户告警"
+          "label": { "$i18n": { "zh-CN": "客户告警", "en-US": "Customer Alerts" } }
         },
         {
           "href": "#/admin/identity-review",
           "count": 18,
-          "label": "身份认证审核"
+          "label": { "$i18n": { "zh-CN": "身份认证审核", "en-US": "Identity Review" } }
         }
       ]
     },
@@ -122,24 +126,24 @@
         {
           "href": "#/admin",
           "icon": "home",
-          "label": "首页",
+          "label": { "$i18n": { "zh-CN": "首页", "en-US": "Home" } },
           "active": true,
           "favorite": true
         },
         {
           "href": "#/admin/low-code",
           "icon": "settings",
-          "label": "低代码菜单",
+          "label": { "$i18n": { "zh-CN": "低代码菜单", "en-US": "Low-code" } },
           "children": [
             {
               "href": "#/admin/pages",
               "icon": "file",
-              "label": "页面配置"
+              "label": { "$i18n": { "zh-CN": "页面配置", "en-US": "Pages" } }
             },
             {
               "href": "#/admin/components",
               "icon": "settings",
-              "label": "组件配置"
+              "label": { "$i18n": { "zh-CN": "组件配置", "en-US": "Components" } }
             }
           ],
           "expanded": false
@@ -147,17 +151,17 @@
         {
           "href": "#/admin/users",
           "icon": "users",
-          "label": "用户管理",
+          "label": { "$i18n": { "zh-CN": "用户管理", "en-US": "User Management" } },
           "children": [
             {
               "href": "#/admin/customers",
               "icon": "users",
-              "label": "客户管理"
+              "label": { "$i18n": { "zh-CN": "客户管理", "en-US": "Customer Management" } }
             },
             {
               "href": "#/admin/identity-review",
               "icon": "file",
-              "label": "身份认证审核"
+              "label": { "$i18n": { "zh-CN": "身份认证审核", "en-US": "Identity Review" } }
             }
           ],
           "expanded": false
@@ -165,50 +169,50 @@
         {
           "href": "#/admin/nps",
           "icon": "file",
-          "label": "NPS反馈"
+          "label": { "$i18n": { "zh-CN": "NPS反馈", "en-US": "NPS Feedback" } }
         },
         {
           "href": "#/admin/assets",
           "icon": "asset",
-          "label": "资产管理"
+          "label": { "$i18n": { "zh-CN": "资产管理", "en-US": "Asset Management" } }
         },
         {
           "href": "#/admin/prizes",
           "icon": "gift",
-          "label": "奖品管理"
+          "label": { "$i18n": { "zh-CN": "奖品管理", "en-US": "Prize Management" } }
         },
         {
           "href": "#/admin/cards",
           "icon": "card",
-          "label": "卡券管理"
+          "label": { "$i18n": { "zh-CN": "卡券管理", "en-US": "Coupon Management" } }
         },
         {
           "href": "#/admin/operations",
           "icon": "settings",
-          "label": "运营管理",
+          "label": { "$i18n": { "zh-CN": "运营管理", "en-US": "Operations" } },
           "children": [
             {
               "href": "#/admin/channel-verify",
               "icon": "file",
-              "label": "官方渠道验证管理",
+              "label": { "$i18n": { "zh-CN": "官方渠道验证管理", "en-US": "Official Channel Verification" } },
               "favorite": true
             },
             {
               "href": "#/admin/banner-new",
               "icon": "image",
-              "label": "Banner(新)",
+              "label": { "$i18n": { "zh-CN": "Banner(新)", "en-US": "Banner (New)" } },
               "favorite": true
             },
             {
               "href": "#/admin/banner",
               "icon": "image",
-              "label": "Banner管理",
+              "label": { "$i18n": { "zh-CN": "Banner管理", "en-US": "Banner Management" } },
               "favorite": true
             },
             {
               "href": "#/admin/campaigns",
               "icon": "file",
-              "label": "新活动配置",
+              "label": { "$i18n": { "zh-CN": "新活动配置", "en-US": "Campaign Configuration" } },
               "favorite": true
             }
           ],
@@ -222,12 +226,12 @@
         {
           "href": "#/admin/campaigns",
           "icon": "file",
-          "label": "新活动配置"
+          "label": { "$i18n": { "zh-CN": "新活动配置", "en-US": "Campaign Configuration" } }
         },
         {
           "href": "#/admin/dashboard",
           "icon": "star",
-          "label": "dashboard"
+          "label": { "$i18n": { "zh-CN": "Dashboard", "en-US": "Dashboard" } }
         }
       ]
     }

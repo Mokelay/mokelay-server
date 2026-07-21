@@ -1,42 +1,256 @@
 {
-  "uuid":"client_action_docs",
+  "uuid": "client_action_docs",
   "subPage": true,
   "quotes": ["client_docs"],
   "dependencies": [],
-  "name":"客户端 Action 文档",
-  "blocks":[
-    {"id":"client-action-docs-title","type":"MHeading","data":{"text":"客户端 Action 文档","level":"1","align":"left"}},
-    {"id":"client-action-docs-description","type":"MRichText","data":{"value":"这里展示 mokelay-components/src/actions 中注册的客户端 Action 和 Controller 文档。文档由源码中的 @clientActionDoc 注释扫描同步而来。"}},
+  "name": "客户端 Action 文档",
+  "blocks": [
     {
-      "id":"client-action-docs-table",
-      "type":"MAdvanceTable",
-      "data":{
-        "index":true,
-        "selection":false,
-        "showPageBreak":true,
-        "columns":[
-          {"columnName":"Action","fieldVariable":"action_name","fieldDataType":"string","width":190,"fixed":"left","columnContent":[{"id":"client-action-name","type":"paragraph","data":{"text":"{{action_name}}"}}]},
-          {"columnName":"名称","fieldVariable":"display_name","fieldDataType":"string","width":170,"columnContent":[{"id":"client-action-display-name","type":"paragraph","data":{"text":"{{display_name}}"}}]},
-          {"columnName":"类型","fieldVariable":"action_type","fieldDataType":"string","width":120,"columnContent":[{"id":"client-action-type","type":"paragraph","data":{"text":"{{action_type}} / {{category}}"}}]},
-          {"columnName":"说明","fieldVariable":"description","fieldDataType":"string","width":420,"columnContent":[{"id":"client-action-description","type":"paragraph","data":{"text":"{{description}}"}}]},
-          {"columnName":"操作","fieldVariable":"uuid","fieldDataType":"string","width":110,"fixed":"right","columnContent":[{"id":"client-action-detail-{{uuid}}","type":"MButton","data":{"label":"查看详情","variant":"secondary","align":"left","bare":true},"events":[{"event":"click","actions":[{"uuid":"client_action_open_detail","action":"jump_url","inputs":{"url":{"template":"/#/client_action_doc_detail?uuid={{uuid}}"}},"outputs":[],"nextAction":null}]}]}]}
+      "id": "client-action-docs-title",
+      "type": "MHeading",
+      "data": {
+        "text": {
+          "$i18n": {
+            "zh-CN": "客户端 Action 文档",
+            "en-US": "Client Action Docs"
+          }
+        },
+        "level": "1",
+        "align": "left"
+      }
+    },
+    {
+      "id": "client-action-docs-description",
+      "type": "MRichText",
+      "data": {
+        "value": {
+          "$i18n": {
+            "zh-CN": "这里展示 mokelay-components/src/actions 中注册的客户端 Action 和 Controller 文档。文档由源码中的 @clientActionDoc 注释扫描同步而来。",
+            "en-US": "This page shows the client Action and Controller documentation registered in mokelay-components/src/actions. The documentation is synchronized from @clientActionDoc annotations in the source code."
+          }
+        }
+      }
+    },
+    {
+      "id": "client-action-docs-table",
+      "type": "MAdvanceTable",
+      "data": {
+        "index": true,
+        "selection": false,
+        "showPageBreak": true,
+        "columns": [
+          {
+            "columnName": "Action",
+            "fieldVariable": "action_name",
+            "fieldDataType": "string",
+            "width": 190,
+            "fixed": "left",
+            "columnContent": [
+              {
+                "id": "client-action-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{action_name}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
+            "fieldVariable": "display_name",
+            "fieldDataType": "string",
+            "width": 170,
+            "columnContent": [
+              {
+                "id": "client-action-display-name",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{display_name}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "类型",
+                "en-US": "Type"
+              }
+            },
+            "fieldVariable": "action_type",
+            "fieldDataType": "string",
+            "width": 120,
+            "columnContent": [
+              {
+                "id": "client-action-type",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{action_type}} / {{category}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "说明",
+                "en-US": "Description"
+              }
+            },
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 420,
+            "columnContent": [
+              {
+                "id": "client-action-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
+            "fieldVariable": "uuid",
+            "fieldDataType": "string",
+            "width": 110,
+            "fixed": "right",
+            "columnContent": [
+              {
+                "id": "client-action-detail-{{uuid}}",
+                "type": "MButton",
+                "data": {
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "查看详情",
+                      "en-US": "View Details"
+                    }
+                  },
+                  "variant": "secondary",
+                  "align": "left",
+                  "bare": true
+                },
+                "events": [
+                  {
+                    "event": "click",
+                    "actions": [
+                      {
+                        "uuid": "client_action_open_detail",
+                        "action": "jump_url",
+                        "inputs": {
+                          "url": {
+                            "template": "/#/client_action_doc_detail?uuid={{uuid}}"
+                          }
+                        },
+                        "outputs": [],
+                        "nextAction": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         ],
-        "ds":{
-          "type":"API",
-          "domain":"mokelay",
-          "path":"/api/mokelay/list_client_action_docs",
-          "method":"GET",
-          "headerData":[],
-          "bodyData":[],
-          "queryData":[
-            {"key":"page","value":{"mode":"variable","blockId":"client-action-docs-table","blockType":"MAdvanceTable","variable":"page"}},
-            {"key":"pageSize","value":{"mode":"variable","blockId":"client-action-docs-table","blockType":"MAdvanceTable","variable":"pageSize"}},
-            {"key":"status","value":"active"}
+        "ds": {
+          "type": "API",
+          "domain": "mokelay",
+          "path": "/api/mokelay/list_client_action_docs",
+          "method": "GET",
+          "headerData": [],
+          "bodyData": [],
+          "queryData": [
+            {
+              "key": "page",
+              "value": {
+                "mode": "variable",
+                "blockId": "client-action-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "page"
+              }
+            },
+            {
+              "key": "pageSize",
+              "value": {
+                "mode": "variable",
+                "blockId": "client-action-docs-table",
+                "blockType": "MAdvanceTable",
+                "variable": "pageSize"
+              }
+            },
+            {
+              "key": "status",
+              "value": "active"
+            }
           ],
-          "schemaSelections":[{"path":"data.docs[]","label":"docs","type":"array"},{"path":"data.pagination.page","label":"page","type":"number"},{"path":"data.pagination.pageSize","label":"pageSize","type":"number"},{"path":"data.pagination.total","label":"total","type":"number"}],
-          "matchingExternalFields":[{"label":"数据","variable":"data","type":"array","matchFieldPath":"data.docs[]"},{"label":"页码","variable":"page","type":"number","matchFieldPath":"data.pagination.page"},{"label":"每页数量","variable":"pageSize","type":"number","matchFieldPath":"data.pagination.pageSize"},{"label":"总数","variable":"total","type":"number","matchFieldPath":"data.pagination.total"}]
+          "schemaSelections": [
+            {
+              "path": "data.docs[]",
+              "label": "docs",
+              "type": "array"
+            },
+            {
+              "path": "data.pagination.page",
+              "label": "page",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.pageSize",
+              "label": "pageSize",
+              "type": "number"
+            },
+            {
+              "path": "data.pagination.total",
+              "label": "total",
+              "type": "number"
+            }
+          ],
+          "matchingExternalFields": [
+            {
+              "label": "数据",
+              "variable": "data",
+              "type": "array",
+              "matchFieldPath": "data.docs[]"
+            },
+            {
+              "label": "页码",
+              "variable": "page",
+              "type": "number",
+              "matchFieldPath": "data.pagination.page"
+            },
+            {
+              "label": "每页数量",
+              "variable": "pageSize",
+              "type": "number",
+              "matchFieldPath": "data.pagination.pageSize"
+            },
+            {
+              "label": "总数",
+              "variable": "total",
+              "type": "number",
+              "matchFieldPath": "data.pagination.total"
+            }
+          ]
         }
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

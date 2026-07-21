@@ -74,7 +74,12 @@
         },
         "items": [
           {
-            "labelName": "布局 UUID",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "布局 UUID",
+                "en-US": "Layout UUID"
+              }
+            },
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -82,14 +87,24 @@
               "id": "mokelay-layout-create-uuid-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入布局 UUID",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入布局 UUID",
+                    "en-US": "Enter a layout UUID"
+                  }
+                },
                 "value": ""
               }
             },
             "events": []
           },
           {
-            "labelName": "布局名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "布局名称",
+                "en-US": "Layout Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -97,7 +112,12 @@
               "id": "mokelay-layout-create-name-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入布局名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入布局名称",
+                    "en-US": "Enter a layout name"
+                  }
+                },
                 "value": "",
                 "required": true
               }
@@ -112,7 +132,12 @@
       "id": "mokelay-layout-create-save-button",
       "type": "MButton",
       "data": {
-        "label": "保存布局",
+        "label": {
+          "$i18n": {
+            "zh-CN": "保存布局",
+            "en-US": "Save Layout"
+          }
+        },
         "variant": "primary",
         "align": "left",
         "action": {
@@ -268,5 +293,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

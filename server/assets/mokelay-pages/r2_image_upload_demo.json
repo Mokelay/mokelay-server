@@ -13,7 +13,12 @@
       "type": "MHeading",
       "data": {
         "level": 2,
-        "text": "R2 图片上传示例"
+        "text": {
+          "$i18n": {
+            "zh-CN": "R2 图片上传示例",
+            "en-US": "R2 Image Upload Example"
+          }
+        }
       },
       "events": []
     },
@@ -107,7 +112,12 @@
       "id": "r2-image-download-button",
       "type": "MButton",
       "data": {
-        "label": "读取并下载最后上传的图片",
+        "label": {
+          "$i18n": {
+            "zh-CN": "读取并下载最后上传的图片",
+            "en-US": "Read and Download Last Uploaded Image"
+          }
+        },
         "variant": "secondary",
         "align": "left",
         "action": {
@@ -201,5 +211,12 @@
   "notes": [
     "MUploadImport 通过 upload_file action 调用 upload_image_to_r2。",
     "下载按钮通过 execute_ds 读取 R2 图片 JSON，再通过 download_blob 下载返回的 URL。"
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

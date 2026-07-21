@@ -94,6 +94,7 @@ describe('executeResolveLayoutBundleBlock', () => {
         page_blocks: [{ type: 'paragraph', data: { text: 'Hello' } }],
         page_app_uuid: 'app-1',
         page_layout_uuid_value: 'page-layout',
+        page_locale_config: { defaultLocale: 'zh-CN', supportedLocales: ['zh-CN', 'en-US'] },
         page_created_at: '2026-06-25 00:00:00.000+00:00',
         page_updated_at: '2026-06-25 00:00:00.000+00:00',
       },
@@ -110,6 +111,7 @@ describe('executeResolveLayoutBundleBlock', () => {
         name: 'Page One',
         appUuid: 'app-1',
         layoutUuid: 'page-layout',
+        localeConfig: { defaultLocale: 'zh-CN', supportedLocales: ['zh-CN', 'en-US'] },
       },
       layout: {
         uuid: 'page-layout',

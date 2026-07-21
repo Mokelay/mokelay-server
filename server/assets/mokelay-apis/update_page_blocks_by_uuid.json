@@ -9,7 +9,8 @@
       "blocks",
       { "key": "subPage" },
       { "key": "quotes" },
-      { "key": "dependencies" }
+      { "key": "dependencies" },
+      { "key": "localeConfig" }
     ]
   },
   "blocks": [
@@ -29,7 +30,8 @@
         "blocks": { "template": "{{request.body.blocks}}" },
         "subPage": { "template": "{{request.body.subPage}}" },
         "quotes": { "template": "{{request.body.quotes}}" },
-        "dependencies": { "template": "{{request.body.dependencies}}" }
+        "dependencies": { "template": "{{request.body.dependencies}}" },
+        "localeConfig": { "template": "{{request.body.localeConfig}}" }
       },
       "outputs": ["affected", "page"],
       "nextBlock": null

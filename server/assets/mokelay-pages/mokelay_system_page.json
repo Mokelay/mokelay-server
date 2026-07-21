@@ -35,7 +35,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "页面名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "页面名称",
+                "en-US": "Page Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-system-page-name",
@@ -51,7 +56,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "创建时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "创建时间",
+                "en-US": "Created At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-system-page-created-at",
@@ -67,7 +77,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "更新时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "更新时间",
+                "en-US": "Updated At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-system-page-updated-at",
@@ -83,13 +98,23 @@
           {
             "fixed": "right",
             "width": 96,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-system-page-open-button",
                 "type": "MButton",
                 "data": {
-                  "label": "打开",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "打开",
+                      "en-US": "Open"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -158,5 +183,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

@@ -12,7 +12,12 @@
       "id": "mokelay_layout_system_editor_page-heading",
       "type": "MHeading",
       "data": {
-        "text": "查看内置布局",
+        "text": {
+          "$i18n": {
+            "zh-CN": "查看内置布局",
+            "en-US": "View Built-in Layout"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -30,7 +35,12 @@
         },
         "items": [
           {
-            "labelName": "布局名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "布局名称",
+                "en-US": "Layout Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -38,7 +48,12 @@
               "id": "mokelay-layout-edit-name-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入布局名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入布局名称",
+                    "en-US": "Enter a layout name"
+                  }
+                },
                 "value": ""
               }
             },
@@ -52,7 +67,12 @@
       "id": "mokelay-layout-json-editor",
       "type": "MJsonEditor",
       "data": {
-        "label": "内置布局 JSON（本地预览，不会保存）",
+        "label": {
+          "$i18n": {
+            "zh-CN": "内置布局 JSON（本地预览，不会保存）",
+            "en-US": "Built-in Layout JSON (local preview only; changes are not saved)"
+          }
+        },
         "rows": 22,
         "value": {
           "mode": "variable",
@@ -76,7 +96,12 @@
       "id": "mokelay_layout_system_editor_page-preview",
       "type": "MLayoutPreview",
       "data": {
-        "title": "布局预览",
+        "title": {
+          "$i18n": {
+            "zh-CN": "布局预览",
+            "en-US": "Layout Preview"
+          }
+        },
         "layout": {
           "mode": "variable",
           "blockId": "mokelay-layout-json-editor",
@@ -86,5 +111,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

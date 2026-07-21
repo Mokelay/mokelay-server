@@ -14,24 +14,46 @@
         "tabs": [
           {
             "id": "server-block-docs",
-            "name": "Block文档",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Block文档",
+                "en-US": "Block Docs"
+              }
+            },
             "pageUUID": "server_block_docs",
             "pageSource": "system"
           },
           {
             "id": "server-controller-docs",
-            "name": "Controller文档",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Controller文档",
+                "en-US": "Controller Docs"
+              }
+            },
             "pageUUID": "server_controller_docs",
             "pageSource": "system"
           },
           {
             "id": "server-processor-docs",
-            "name": "Processor文档",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Processor文档",
+                "en-US": "Processor Docs"
+              }
+            },
             "pageUUID": "server_processor_docs",
             "pageSource": "system"
           }
         ]
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

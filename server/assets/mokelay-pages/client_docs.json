@@ -12,26 +12,48 @@
       "data": {
         "activeTabId": "client-block-docs",
         "tabs": [
-      {
-        "id": "client-block-docs",
-        "name": "Block文档",
-        "pageUUID": "block_component_docs",
-        "pageSource": "system"
-      },
-      {
-        "id": "client-action-docs",
-        "name": "Action文档",
-        "pageUUID": "client_action_docs",
-        "pageSource": "system"
-      },
-      {
-        "id": "client-processor-docs",
-        "name": "Processor文档",
-        "pageUUID": "client_processor_docs",
-        "pageSource": "system"
-      }
+          {
+            "id": "client-block-docs",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Block文档",
+                "en-US": "Block Docs"
+              }
+            },
+            "pageUUID": "block_component_docs",
+            "pageSource": "system"
+          },
+          {
+            "id": "client-action-docs",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Action文档",
+                "en-US": "Action Docs"
+              }
+            },
+            "pageUUID": "client_action_docs",
+            "pageSource": "system"
+          },
+          {
+            "id": "client-processor-docs",
+            "name": {
+              "$i18n": {
+                "zh-CN": "Processor文档",
+                "en-US": "Processor Docs"
+              }
+            },
+            "pageUUID": "client_processor_docs",
+            "pageSource": "system"
+          }
         ]
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

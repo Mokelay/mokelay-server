@@ -74,7 +74,12 @@
         },
         "items": [
           {
-            "labelName": "页面标识",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "页面标识",
+                "en-US": "Page Identifier"
+              }
+            },
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -82,7 +87,12 @@
               "id": "mokelay-create-page-uuid-input",
               "type": "MInput",
               "data": {
-                "placeholder": "小写字母、数字、下划线或连字符",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "小写字母、数字、下划线或连字符",
+                    "en-US": "Lowercase letters, numbers, underscores, or hyphens"
+                  }
+                },
                 "value": "",
                 "maxLength": 128
               }
@@ -90,7 +100,12 @@
             "events": []
           },
           {
-            "labelName": "页面名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "页面名称",
+                "en-US": "Page Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -98,7 +113,12 @@
               "id": "mokelay-create-page-name-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入页面名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入页面名称",
+                    "en-US": "Enter a page name"
+                  }
+                },
                 "value": "",
                 "required": true
               }
@@ -113,7 +133,12 @@
       "id": "mokelay-create-page-save-button",
       "type": "MButton",
       "data": {
-        "label": "保存页面",
+        "label": {
+          "$i18n": {
+            "zh-CN": "保存页面",
+            "en-US": "Save Page"
+          }
+        },
         "variant": "primary",
         "align": "left",
         "action": {
@@ -167,8 +192,18 @@
               "action": "confirm",
               "alias": "确认创建页面",
               "inputs": {
-                "title": "确认创建页面",
-                "content": "确定要创建该页面吗？"
+                "title": {
+                  "$i18n": {
+                    "zh-CN": "确认创建页面",
+                    "en-US": "Confirm Page Creation"
+                  }
+                },
+                "content": {
+                  "$i18n": {
+                    "zh-CN": "确定要创建该页面吗？",
+                    "en-US": "Create this page?"
+                  }
+                }
               },
               "outputs": [
                 "result"
@@ -248,7 +283,11 @@
                     {
                       "key": "appUuid",
                       "dataType": "string",
-                      "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
+                      "value": {
+                        "mode": "variable",
+                        "source": "MPage",
+                        "variable": "context.appUuid"
+                      }
                     }
                   ],
                   "queryData": [],
@@ -291,5 +330,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

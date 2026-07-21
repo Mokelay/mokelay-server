@@ -74,7 +74,12 @@
         },
         "items": [
           {
-            "labelName": "数据源 UUID",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "数据源 UUID",
+                "en-US": "Datasource UUID"
+              }
+            },
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -82,14 +87,24 @@
               "id": "mokelay-datasource-create-uuid-input",
               "type": "MInput",
               "data": {
-                "placeholder": "例如：pg_main",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "例如：pg_main",
+                    "en-US": "For example: pg_main"
+                  }
+                },
                 "value": ""
               }
             },
             "events": []
           },
           {
-            "labelName": "名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "variableName": "alias",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -97,7 +112,12 @@
               "id": "mokelay-datasource-create-alias-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入数据源名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入数据源名称",
+                    "en-US": "Enter a datasource name"
+                  }
+                },
                 "value": "",
                 "required": true
               }
@@ -105,7 +125,12 @@
             "events": []
           },
           {
-            "labelName": "描述",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "描述",
+                "en-US": "Description"
+              }
+            },
             "variableName": "description",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -113,7 +138,12 @@
               "id": "mokelay-datasource-create-description-input",
               "type": "MTextareaField",
               "data": {
-                "placeholder": "请输入描述",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入描述",
+                    "en-US": "Enter a description"
+                  }
+                },
                 "value": "",
                 "rows": 4
               }
@@ -128,7 +158,12 @@
       "id": "mokelay-datasource-create-save-button",
       "type": "MButton",
       "data": {
-        "label": "保存数据源",
+        "label": {
+          "$i18n": {
+            "zh-CN": "保存数据源",
+            "en-US": "Save Datasource"
+          }
+        },
         "variant": "primary",
         "align": "left",
         "action": {
@@ -212,7 +247,9 @@
                       "dataType": "string",
                       "value": {
                         "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.values.alias}}",
-                        "processors": ["trim"]
+                        "processors": [
+                          "trim"
+                        ]
                       }
                     },
                     {
@@ -220,7 +257,9 @@
                       "dataType": "string",
                       "value": {
                         "template": "{{actions['mokelay_datasource_create_get_form_data'].outputs.returnData.values.description}}",
-                        "processors": ["trim"]
+                        "processors": [
+                          "trim"
+                        ]
                       }
                     }
                   ],
@@ -264,5 +303,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

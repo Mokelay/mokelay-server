@@ -19,14 +19,29 @@
         "headerData": [],
         "bodyData": [],
         "queryData": [
-          { "key": "page", "value": "1" },
-          { "key": "pageSize", "value": "100" }
+          {
+            "key": "page",
+            "value": "1"
+          },
+          {
+            "key": "pageSize",
+            "value": "100"
+          }
         ],
         "schemaSelections": [
-          { "path": "data.samples[]", "label": "内置样例", "type": "array" }
+          {
+            "path": "data.samples[]",
+            "label": "内置样例",
+            "type": "array"
+          }
         ],
         "matchingExternalFields": [
-          { "label": "内置样例", "variable": "samples", "type": "array", "matchFieldPath": "data.samples[]" }
+          {
+            "label": "内置样例",
+            "variable": "samples",
+            "type": "array",
+            "matchFieldPath": "data.samples[]"
+          }
         ]
       }
     }
@@ -61,7 +76,12 @@
                   "buttons": [
                     {
                       "id": "create-api",
-                      "label": "新建 API",
+                      "label": {
+                        "$i18n": {
+                          "zh-CN": "新建 API",
+                          "en-US": "New API"
+                        }
+                      },
                       "variant": "primary",
                       "showLoading": false,
                       "events": [
@@ -73,7 +93,12 @@
                               "action": "open_dialog",
                               "alias": "打开新建 API 弹窗",
                               "inputs": {
-                                "title": "新建 API",
+                                "title": {
+                                  "$i18n": {
+                                    "zh-CN": "新建 API",
+                                    "en-US": "New API"
+                                  }
+                                },
                                 "pageUUID": "mokelay_api_create_page",
                                 "pageSource": "system",
                                 "context": {
@@ -82,11 +107,22 @@
                                   "method": "GET",
                                   "status": "draft",
                                   "apiJson": {
-                                    "request": { "header": [], "query": [], "body": [] },
-                                    "blocks": [{ "uuid": "starter", "nextBlock": null }],
+                                    "request": {
+                                      "header": [],
+                                      "query": [],
+                                      "body": []
+                                    },
+                                    "blocks": [
+                                      {
+                                        "uuid": "starter",
+                                        "nextBlock": null
+                                      }
+                                    ],
                                     "response": {}
                                   },
-                                  "appUuid": { "template": "{{context.route.query.uuid}}" }
+                                  "appUuid": {
+                                    "template": "{{context.route.query.uuid}}"
+                                  }
                                 }
                               },
                               "outputs": [
@@ -125,7 +161,12 @@
                   "buttons": [
                     {
                       "id": "batchDelete",
-                      "label": "批量删除",
+                      "label": {
+                        "$i18n": {
+                          "zh-CN": "批量删除",
+                          "en-US": "Delete Selected"
+                        }
+                      },
                       "variant": "danger",
                       "disabled": true,
                       "events": [
@@ -137,8 +178,18 @@
                               "action": "confirm",
                               "alias": "确认批量删除 API",
                               "inputs": {
-                                "title": "确认批量删除 API",
-                                "content": "确定要删除选中的 API 吗？此操作不可恢复。"
+                                "title": {
+                                  "$i18n": {
+                                    "zh-CN": "确认批量删除 API",
+                                    "en-US": "Confirm API Deletion"
+                                  }
+                                },
+                                "content": {
+                                  "$i18n": {
+                                    "zh-CN": "确定要删除选中的 API 吗？此操作不可恢复。",
+                                    "en-US": "Delete the selected APIs? This action cannot be undone."
+                                  }
+                                }
                               },
                               "outputs": [
                                 "result"
@@ -284,7 +335,7 @@
                       {
                         "key": "fragment",
                         "dataType": "boolean",
-                  "value": "false"
+                        "value": "false"
                       },
                       {
                         "key": "appUuid",
@@ -346,7 +397,12 @@
                     {
                       "fixed": null,
                       "width": 170,
-                      "columnName": "名称",
+                      "columnName": {
+                        "$i18n": {
+                          "zh-CN": "名称",
+                          "en-US": "Name"
+                        }
+                      },
                       "columnContent": [
                         {
                           "id": "api-name-text-{{uuid}}",
@@ -380,7 +436,12 @@
                     {
                       "fixed": null,
                       "width": 60,
-                      "columnName": "方法",
+                      "columnName": {
+                        "$i18n": {
+                          "zh-CN": "方法",
+                          "en-US": "Method"
+                        }
+                      },
                       "columnContent": [
                         {
                           "id": "api-method-tag-{{uuid}}",
@@ -399,7 +460,12 @@
                     {
                       "fixed": null,
                       "width": 60,
-                      "columnName": "状态",
+                      "columnName": {
+                        "$i18n": {
+                          "zh-CN": "状态",
+                          "en-US": "Status"
+                        }
+                      },
                       "columnContent": [
                         {
                           "id": "api-status-tag-{{uuid}}",
@@ -418,7 +484,12 @@
                     {
                       "fixed": null,
                       "width": 135,
-                      "columnName": "最近编辑",
+                      "columnName": {
+                        "$i18n": {
+                          "zh-CN": "最近编辑",
+                          "en-US": "Last Edited"
+                        }
+                      },
                       "columnContent": [
                         {
                           "id": "api-updated-text-{{uuid}}",
@@ -435,13 +506,23 @@
                     {
                       "fixed": "right",
                       "width": 95,
-                      "columnName": "操作",
+                      "columnName": {
+                        "$i18n": {
+                          "zh-CN": "操作",
+                          "en-US": "Actions"
+                        }
+                      },
                       "columnContent": [
                         {
                           "id": "open-api-{{uuid}}",
                           "type": "MButton",
                           "data": {
-                            "label": "打开",
+                            "label": {
+                              "$i18n": {
+                                "zh-CN": "打开",
+                                "en-US": "Open"
+                              }
+                            },
                             "variant": "secondary",
                             "action": {
                               "uuid": "{{uuid}}"
@@ -471,7 +552,12 @@
                           "id": "delete-api-{{uuid}}",
                           "type": "MButton",
                           "data": {
-                            "label": "删除",
+                            "label": {
+                              "$i18n": {
+                                "zh-CN": "删除",
+                                "en-US": "Delete"
+                              }
+                            },
                             "variant": "danger",
                             "action": {
                               "uuid": "{{uuid}}",
@@ -487,7 +573,12 @@
                                   "action": "confirm",
                                   "alias": "确认删除 API",
                                   "inputs": {
-                                    "title": "删除 API",
+                                    "title": {
+                                      "$i18n": {
+                                        "zh-CN": "删除 API",
+                                        "en-US": "Delete API"
+                                      }
+                                    },
                                     "content": {
                                       "template": "确认删除 {{sourceBlock.data.action.name}}？"
                                     },
@@ -640,7 +731,12 @@
                 "id": "mokelay-api-samples-title",
                 "type": "MHeading",
                 "data": {
-                  "text": "内置样例",
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "内置样例",
+                      "en-US": "Built-in Examples"
+                    }
+                  },
                   "level": 3,
                   "align": "left"
                 },
@@ -656,7 +752,12 @@
                   "activeKey": "login",
                   "variant": "card",
                   "size": "md",
-                  "emptyText": "暂无样例",
+                  "emptyText": {
+                    "$i18n": {
+                      "zh-CN": "暂无样例",
+                      "en-US": "No examples."
+                    }
+                  },
                   "items": {
                     "mode": "variable",
                     "source": "MPage",
@@ -672,7 +773,12 @@
                         "action": "open_dialog",
                         "alias": "使用内置样例创建 API",
                         "inputs": {
-                          "title": "新建 API",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "新建 API",
+                              "en-US": "New API"
+                            }
+                          },
                           "pageUUID": "mokelay_api_create_page",
                           "pageSource": "system",
                           "context": {
@@ -689,7 +795,9 @@
                             "apiJson": {
                               "template": "{{event.item.api_json}}"
                             },
-                            "appUuid": { "template": "{{context.route.query.uuid}}" }
+                            "appUuid": {
+                              "template": "{{context.route.query.uuid}}"
+                            }
                           }
                         },
                         "outputs": [
@@ -707,5 +815,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

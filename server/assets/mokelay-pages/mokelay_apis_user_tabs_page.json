@@ -20,7 +20,10 @@
             "pageUUID": "mokelay_apis_user_page",
             "pageSource": "system",
             "query": {
-              "fragment": [null, "false"]
+              "fragment": [
+                null,
+                "false"
+              ]
             }
           },
           {
@@ -36,5 +39,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

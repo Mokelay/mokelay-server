@@ -23,14 +23,24 @@
               "id": "mokelay-list-page-search-uuid-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入 uuid",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入 uuid",
+                    "en-US": "Enter a UUID"
+                  }
+                },
                 "value": ""
               }
             },
             "events": []
           },
           {
-            "labelName": "页面名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "页面名称",
+                "en-US": "Page Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -38,14 +48,24 @@
               "id": "mokelay-list-page-search-name-input",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入页面名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入页面名称",
+                    "en-US": "Enter a page name"
+                  }
+                },
                 "value": ""
               }
             },
             "events": []
           },
           {
-            "labelName": "页面类型",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "页面类型",
+                "en-US": "Page Type"
+              }
+            },
             "variableName": "subPage",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -56,15 +76,30 @@
                 "value": "",
                 "options": [
                   {
-                    "label": "全部页面",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "全部页面",
+                        "en-US": "All Pages"
+                      }
+                    },
                     "value": ""
                   },
                   {
-                    "label": "主页面",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "主页面",
+                        "en-US": "Main Page"
+                      }
+                    },
                     "value": "0"
                   },
                   {
-                    "label": "子页面",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "子页面",
+                        "en-US": "Subpage"
+                      }
+                    },
                     "value": "1"
                   }
                 ]
@@ -73,7 +108,12 @@
             "events": []
           },
           {
-            "labelName": "创建时间范围",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "创建时间范围",
+                "en-US": "Creation Time Range"
+              }
+            },
             "variableName": "created_at_range",
             "fieldDataType": "object",
             "layout": "Horizontal",
@@ -97,7 +137,12 @@
           "buttons": [
             {
               "id": "search",
-              "label": "搜索",
+              "label": {
+                "$i18n": {
+                  "zh-CN": "搜索",
+                  "en-US": "Search"
+                }
+              },
               "variant": "secondary",
               "align": "left",
               "events": [
@@ -139,7 +184,12 @@
             },
             {
               "id": "create",
-              "label": "创建页面",
+              "label": {
+                "$i18n": {
+                  "zh-CN": "创建页面",
+                  "en-US": "Create Page"
+                }
+              },
               "variant": "primary",
               "align": "left",
               "events": [
@@ -151,11 +201,18 @@
                       "action": "open_dialog",
                       "alias": "打开创建页面弹窗",
                       "inputs": {
-                        "title": "创建页面",
+                        "title": {
+                          "$i18n": {
+                            "zh-CN": "创建页面",
+                            "en-US": "Create Page"
+                          }
+                        },
                         "pageUUID": "mokelay_create_page",
                         "pageSource": "system",
                         "context": {
-                          "appUuid": { "template": "{{context.route.query.uuid}}" }
+                          "appUuid": {
+                            "template": "{{context.route.query.uuid}}"
+                          }
                         }
                       },
                       "outputs": [
@@ -196,7 +253,12 @@
         "buttons": [
           {
             "id": "batchDelete",
-            "label": "批量删除",
+            "label": {
+              "$i18n": {
+                "zh-CN": "批量删除",
+                "en-US": "Delete Selected"
+              }
+            },
             "variant": "danger",
             "disabled": true,
             "events": [
@@ -208,8 +270,18 @@
                     "action": "confirm",
                     "alias": "确认批量删除页面",
                     "inputs": {
-                      "title": "确认批量删除页面",
-                      "content": "确定要删除选中的页面吗？此操作不可恢复。"
+                      "title": {
+                        "$i18n": {
+                          "zh-CN": "确认批量删除页面",
+                          "en-US": "Confirm Page Deletion"
+                        }
+                      },
+                      "content": {
+                        "$i18n": {
+                          "zh-CN": "确定要删除选中的页面吗？此操作不可恢复。",
+                          "en-US": "Delete the selected pages? This action cannot be undone."
+                        }
+                      }
                     },
                     "outputs": [
                       "result"
@@ -315,7 +387,12 @@
           },
           {
             "id": "batchPublish",
-            "label": "批量发布",
+            "label": {
+              "$i18n": {
+                "zh-CN": "批量发布",
+                "en-US": "Publish Selected"
+              }
+            },
             "variant": "secondary",
             "disabled": true,
             "events": []
@@ -351,7 +428,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "页面名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "页面名称",
+                "en-US": "Page Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-name",
@@ -367,7 +449,12 @@
           {
             "fixed": null,
             "width": 96,
-            "columnName": "页面类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "页面类型",
+                "en-US": "Page Type"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-sub-page-tag",
@@ -386,7 +473,12 @@
           {
             "fixed": null,
             "width": 96,
-            "columnName": "引用页面数",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "引用页面数",
+                "en-US": "Referencing Pages"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-quotes-count",
@@ -402,7 +494,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "创建时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "创建时间",
+                "en-US": "Created At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-created-at",
@@ -418,7 +515,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "更新时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "更新时间",
+                "en-US": "Updated At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-updated-at",
@@ -434,13 +536,23 @@
           {
             "fixed": "right",
             "width": 168,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-list-page-open-button",
                 "type": "MButton",
                 "data": {
-                  "label": "打开",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "打开",
+                      "en-US": "Open"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -472,7 +584,12 @@
                 "id": "mokelay-list-page-delete-button",
                 "type": "MButton",
                 "data": {
-                  "label": "删除",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "删除",
+                      "en-US": "Delete"
+                    }
+                  },
                   "variant": "ghost",
                   "align": "left",
                   "action": {
@@ -490,7 +607,12 @@
                         "action": "confirm",
                         "alias": "确认删除页面",
                         "inputs": {
-                          "title": "确认删除页面",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "确认删除页面",
+                              "en-US": "Confirm Page Deletion"
+                            }
+                          },
                           "content": {
                             "template": "确定要删除页面「{{sourceBlock.data.action.name}}」吗？"
                           }
@@ -748,5 +870,12 @@
         }
       ]
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

@@ -10,7 +10,12 @@
       "id": "block-docs-title",
       "type": "MHeading",
       "data": {
-        "text": "客户端 Block 文档管理",
+        "text": {
+          "$i18n": {
+            "zh-CN": "客户端 Block 文档管理",
+            "en-US": "Client Block Docs"
+          }
+        },
         "level": "1",
         "align": "left"
       }
@@ -19,7 +24,12 @@
       "id": "block-docs-intro",
       "type": "MRichText",
       "data": {
-        "content": "这里展示 docs_client_block 中由 @clientBlockDoc 注释同步而来的客户端 block 注册、工具箱、属性、默认值、保存规则、事件、方法和源码引用。页面编辑器的组件列表也会读取同一份后端 API 数据。"
+        "content": {
+          "$i18n": {
+            "zh-CN": "这里展示 docs_client_block 中由 @clientBlockDoc 注释同步而来的客户端 block 注册、工具箱、属性、默认值、保存规则、事件、方法和源码引用。页面编辑器的组件列表也会读取同一份后端 API 数据。",
+            "en-US": "This page shows client block registration, toolbox settings, properties, defaults, save rules, events, methods, and source references synchronized from @clientBlockDoc annotations in docs_client_block. The page editor component list uses the same backend API data."
+          }
+        }
       }
     },
     {
@@ -38,14 +48,24 @@
               "id": "block-docs-search-block-type",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入 BlockType",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入 BlockType",
+                    "en-US": "Enter a BlockType"
+                  }
+                },
                 "value": ""
               }
             },
             "events": []
           },
           {
-            "labelName": "启用",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "启用",
+                "en-US": "Enable"
+              }
+            },
             "variableName": "editorEnabled",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -56,15 +76,30 @@
                 "value": "",
                 "options": [
                   {
-                    "label": "全部",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "全部",
+                        "en-US": "All"
+                      }
+                    },
                     "value": ""
                   },
                   {
-                    "label": "是",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "是",
+                        "en-US": "Yes"
+                      }
+                    },
                     "value": "1"
                   },
                   {
-                    "label": "否",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "否",
+                        "en-US": "No"
+                      }
+                    },
                     "value": "0"
                   }
                 ]
@@ -73,7 +108,12 @@
             "events": []
           },
           {
-            "labelName": "显示",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "显示",
+                "en-US": "Show"
+              }
+            },
             "variableName": "toolboxVisible",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -84,15 +124,30 @@
                 "value": "",
                 "options": [
                   {
-                    "label": "全部",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "全部",
+                        "en-US": "All"
+                      }
+                    },
                     "value": ""
                   },
                   {
-                    "label": "是",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "是",
+                        "en-US": "Yes"
+                      }
+                    },
                     "value": "1"
                   },
                   {
-                    "label": "否",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "否",
+                        "en-US": "No"
+                      }
+                    },
                     "value": "0"
                   }
                 ]
@@ -101,7 +156,12 @@
             "events": []
           },
           {
-            "labelName": "编辑器 Block",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "编辑器 Block",
+                "en-US": "Editor Block"
+              }
+            },
             "variableName": "editorBlock",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -112,15 +172,30 @@
                 "value": "",
                 "options": [
                   {
-                    "label": "全部",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "全部",
+                        "en-US": "All"
+                      }
+                    },
                     "value": ""
                   },
                   {
-                    "label": "是",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "是",
+                        "en-US": "Yes"
+                      }
+                    },
                     "value": "1"
                   },
                   {
-                    "label": "否",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "否",
+                        "en-US": "No"
+                      }
+                    },
                     "value": "0"
                   }
                 ]
@@ -128,7 +203,12 @@
             }
           },
           {
-            "labelName": "分类",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "分类",
+                "en-US": "Category"
+              }
+            },
             "variableName": "category",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -139,35 +219,75 @@
                 "value": "",
                 "options": [
                   {
-                    "label": "全部",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "全部",
+                        "en-US": "All"
+                      }
+                    },
                     "value": ""
                   },
                   {
-                    "label": "动作",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "动作",
+                        "en-US": "Action"
+                      }
+                    },
                     "value": "action"
                   },
                   {
-                    "label": "容器",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "容器",
+                        "en-US": "Container"
+                      }
+                    },
                     "value": "container"
                   },
                   {
-                    "label": "内容",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "内容",
+                        "en-US": "Content"
+                      }
+                    },
                     "value": "content"
                   },
                   {
-                    "label": "数据",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "数据",
+                        "en-US": "Data"
+                      }
+                    },
                     "value": "data"
                   },
                   {
-                    "label": "表单",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "表单",
+                        "en-US": "Form"
+                      }
+                    },
                     "value": "form"
                   },
                   {
-                    "label": "布局",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "布局",
+                        "en-US": "Layout"
+                      }
+                    },
                     "value": "layout"
                   },
                   {
-                    "label": "页面",
+                    "label": {
+                      "$i18n": {
+                        "zh-CN": "页面",
+                        "en-US": "Pages"
+                      }
+                    },
                     "value": "page"
                   }
                 ]
@@ -183,7 +303,12 @@
           "buttons": [
             {
               "id": "search",
-              "label": "查询",
+              "label": {
+                "$i18n": {
+                  "zh-CN": "查询",
+                  "en-US": "Query"
+                }
+              },
               "variant": "secondary",
               "events": [
                 {
@@ -224,7 +349,12 @@
             },
             {
               "id": "reset",
-              "label": "重置",
+              "label": {
+                "$i18n": {
+                  "zh-CN": "重置",
+                  "en-US": "Reset"
+                }
+              },
               "variant": "ghost",
               "events": [
                 {
@@ -293,7 +423,12 @@
             ]
           },
           {
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "fieldVariable": "display_name",
             "fieldDataType": "string",
             "width": 180,
@@ -309,7 +444,12 @@
             ]
           },
           {
-            "columnName": "分类",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "分类",
+                "en-US": "Category"
+              }
+            },
             "fieldVariable": "category",
             "fieldDataType": "string",
             "width": 150,
@@ -325,7 +465,12 @@
             ]
           },
           {
-            "columnName": "说明",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "说明",
+                "en-US": "Description"
+              }
+            },
             "fieldVariable": "description",
             "fieldDataType": "string",
             "width": 420,
@@ -341,7 +486,12 @@
             ]
           },
           {
-            "columnName": "编辑器 Block",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "编辑器 Block",
+                "en-US": "Editor Block"
+              }
+            },
             "fieldVariable": "editor_block",
             "fieldDataType": "boolean",
             "width": 150,
@@ -351,7 +501,12 @@
                 "id": "block-docs-editor-block-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "编辑器 Block",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "编辑器 Block",
+                      "en-US": "Editor Block"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -362,7 +517,12 @@
                 "id": "block-docs-runtime-block-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "业务 Block",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "业务 Block",
+                      "en-US": "Business Block"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -372,7 +532,12 @@
             ]
           },
           {
-            "columnName": "工具箱",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "工具箱",
+                "en-US": "Toolbox"
+              }
+            },
             "fieldVariable": "toolbox_visible",
             "fieldDataType": "string",
             "width": 320,
@@ -383,7 +548,12 @@
                 "id": "block-docs-editor-enabled-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "编辑器：已启用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "编辑器：已启用",
+                      "en-US": "Editor: Enabled"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -395,7 +565,12 @@
                 "id": "block-docs-editor-disabled-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "编辑器：已停用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "编辑器：已停用",
+                      "en-US": "Editor: Disabled"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -407,7 +582,12 @@
                 "id": "block-docs-toolbox-shown-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "工具箱：显示",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "工具箱：显示",
+                      "en-US": "Toolbox: Visible"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -419,7 +599,12 @@
                 "id": "block-docs-toolbox-hidden-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "工具箱：隐藏",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "工具箱：隐藏",
+                      "en-US": "Toolbox: Hidden"
+                    }
+                  },
                   "variant": "text",
                   "align": "left",
                   "bare": true,
@@ -431,7 +616,12 @@
                 "id": "block-docs-disable-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "停用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "停用",
+                      "en-US": "Disable"
+                    }
+                  },
                   "variant": "warning",
                   "align": "left",
                   "bare": true,
@@ -503,7 +693,12 @@
                 "id": "block-docs-enable-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "启用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "启用",
+                      "en-US": "Enable"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true,
@@ -575,7 +770,12 @@
                 "id": "block-docs-hide-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "隐藏",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "隐藏",
+                      "en-US": "Hide"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true,
@@ -647,7 +847,12 @@
                 "id": "block-docs-show-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "展示",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "展示",
+                      "en-US": "Display"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true,
@@ -721,7 +926,12 @@
                 "data": {
                   "id": "block-docs-sort-order-{{uuid}}",
                   "value": "{{sort_order}}",
-                  "placeholder": "排序",
+                  "placeholder": {
+                    "$i18n": {
+                      "zh-CN": "排序",
+                      "en-US": "Sort"
+                    }
+                  },
                   "maxLength": 9
                 },
                 "events": []
@@ -730,7 +940,12 @@
                 "id": "block-docs-save-sort-order-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "保存排序",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "保存排序",
+                      "en-US": "Save Sorting"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -815,7 +1030,12 @@
             ]
           },
           {
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "fieldVariable": "uuid",
             "fieldDataType": "string",
             "width": 112,
@@ -825,7 +1045,12 @@
                 "id": "block-docs-open-detail-{{uuid}}",
                 "type": "MButton",
                 "data": {
-                  "label": "查看详情",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "查看详情",
+                      "en-US": "View Details"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "bare": true
@@ -980,5 +1205,12 @@
         }
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

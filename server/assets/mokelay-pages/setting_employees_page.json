@@ -35,7 +35,12 @@
           {
             "fixed": null,
             "width": 260,
-            "columnName": "企业 UUID",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "企业 UUID",
+                "en-US": "Enterprise UUID"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-enterprise-uuid",
@@ -51,7 +56,12 @@
           {
             "fixed": null,
             "width": 180,
-            "columnName": "企业名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "企业名称",
+                "en-US": "Enterprise Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-enterprise-name",
@@ -67,7 +77,12 @@
           {
             "fixed": null,
             "width": 160,
-            "columnName": "姓名",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "姓名",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-name",
@@ -83,7 +98,12 @@
           {
             "fixed": null,
             "width": 240,
-            "columnName": "邮箱",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "邮箱",
+                "en-US": "Email"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-email",
@@ -99,7 +119,12 @@
           {
             "fixed": null,
             "width": 100,
-            "columnName": "套餐",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "套餐",
+                "en-US": "Plan"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-plan",
@@ -115,7 +140,12 @@
           {
             "fixed": null,
             "width": 220,
-            "columnName": "创建时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "创建时间",
+                "en-US": "Created At"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-created-at",
@@ -131,7 +161,12 @@
           {
             "fixed": null,
             "width": 220,
-            "columnName": "更新时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "更新时间",
+                "en-US": "Updated At"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-updated-at",
@@ -147,13 +182,23 @@
           {
             "fixed": "right",
             "width": 100,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "setting-employees-delete-button",
                 "type": "MButton",
                 "data": {
-                  "label": "删除",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "删除",
+                      "en-US": "Delete"
+                    }
+                  },
                   "variant": "ghost",
                   "align": "left",
                   "action": {
@@ -172,7 +217,12 @@
                         "action": "confirm",
                         "alias": "确认删除员工",
                         "inputs": {
-                          "title": "确认删除员工",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "确认删除员工",
+                              "en-US": "Confirm Employee Deletion"
+                            }
+                          },
                           "content": {
                             "template": "确定要删除员工「{{sourceBlock.data.action.name}}」吗？"
                           }
@@ -332,5 +382,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

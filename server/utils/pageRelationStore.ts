@@ -21,7 +21,7 @@ import {
 type RawPageRow = Record<string, unknown>
 const pageSelectFields = sql.join([
   'uuid', 'name', 'blocks', 'enterprise_uuid', 'app_uuid', 'layout_uuid',
-  'sub_page', 'quotes', 'dependencies', 'created_at', 'updated_at',
+  'sub_page', 'quotes', 'dependencies', 'locale_config', 'created_at', 'updated_at',
 ].map(field => sql.identifier(field)), sql`, `)
 
 export type PageSaveInput = {
@@ -34,6 +34,7 @@ export type PageSaveInput = {
   subPage?: unknown
   enterpriseUuid?: unknown
   appUuid?: unknown
+  localeConfig?: unknown
 }
 
 export type NormalizedPage = {
@@ -46,6 +47,7 @@ export type NormalizedPage = {
   subPage: boolean
   quotes: string[]
   dependencies: string[]
+  localeConfig: Record<string, unknown> | null
   createdAt?: string
   updatedAt?: string
 }
@@ -87,6 +89,18 @@ function readBoolean(value: unknown) {
   return value === true || value === 1 || value === '1' || value === 'true'
 }
 
+function normalizeLocaleConfig(value: unknown) {
+  const parsed = parseJson(value)
+  if (!isRecord(parsed)) return null
+  const defaultLocale = typeof parsed.defaultLocale === 'string' ? parsed.defaultLocale.trim() : ''
+  const supportedLocales = Array.isArray(parsed.supportedLocales)
+    ? [...new Set(parsed.supportedLocales.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))]
+    : []
+  if (!defaultLocale) return null
+  if (!supportedLocales.includes(defaultLocale)) supportedLocales.unshift(defaultLocale)
+  return { defaultLocale, supportedLocales }
+}
+
 function currentSqlTimestamp() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '+00:00')
 }
@@ -103,6 +117,7 @@ export function normalizeUserPage(row: RawPageRow): NormalizedPage {
     subPage: readBoolean(row.sub_page),
     quotes: parseStringArray(row.quotes),
     dependencies: parseStringArray(row.dependencies),
+    localeConfig: normalizeLocaleConfig(row.locale_config),
     createdAt: readString(row.created_at),
     updatedAt: readString(row.updated_at),
   }
@@ -354,13 +369,14 @@ export async function savePageBatchWithRelations(
           )
         }
         const candidateRow: RawPageRow = existingIndex >= 0
-          ? { ...finalRows[existingIndex], uuid: candidate.uuid, name: candidate.name, blocks: candidate.blocks }
+          ? { ...finalRows[existingIndex], uuid: candidate.uuid, name: candidate.name, blocks: candidate.blocks, ...(candidate.input.localeConfig !== undefined ? { locale_config: normalizeLocaleConfig(candidate.input.localeConfig) } : {}) }
           : {
               uuid: candidate.uuid,
               name: candidate.name,
               blocks: candidate.blocks,
               enterprise_uuid: candidate.input.enterpriseUuid,
               app_uuid: candidate.input.appUuid,
+              locale_config: normalizeLocaleConfig(candidate.input.localeConfig),
             }
         if (existingIndex >= 0) finalRows[existingIndex] = candidateRow
         else finalRows.push(candidateRow)
@@ -378,7 +394,7 @@ export async function savePageBatchWithRelations(
         if (candidate.input.mode === 'create') {
           await executeSql(sql`
             INSERT INTO ${sql.identifier('pages')}
-              (${sql.identifier('uuid')}, ${sql.identifier('name')}, ${sql.identifier('blocks')}, ${sql.identifier('enterprise_uuid')}, ${sql.identifier('app_uuid')}, ${sql.identifier('sub_page')}, ${sql.identifier('quotes')}, ${sql.identifier('dependencies')})
+              (${sql.identifier('uuid')}, ${sql.identifier('name')}, ${sql.identifier('blocks')}, ${sql.identifier('enterprise_uuid')}, ${sql.identifier('app_uuid')}, ${sql.identifier('sub_page')}, ${sql.identifier('quotes')}, ${sql.identifier('dependencies')}, ${sql.identifier('locale_config')})
             VALUES (
               ${candidate.uuid},
               ${candidate.name},
@@ -387,7 +403,8 @@ export async function savePageBatchWithRelations(
               ${candidate.input.appUuid},
               ${relations.subPage},
               ${jsonSql(relations.quotes, databaseType)},
-              ${jsonSql(relations.dependencies, databaseType)}
+              ${jsonSql(relations.dependencies, databaseType)},
+              ${candidate.input.localeConfig === undefined ? null : jsonSql(normalizeLocaleConfig(candidate.input.localeConfig), databaseType)}
             )
           `)
         } else {
@@ -396,6 +413,7 @@ export async function savePageBatchWithRelations(
             SET
               ${sql.identifier('name')} = ${candidate.name},
               ${sql.identifier('blocks')} = ${jsonSql(candidate.blocks, databaseType)},
+              ${sql.identifier('locale_config')} = ${candidate.input.localeConfig === undefined ? sql.identifier('locale_config') : jsonSql(normalizeLocaleConfig(candidate.input.localeConfig), databaseType)},
               ${sql.identifier('updated_at')} = ${currentSqlTimestamp()}
             WHERE ${sql.identifier('uuid')} = ${candidate.uuid}
           `)

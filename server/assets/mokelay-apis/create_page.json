@@ -10,6 +10,7 @@
       { "key": "subPage" },
       { "key": "quotes" },
       { "key": "dependencies" },
+      { "key": "localeConfig" },
       { "key": "appUuid", "processors": ["trim", "is_not_null"] }
     ]
   },
@@ -42,6 +43,7 @@
         "subPage": { "template": "{{request.body.subPage}}" },
         "quotes": { "template": "{{request.body.quotes}}" },
         "dependencies": { "template": "{{request.body.dependencies}}" },
+        "localeConfig": { "template": "{{request.body.localeConfig}}" },
         "enterpriseUuid": { "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}" },
         "appUuid": { "template": "{{blocks['require_tenant_context'].outputs.appUuid}}" }
       },

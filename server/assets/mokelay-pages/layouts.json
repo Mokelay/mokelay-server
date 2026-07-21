@@ -12,7 +12,12 @@
       "id": "mokelay-layouts-user-heading",
       "type": "MHeading",
       "data": {
-        "text": "用户创建布局",
+        "text": {
+          "$i18n": {
+            "zh-CN": "用户创建布局",
+            "en-US": "User Layouts"
+          }
+        },
         "level": 2,
         "align": "left"
       }
@@ -27,7 +32,12 @@
         "buttons": [
           {
             "id": "create",
-            "label": "创建布局",
+            "label": {
+              "$i18n": {
+                "zh-CN": "创建布局",
+                "en-US": "Create Layout"
+              }
+            },
             "variant": "primary",
             "events": [
               {
@@ -38,7 +48,12 @@
                     "action": "open_dialog",
                     "alias": "创建布局",
                     "inputs": {
-                      "title": "创建布局",
+                      "title": {
+                        "$i18n": {
+                          "zh-CN": "创建布局",
+                          "en-US": "Create Layout"
+                        }
+                      },
                       "pageUUID": "mokelay_layout_create_page",
                       "pageSource": "system",
                       "context": {}
@@ -97,7 +112,12 @@
           {
             "fixed": null,
             "width": null,
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-user-name",
@@ -113,7 +133,12 @@
           {
             "fixed": null,
             "width": 220,
-            "columnName": "更新时间",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "更新时间",
+                "en-US": "Updated At"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-user-updated-at",
@@ -129,13 +154,23 @@
           {
             "fixed": "right",
             "width": 180,
-            "columnName": "操作",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "操作",
+                "en-US": "Actions"
+              }
+            },
             "columnContent": [
               {
                 "id": "mokelay-layouts-user-open-button",
                 "type": "MButton",
                 "data": {
-                  "label": "打开",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "打开",
+                      "en-US": "Open"
+                    }
+                  },
                   "variant": "secondary",
                   "align": "left",
                   "action": {
@@ -156,7 +191,12 @@
                         "action": "open_dialog",
                         "alias": "编辑布局",
                         "inputs": {
-                          "title": "编辑布局",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "编辑布局",
+                              "en-US": "Edit Layout"
+                            }
+                          },
                           "pageUUID": "mokelay_layout_user_editor_page",
                           "pageSource": "system",
                           "context": {
@@ -203,7 +243,12 @@
                 "id": "mokelay-layouts-user-delete-button",
                 "type": "MButton",
                 "data": {
-                  "label": "删除",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "删除",
+                      "en-US": "Delete"
+                    }
+                  },
                   "variant": "ghost",
                   "align": "left",
                   "action": {
@@ -221,7 +266,12 @@
                         "action": "confirm",
                         "alias": "确认删除布局",
                         "inputs": {
-                          "title": "确认删除布局",
+                          "title": {
+                            "$i18n": {
+                              "zh-CN": "确认删除布局",
+                              "en-US": "Confirm Layout Deletion"
+                            }
+                          },
                           "content": {
                             "template": "确定要删除布局「{{sourceBlock.data.action.name}}」吗？"
                           }
@@ -381,5 +431,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

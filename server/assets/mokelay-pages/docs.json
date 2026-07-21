@@ -16,18 +16,35 @@
         "tabs": [
           {
             "id": "client-docs",
-            "name": "客户端文档",
+            "name": {
+              "$i18n": {
+                "zh-CN": "客户端文档",
+                "en-US": "Client Docs"
+              }
+            },
             "pageUUID": "client_docs",
             "pageSource": "system"
           },
           {
             "id": "server-docs",
-            "name": "服务端文档",
+            "name": {
+              "$i18n": {
+                "zh-CN": "服务端文档",
+                "en-US": "Server Docs"
+              }
+            },
             "pageUUID": "server_docs",
             "pageSource": "system"
           }
         ]
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

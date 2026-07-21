@@ -51,7 +51,12 @@
       "id": "block-doc-detail-back",
       "type": "MButton",
       "data": {
-        "label": "返回 Block 文档",
+        "label": {
+          "$i18n": {
+            "zh-CN": "返回 Block 文档",
+            "en-US": "Back to Block Docs"
+          }
+        },
         "variant": "secondary",
         "align": "left",
         "bare": true
@@ -78,7 +83,12 @@
       "id": "block-doc-detail-title",
       "type": "MHeading",
       "data": {
-        "text": "客户端 Block 文档详情",
+        "text": {
+          "$i18n": {
+            "zh-CN": "客户端 Block 文档详情",
+            "en-US": "Client Block Doc Details"
+          }
+        },
         "level": "1",
         "align": "left"
       }
@@ -105,7 +115,12 @@
           "pageId": "block_component_doc_detail",
           "variable": "dataSources.doc.doc.block_type"
         },
-        "emptyText": "未找到对应的 Block 文档。",
+        "emptyText": {
+          "$i18n": {
+            "zh-CN": "未找到对应的 Block 文档。",
+            "en-US": "The requested Block documentation was not found."
+          }
+        },
         "showCount": false,
         "titleFields": [
           "display_name",
@@ -134,30 +149,150 @@
         "fieldLabels": {
           "uuid": "UUID",
           "block_type": "Block Type",
-          "display_name": "名称",
-          "description": "说明",
-          "category": "分类",
-          "status": "状态",
-          "source_kind": "来源类型",
-          "source_package": "来源包",
-          "source_file": "源码",
-          "component_name": "组件名称",
-          "tool_symbol": "工具符号",
-          "editor_enabled": "编辑器启用",
-          "toolbox_visible": "工具箱显示",
-          "sort_order": "排序",
-          "registration": "注册信息",
-          "toolbox": "工具箱配置",
-          "initial_props": "兼容初始属性",
-          "default_data": "默认值",
-          "data_fields_schema": "数据字段",
-          "save_schema": "保存规则",
-          "examples": "示例",
-          "source_refs": "源码引用",
-          "raw_meta": "原始元数据",
-          "created_at": "创建时间",
-          "updated_at": "更新时间",
-          "editor_block": "编辑器 Block"
+          "display_name": {
+            "$i18n": {
+              "zh-CN": "名称",
+              "en-US": "Name"
+            }
+          },
+          "description": {
+            "$i18n": {
+              "zh-CN": "说明",
+              "en-US": "Description"
+            }
+          },
+          "category": {
+            "$i18n": {
+              "zh-CN": "分类",
+              "en-US": "Category"
+            }
+          },
+          "status": {
+            "$i18n": {
+              "zh-CN": "状态",
+              "en-US": "Status"
+            }
+          },
+          "source_kind": {
+            "$i18n": {
+              "zh-CN": "来源类型",
+              "en-US": "Source Type"
+            }
+          },
+          "source_package": {
+            "$i18n": {
+              "zh-CN": "来源包",
+              "en-US": "Source Package"
+            }
+          },
+          "source_file": {
+            "$i18n": {
+              "zh-CN": "源码",
+              "en-US": "Source"
+            }
+          },
+          "component_name": {
+            "$i18n": {
+              "zh-CN": "组件名称",
+              "en-US": "Component Name"
+            }
+          },
+          "tool_symbol": {
+            "$i18n": {
+              "zh-CN": "工具符号",
+              "en-US": "Tool Symbol"
+            }
+          },
+          "editor_enabled": {
+            "$i18n": {
+              "zh-CN": "编辑器启用",
+              "en-US": "Editor Enabled"
+            }
+          },
+          "toolbox_visible": {
+            "$i18n": {
+              "zh-CN": "工具箱显示",
+              "en-US": "Show in Toolbox"
+            }
+          },
+          "sort_order": {
+            "$i18n": {
+              "zh-CN": "排序",
+              "en-US": "Sort"
+            }
+          },
+          "registration": {
+            "$i18n": {
+              "zh-CN": "注册信息",
+              "en-US": "Registration"
+            }
+          },
+          "toolbox": {
+            "$i18n": {
+              "zh-CN": "工具箱配置",
+              "en-US": "Toolbox Config"
+            }
+          },
+          "initial_props": {
+            "$i18n": {
+              "zh-CN": "兼容初始属性",
+              "en-US": "Compatible Initial Props"
+            }
+          },
+          "default_data": {
+            "$i18n": {
+              "zh-CN": "默认值",
+              "en-US": "Default Value"
+            }
+          },
+          "data_fields_schema": {
+            "$i18n": {
+              "zh-CN": "数据字段",
+              "en-US": "Data Fields"
+            }
+          },
+          "save_schema": {
+            "$i18n": {
+              "zh-CN": "保存规则",
+              "en-US": "Save Rules"
+            }
+          },
+          "examples": {
+            "$i18n": {
+              "zh-CN": "示例",
+              "en-US": "Examples"
+            }
+          },
+          "source_refs": {
+            "$i18n": {
+              "zh-CN": "源码引用",
+              "en-US": "Source References"
+            }
+          },
+          "raw_meta": {
+            "$i18n": {
+              "zh-CN": "原始元数据",
+              "en-US": "Raw Metadata"
+            }
+          },
+          "created_at": {
+            "$i18n": {
+              "zh-CN": "创建时间",
+              "en-US": "Created At"
+            }
+          },
+          "updated_at": {
+            "$i18n": {
+              "zh-CN": "更新时间",
+              "en-US": "Updated At"
+            }
+          },
+          "editor_block": {
+            "$i18n": {
+              "zh-CN": "编辑器 Block",
+              "en-US": "Editor Block"
+            }
+          }
         },
         "hiddenFields": [
           "registration",
@@ -179,7 +314,12 @@
       "id": "block-doc-detail-playground",
       "type": "MBlockPlayground",
       "data": {
-        "title": "Block 展示",
+        "title": {
+          "$i18n": {
+            "zh-CN": "Block 展示",
+            "en-US": "Block Preview"
+          }
+        },
         "doc": {
           "mode": "variable",
           "source": "MPage",
@@ -188,14 +328,24 @@
         },
         "initialSource": "example",
         "jsonRows": 12,
-        "emptyText": "未找到对应的 Block 文档。"
+        "emptyText": {
+          "$i18n": {
+            "zh-CN": "未找到对应的 Block 文档。",
+            "en-US": "The requested Block documentation was not found."
+          }
+        }
       }
     },
     {
       "id": "block-doc-detail-json-config-title",
       "type": "MHeading",
       "data": {
-        "text": "文档配置 JSON",
+        "text": {
+          "$i18n": {
+            "zh-CN": "文档配置 JSON",
+            "en-US": "Documentation Config JSON"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -225,7 +375,12 @@
                 "id": "block-doc-detail-registration-json",
                 "type": "MJson",
                 "data": {
-                  "label": "注册信息",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "注册信息",
+                      "en-US": "Registration"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -240,7 +395,12 @@
                 "id": "block-doc-detail-initial-props-json",
                 "type": "MJson",
                 "data": {
-                  "label": "兼容初始属性",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "兼容初始属性",
+                      "en-US": "Compatible Initial Props"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -255,7 +415,12 @@
                 "id": "block-doc-detail-data-fields-json",
                 "type": "MJson",
                 "data": {
-                  "label": "数据字段",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "数据字段",
+                      "en-US": "Data Fields"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -270,7 +435,12 @@
                 "id": "block-doc-detail-examples-json",
                 "type": "MJson",
                 "data": {
-                  "label": "示例",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "示例",
+                      "en-US": "Examples"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -292,7 +462,12 @@
                 "id": "block-doc-detail-toolbox-json",
                 "type": "MJson",
                 "data": {
-                  "label": "工具箱配置",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "工具箱配置",
+                      "en-US": "Toolbox Config"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -307,7 +482,12 @@
                 "id": "block-doc-detail-default-data-json",
                 "type": "MJson",
                 "data": {
-                  "label": "默认值",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "默认值",
+                      "en-US": "Default Value"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -322,7 +502,12 @@
                 "id": "block-doc-detail-save-rules-json",
                 "type": "MJson",
                 "data": {
-                  "label": "保存规则",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "保存规则",
+                      "en-US": "Save Rules"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -337,7 +522,12 @@
                 "id": "block-doc-detail-source-refs-json",
                 "type": "MJson",
                 "data": {
-                  "label": "源码引用",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "源码引用",
+                      "en-US": "Source References"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -352,7 +542,12 @@
                 "id": "block-doc-detail-raw-meta-json",
                 "type": "MJson",
                 "data": {
-                  "label": "原始元数据",
+                  "label": {
+                    "$i18n": {
+                      "zh-CN": "原始元数据",
+                      "en-US": "Raw Metadata"
+                    }
+                  },
                   "value": {
                     "mode": "variable",
                     "source": "MPage",
@@ -372,7 +567,12 @@
       "id": "block-doc-detail-properties-title",
       "type": "MHeading",
       "data": {
-        "text": "属性",
+        "text": {
+          "$i18n": {
+            "zh-CN": "属性",
+            "en-US": "Properties"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -392,7 +592,12 @@
         },
         "columns": [
           {
-            "columnName": "标识",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标识",
+                "en-US": "Identifier"
+              }
+            },
             "fieldVariable": "key",
             "fieldDataType": "string",
             "width": 160,
@@ -408,7 +613,12 @@
             ]
           },
           {
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "fieldVariable": "label",
             "fieldDataType": "string",
             "width": 180,
@@ -424,7 +634,12 @@
             ]
           },
           {
-            "columnName": "类型",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "类型",
+                "en-US": "Type"
+              }
+            },
             "fieldVariable": "type",
             "fieldDataType": "string",
             "width": 220,
@@ -441,7 +656,12 @@
             ]
           },
           {
-            "columnName": "默认值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "默认值",
+                "en-US": "Default Value"
+              }
+            },
             "fieldVariable": "defaultValue",
             "fieldDataType": "string",
             "width": 180,
@@ -458,7 +678,12 @@
             ]
           },
           {
-            "columnName": "配置",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "配置",
+                "en-US": "Config"
+              }
+            },
             "fieldVariable": "configurable",
             "fieldDataType": "string",
             "width": 150,
@@ -468,13 +693,23 @@
                 "id": "block-doc-detail-property-flags",
                 "type": "paragraph",
                 "data": {
-                  "text": "可配置 {{configurable}} / 可选 {{optional}}"
+                  "text": {
+                    "$i18n": {
+                      "zh-CN": "可配置 {{configurable}} / 可选 {{optional}}",
+                      "en-US": "Configurable {{configurable}} / Optional {{optional}}"
+                    }
+                  }
                 }
               }
             ]
           },
           {
-            "columnName": "源码",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "源码",
+                "en-US": "Source"
+              }
+            },
             "fieldVariable": "source",
             "fieldDataType": "string",
             "width": 320,
@@ -497,7 +732,12 @@
       "id": "block-doc-detail-events-title",
       "type": "MHeading",
       "data": {
-        "text": "事件",
+        "text": {
+          "$i18n": {
+            "zh-CN": "事件",
+            "en-US": "Events"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -517,7 +757,12 @@
         },
         "columns": [
           {
-            "columnName": "标识",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标识",
+                "en-US": "Identifier"
+              }
+            },
             "fieldVariable": "event",
             "fieldDataType": "string",
             "width": 180,
@@ -533,7 +778,12 @@
             ]
           },
           {
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "fieldVariable": "label",
             "fieldDataType": "string",
             "width": 180,
@@ -549,7 +799,12 @@
             ]
           },
           {
-            "columnName": "载荷",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "载荷",
+                "en-US": "Payload"
+              }
+            },
             "fieldVariable": "payload",
             "fieldDataType": "string",
             "width": 360,
@@ -566,7 +821,12 @@
             ]
           },
           {
-            "columnName": "触发方式",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "触发方式",
+                "en-US": "Trigger"
+              }
+            },
             "fieldVariable": "trigger",
             "fieldDataType": "string",
             "width": 200,
@@ -583,7 +843,12 @@
             ]
           },
           {
-            "columnName": "源码",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "源码",
+                "en-US": "Source"
+              }
+            },
             "fieldVariable": "source",
             "fieldDataType": "string",
             "width": 360,
@@ -606,7 +871,12 @@
       "id": "block-doc-detail-methods-title",
       "type": "MHeading",
       "data": {
-        "text": "方法",
+        "text": {
+          "$i18n": {
+            "zh-CN": "方法",
+            "en-US": "Method"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -626,7 +896,12 @@
         },
         "columns": [
           {
-            "columnName": "标识",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "标识",
+                "en-US": "Identifier"
+              }
+            },
             "fieldVariable": "name",
             "fieldDataType": "string",
             "width": 180,
@@ -642,7 +917,12 @@
             ]
           },
           {
-            "columnName": "名称",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "名称",
+                "en-US": "Name"
+              }
+            },
             "fieldVariable": "label",
             "fieldDataType": "string",
             "width": 180,
@@ -658,7 +938,12 @@
             ]
           },
           {
-            "columnName": "参数",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "参数",
+                "en-US": "Parameters"
+              }
+            },
             "fieldVariable": "params",
             "fieldDataType": "string",
             "width": 280,
@@ -675,7 +960,12 @@
             ]
           },
           {
-            "columnName": "返回值",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "返回值",
+                "en-US": "Return Value"
+              }
+            },
             "fieldVariable": "returns",
             "fieldDataType": "string",
             "width": 180,
@@ -692,7 +982,12 @@
             ]
           },
           {
-            "columnName": "异步",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "异步",
+                "en-US": "Async"
+              }
+            },
             "fieldVariable": "async",
             "fieldDataType": "boolean",
             "width": 100,
@@ -708,7 +1003,12 @@
             ]
           },
           {
-            "columnName": "暴露",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "暴露",
+                "en-US": "Exposed"
+              }
+            },
             "fieldVariable": "exposed",
             "fieldDataType": "boolean",
             "width": 100,
@@ -724,7 +1024,12 @@
             ]
           },
           {
-            "columnName": "源码",
+            "columnName": {
+              "$i18n": {
+                "zh-CN": "源码",
+                "en-US": "Source"
+              }
+            },
             "fieldVariable": "source",
             "fieldDataType": "string",
             "width": 360,
@@ -747,7 +1052,12 @@
       "id": "block-doc-detail-json-title",
       "type": "MHeading",
       "data": {
-        "text": "完整文档 JSON",
+        "text": {
+          "$i18n": {
+            "zh-CN": "完整文档 JSON",
+            "en-US": "Full Document JSON"
+          }
+        },
         "level": "2",
         "align": "left"
       }
@@ -756,7 +1066,12 @@
       "id": "block-doc-detail-json",
       "type": "MJson",
       "data": {
-        "label": "只读文档数据",
+        "label": {
+          "$i18n": {
+            "zh-CN": "只读文档数据",
+            "en-US": "Read-only Documentation Data"
+          }
+        },
         "value": {
           "mode": "variable",
           "source": "MPage",
@@ -767,5 +1082,12 @@
         "expandDepth": 1
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

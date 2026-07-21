@@ -85,7 +85,12 @@
         },
         "items": [
           {
-            "labelName": "Fragment 名称",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "Fragment 名称",
+                "en-US": "Fragment Name"
+              }
+            },
             "variableName": "name",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -93,16 +98,31 @@
               "id": "fragment-create-name",
               "type": "MInput",
               "data": {
-                "placeholder": "请输入 Fragment 名称",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "请输入 Fragment 名称",
+                    "en-US": "Enter a Fragment name"
+                  }
+                },
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入 Fragment 名称"
+                "validationMessage": {
+                  "$i18n": {
+                    "zh-CN": "请输入 Fragment 名称",
+                    "en-US": "Enter a Fragment name"
+                  }
+                }
               }
             },
             "events": []
           },
           {
-            "labelName": "Fragment 标识",
+            "labelName": {
+              "$i18n": {
+                "zh-CN": "Fragment 标识",
+                "en-US": "Fragment Identifier"
+              }
+            },
             "variableName": "uuid",
             "fieldDataType": "string",
             "layout": "Horizontal",
@@ -110,10 +130,20 @@
               "id": "fragment-create-uuid",
               "type": "MInput",
               "data": {
-                "placeholder": "例如 fragment_prepare_customer",
+                "placeholder": {
+                  "$i18n": {
+                    "zh-CN": "例如 fragment_prepare_customer",
+                    "en-US": "For example: fragment_prepare_customer"
+                  }
+                },
                 "value": "",
                 "required": true,
-                "validationMessage": "请输入 Fragment 标识"
+                "validationMessage": {
+                  "$i18n": {
+                    "zh-CN": "请输入 Fragment 标识",
+                    "en-US": "Enter a Fragment identifier"
+                  }
+                }
               }
             },
             "events": []
@@ -126,7 +156,12 @@
       "id": "mokelay-fragment-create-preview",
       "type": "paragraph",
       "data": {
-        "text": "Fragment 标识：{{blocks[\"fragment-create-uuid\"].value}}"
+        "text": {
+          "$i18n": {
+            "zh-CN": "Fragment 标识：{{blocks[\"fragment-create-uuid\"].value}}",
+            "en-US": "Fragment identifier: {{blocks[\"fragment-create-uuid\"].value}}"
+          }
+        }
       },
       "events": []
     },
@@ -138,7 +173,12 @@
         "buttons": [
           {
             "id": "cancel",
-            "label": "取消",
+            "label": {
+              "$i18n": {
+                "zh-CN": "取消",
+                "en-US": "Cancel"
+              }
+            },
             "variant": "secondary",
             "events": [
               {
@@ -163,7 +203,12 @@
           },
           {
             "id": "save",
-            "label": "保存并打开",
+            "label": {
+              "$i18n": {
+                "zh-CN": "保存并打开",
+                "en-US": "Save and Open"
+              }
+            },
             "variant": "primary",
             "events": [
               {
@@ -323,7 +368,11 @@
                           {
                             "key": "appUuid",
                             "dataType": "string",
-                            "value": { "mode": "variable", "source": "MPage", "variable": "context.appUuid" }
+                            "value": {
+                              "mode": "variable",
+                              "source": "MPage",
+                              "variable": "context.appUuid"
+                            }
                           }
                         ],
                         "schemaSelections": [
@@ -387,5 +436,12 @@
       },
       "events": []
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }

@@ -16,48 +16,100 @@
         "tabs": [
           {
             "id": "enterprise",
-            "name": "企业",
+            "name": {
+              "$i18n": {
+                "zh-CN": "企业",
+                "en-US": "Enterprises"
+              }
+            },
             "pageUUID": "setting_enterprise_page",
             "pageSource": "system",
-            "query": { "section": [null, "enterprise"] }
+            "query": {
+              "section": [
+                null,
+                "enterprise"
+              ]
+            }
           },
           {
             "id": "employees",
-            "name": "员工",
+            "name": {
+              "$i18n": {
+                "zh-CN": "员工",
+                "en-US": "Employees"
+              }
+            },
             "pageUUID": "setting_employees_page",
             "pageSource": "system",
-            "query": { "section": "employees" }
+            "query": {
+              "section": "employees"
+            }
           },
           {
             "id": "employee-auth-identities",
-            "name": "员工授权",
+            "name": {
+              "$i18n": {
+                "zh-CN": "员工授权",
+                "en-US": "Employee Authorization"
+              }
+            },
             "pageUUID": "setting_employee_auth_identities_page",
             "pageSource": "system",
-            "query": { "section": "employee-auth-identities" }
+            "query": {
+              "section": "employee-auth-identities"
+            }
           },
           {
             "id": "system-apis",
-            "name": "系统接口",
+            "name": {
+              "$i18n": {
+                "zh-CN": "系统接口",
+                "en-US": "System APIs"
+              }
+            },
             "pageUUID": "mokelay_apis_system_tabs_page",
             "pageSource": "system",
-            "query": { "section": "system-apis" }
+            "query": {
+              "section": "system-apis"
+            }
           },
           {
             "id": "system-pages",
-            "name": "系统页面",
+            "name": {
+              "$i18n": {
+                "zh-CN": "系统页面",
+                "en-US": "System Pages"
+              }
+            },
             "pageUUID": "mokelay_system_page",
             "pageSource": "system",
-            "query": { "section": "system-pages" }
+            "query": {
+              "section": "system-pages"
+            }
           },
           {
             "id": "system-layouts",
-            "name": "系统布局",
+            "name": {
+              "$i18n": {
+                "zh-CN": "系统布局",
+                "en-US": "System Layouts"
+              }
+            },
             "pageUUID": "mokelay_layouts_system_page",
             "pageSource": "system",
-            "query": { "section": "system-layouts" }
+            "query": {
+              "section": "system-layouts"
+            }
           }
         ]
       }
     }
-  ]
+  ],
+  "localeConfig": {
+    "defaultLocale": "zh-CN",
+    "supportedLocales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
 }
