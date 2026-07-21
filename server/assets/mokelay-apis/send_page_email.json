@@ -1,0 +1,158 @@
+{
+  "uuid": "send_page_email",
+  "alias": "发送 Page DSL 邮件",
+  "method": "GET",
+  "request": {
+    "query": [
+      {
+        "key": "pageUUID",
+        "processors": [
+          "trim",
+          "is_not_null"
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "require_tenant_context"
+    },
+    {
+      "uuid": "require_tenant_context",
+      "alias": "校验登录企业上下文",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay"
+      },
+      "outputs": [
+        "enterpriseUuid"
+      ],
+      "nextBlock": "normalize_page_uuid_block"
+    },
+    {
+      "uuid": "normalize_page_uuid_block",
+      "alias": "规范化页面标识",
+      "functionName": "normalizePageUuid",
+      "inputs": {
+        "uuid": {
+          "template": "{{request.query.pageUUID}}"
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_page_block"
+    },
+    {
+      "uuid": "read_page_block",
+      "alias": "读取 Page DSL",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "pages",
+        "fields": [
+          "uuid",
+          "name",
+          "blocks",
+          "locale_config",
+          "app_uuid",
+          "layout_uuid",
+          "sub_page",
+          "quotes",
+          "dependencies",
+          "created_at",
+          "updated_at"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "uuid",
+            "fieldValue": {
+              "template": "{{blocks['normalize_page_uuid_block'].outputs.uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "conditionType": "EQ",
+            "fieldName": "enterprise_uuid",
+            "fieldValue": {
+              "template": "{{blocks['require_tenant_context'].outputs.enterpriseUuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": [
+            "is_not_null"
+          ]
+        }
+      ],
+      "nextBlock": "normalize_page_row_block"
+    },
+    {
+      "uuid": "normalize_page_row_block",
+      "alias": "标准化 Page DSL",
+      "functionName": "normalizePageRows",
+      "inputs": {
+        "row": {
+          "template": "{{blocks['read_page_block'].outputs.data}}"
+        }
+      },
+      "outputs": [
+        "page"
+      ],
+      "nextBlock": "render_page_block"
+    },
+    {
+      "uuid": "render_page_block",
+      "alias": "渲染 Page DSL HTML",
+      "functionName": "renderPage",
+      "inputs": {
+        "page": {
+          "template": "{{blocks['normalize_page_row_block'].outputs.page}}"
+        }
+      },
+      "outputs": [
+        "html"
+      ],
+      "nextBlock": "send_email_block"
+    },
+    {
+      "uuid": "send_email_block",
+      "alias": "发送页面 HTML 邮件",
+      "functionName": "sendEmail",
+      "inputs": {
+        "to": "iamcarlchen@gmail.com",
+        "subject": {
+          "template": "{{blocks['normalize_page_row_block'].outputs.page.name}}"
+        },
+        "html": {
+          "template": "{{blocks['render_page_block'].outputs.html}}"
+        }
+      },
+      "outputs": [
+        "messageId",
+        "accepted",
+        "rejected"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "responses": {
+    "send_email_block": {
+      "messageId": {
+        "template": "{{blocks['send_email_block'].outputs.messageId}}"
+      },
+      "accepted": {
+        "template": "{{blocks['send_email_block'].outputs.accepted}}"
+      },
+      "rejected": {
+        "template": "{{blocks['send_email_block'].outputs.rejected}}"
+      }
+    }
+  }
+}
