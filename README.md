@@ -2,6 +2,18 @@
 
 Mokelay public API service. It owns Mokelay orchestration execution and the PostgreSQL/Drizzle schema that used to live in `mokelay-website`.
 
+## Built-in App Assets
+
+Built-in app resources live under `server/assets/{app}/pages`, `apis`, and `layouts`.
+The existing Mokelay resources are in `server/assets/mokelay`; built-in API fragments
+live in `mokelay/apis/fragment`. `server/assets/mokelay-schema` remains a temporary
+exception for shared AI DSL schemas. Runtime loading currently selects only the
+`mokelay` app, and the HTTP routes and R2 object prefix (`mokelay-apis`) are unchanged.
+
+The server requires the matching `mokelay-server-core` loader for these paths. In the
+workspace, run `npm run sync:server-core` before verification. Deployments must use a
+core release containing this loader change together with the reorganized assets.
+
 ## API
 
 - `GET|POST /api/mokelay/{API_JSON_UUID}`
@@ -10,11 +22,11 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 - `POST /api/mokelay/ai-generate-dsl`
 - `POST /api/mokelay/ai-translate`
 
-Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
+Auth-like flows such as register, login, current user, and logout are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay/apis` and use the internal signed `mokelay_orchestration_session` HTTP-only cookie. Runtime loading checks local server assets first, then Cloudflare R2, then published records in the `apis` table. See `docs/auth-json-apis.md` for the generated interface documentation. In production, set `COOKIE_DOMAIN=.mokelay.com` so `www.mokelay.com` can call `api.mokelay.com` with credentials.
 
 OAuth login and signup also use Mokelay orchestration JSON definitions. The public entrypoints are `GET /api/mokelay/oauth_google_start`, `GET /api/mokelay/oauth_google_callback`, `GET /api/mokelay/oauth_github_start`, and `GET /api/mokelay/oauth_github_callback`. Set `OAUTH_CALLBACK_BASE_URL` to the public API origin, for example `https://api.mokelay.com`.
 
-Pages and API Builder outputs are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay-apis`, Cloudflare R2 object keys under `mokelay-apis/*.json`, or published `apis` table records. See `docs/api-json-schema.md` for the full API JSON schema and `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
+Pages and API Builder outputs are exposed through Mokelay orchestration JSON definitions under `server/assets/mokelay/apis`, Cloudflare R2 object keys under `mokelay-apis/*.json`, or published `apis` table records. See `docs/api-json-schema.md` for the full API JSON schema and `docs/orchestration-blocks.md` for block configuration. Database blocks read connections from `${datasource}_DATABASE_URL`, based on each block's `inputs.datasource`.
 
 Read public database table metadata with `GET /api/database/schema`. The response is `{ "tables": [{ "name": "users", "columns": [{ "name": "id", "type": "uuid", "dataType": "uuid" }] }] }`.
 
@@ -65,7 +77,7 @@ The dev server listens on `http://127.0.0.1:8787`. Mokelay orchestration JSON ex
 
 ## Mokelay API JSON on R2
 
-Runtime loading checks `server/assets/mokelay-apis` and Nitro server assets first, then Cloudflare R2 when all R2 environment variables are configured, then published rows in the `apis` table. R2 object keys use `mokelay-apis/{API_JSON_UUID}.json` by default.
+Runtime loading checks `server/assets/mokelay/apis` and Nitro server assets first, then Cloudflare R2 when all R2 environment variables are configured, then published rows in the `apis` table. R2 object keys use `mokelay-apis/{API_JSON_UUID}.json` by default.
 
 Required R2 environment variables:
 
