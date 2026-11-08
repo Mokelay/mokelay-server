@@ -5,7 +5,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import 'dotenv/config'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
-const defaultApiJsonDir = resolve(scriptDir, '../server/assets/mokelay-apis')
+const defaultApiJsonDir = resolve(scriptDir, '../server/assets/mokelay/apis')
 const defaultR2Prefix = 'mokelay-apis'
 
 function normalizeEnvValue(value) {

@@ -2,7 +2,7 @@
 
 本文档说明当前编排接口支持的标准 Blocks，以及 `mokelay-server` 注册的 `listMokelayApiJsons` 宿主 Block。
 
-编排接口优先读取本地 `server/assets/mokelay-apis/{API_JSON_UUID}.json` 与 Nitro assets。内置 Fragment 固定读取 `server/assets/mokelay-apis/fragment/{FRAGMENT_UUID}.json`；内置 API 只能引用这里的 Fragment。动态普通 API 会并行读取 R2 内容和数据库元数据：数据库已配置时，当前记录必须存在且不能是 Fragment，查询失败采用 fail-closed；R2 miss 才使用数据库中的已发布 API JSON。用户 API 只能引用数据库中已发布的 Fragment。内置与数据库命名空间隔离，同 UUID 也按调用方来源解析，不允许跨来源引用。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走。Block 未配置 `errorNextBlock` 时，执行失败会终止编排并返回错误；配置后会沿错误边继续，值为 `null` 时当前 Block 成为错误终点。
+编排接口优先读取本地 `server/assets/mokelay/apis/{API_JSON_UUID}.json` 与 Nitro assets。内置 Fragment 固定读取 `server/assets/mokelay/apis/fragment/{FRAGMENT_UUID}.json`；内置 API 只能引用这里的 Fragment。动态普通 API 会并行读取 R2 内容和数据库元数据：数据库已配置时，当前记录必须存在且不能是 Fragment，查询失败采用 fail-closed；R2 miss 才使用数据库中的已发布 API JSON。用户 API 只能引用数据库中已发布的 Fragment。内置与数据库命名空间隔离，同 UUID 也按调用方来源解析，不允许跨来源引用。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走。Block 未配置 `errorNextBlock` 时，执行失败会终止编排并返回错误；配置后会沿错误边继续，值为 `null` 时当前 Block 成为错误终点。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。
 
@@ -1044,7 +1044,7 @@ UPDATE table SET assignments RETURNING 1 AS affected_marker
 
 ### executeFragment
 
-执行与 caller 同来源的 Fragment；Fragment 加载不会读取 R2。内置 caller 只从 `mokelay-apis/fragment` 读取，数据库 caller 只从数据库已发布 Fragment 读取。`fragmentUuid` 必须是字面量，`params` 不能包含目标 Fragment 未声明的参数，并且必须映射字符串简写或带 `is_not_null` processor 的必填参数；V1 不允许 Fragment 嵌套调用。
+执行与 caller 同来源的 Fragment；Fragment 加载不会读取 R2。内置 caller 只从 `mokelay/apis/fragment` 读取，数据库 caller 只从数据库已发布 Fragment 读取。`fragmentUuid` 必须是字面量，`params` 不能包含目标 Fragment 未声明的参数，并且必须映射字符串简写或带 `is_not_null` processor 的必填参数；V1 不允许 Fragment 嵌套调用。
 
 ```json
 {
@@ -1263,7 +1263,7 @@ inputs：
 
 ## 内置 API DSL 列表 Block
 
-`listMokelayApiJsons` 由 `mokelay-server` 注册，不属于 core 通用 Block。`fragment=false`（默认）枚举 Nitro `assets:server` 中 `mokelay-apis` 根目录的内置 API；`fragment=true` 枚举 `mokelay-apis/fragment` 中的内置 Fragment。返回值保留 Fragment DSL 的 `fragment: true` 元数据，便于 IDE 以只读方式区分和打开。
+`listMokelayApiJsons` 由 `mokelay-server` 注册，不属于 core 通用 Block。`fragment=false`（默认）枚举 Nitro `assets:server` 中 `mokelay/apis` 根目录的内置 API；`fragment=true` 枚举 `mokelay/apis/fragment` 中的内置 Fragment。返回值保留 Fragment DSL 的 `fragment: true` 元数据，便于 IDE 以只读方式区分和打开。
 
 每个文件都会先解析 JSON，再按文件名对应的 UUID 调用 `parseApiJson` 校验。列表还会静态检查所有内置 API 的 `executeFragment` target 必须存在于 nested 内置 Fragment 集合。任一文件 JSON 损坏、DSL schema 无效、UUID 不匹配或跨来源引用时，整个 Block 失败，不会静默跳过。
 

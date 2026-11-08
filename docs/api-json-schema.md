@@ -1,6 +1,6 @@
 # API JSON Schema 描述文档
 
-本文档描述服务端 API/Fragment JSON DSL 的完整配置结构。内置普通 API 保存在 `server/assets/mokelay-apis/{API_JSON_UUID}.json`，其引用的内置 Fragment 必须保存在 `server/assets/mokelay-apis/fragment/{FRAGMENT_UUID}.json`；用户创建的 API 与 Fragment 都保存在数据库。两类来源是隔离命名空间：内置 API 只能引用 nested 内置 Fragment，用户 API 只能引用数据库中已发布的 Fragment，即使两边 UUID 相同也不会串用。
+本文档描述服务端 API/Fragment JSON DSL 的完整配置结构。内置普通 API 保存在 `server/assets/mokelay/apis/{API_JSON_UUID}.json`，其引用的内置 Fragment 必须保存在 `server/assets/mokelay/apis/fragment/{FRAGMENT_UUID}.json`；用户创建的 API 与 Fragment 都保存在数据库。两类来源是隔离命名空间：内置 API 只能引用 nested 内置 Fragment，用户 API 只能引用数据库中已发布的 Fragment，即使两边 UUID 相同也不会串用。
 
 普通 API 运行时优先读取本地文件和 Nitro assets；动态 API 会同时读取 R2 内容与数据库元数据，数据库已配置时必须存在当前记录，且记录为 Fragment 或元数据查询失败都会拒绝执行旧 R2 对象。R2 miss 时可回退到数据库中的已发布普通 API；未配置 Mokelay 数据库的 R2-only 部署仍可直接读取 R2。Fragment 不读 R2，并依据调用方来源严格选择 nested 内置资产或数据库已发布记录。API JSON 由编排路由加载，并由 core 编排运行时解析和执行。
 
@@ -8,10 +8,10 @@
 
 ## 总体规则
 
-- API JSON 文件名必须与顶层 `uuid` 一致，例如 `server/assets/mokelay-apis/login.json` 的 `uuid` 为 `login`，`server/assets/mokelay-apis/fragment/provision_new_user.json` 的 `uuid` 为 `provision_new_user`。
-- 根目录内置 API 不能声明 `fragment: true`，内置 Fragment 必须位于 `mokelay-apis/fragment`。用户 API/Fragment 不允许引用内置 Fragment，内置 API 也不允许引用数据库 Fragment。
+- API JSON 文件名必须与顶层 `uuid` 一致，例如 `server/assets/mokelay/apis/login.json` 的 `uuid` 为 `login`，`server/assets/mokelay/apis/fragment/provision_new_user.json` 的 `uuid` 为 `provision_new_user`。
+- 根目录内置 API 不能声明 `fragment: true`，内置 Fragment 必须位于 `mokelay/apis/fragment`。用户 API/Fragment 不允许引用内置 Fragment，内置 API 也不允许引用数据库 Fragment。
 - nested 内置 Fragment 与数据库 Fragment 允许使用相同 UUID；运行时始终按调用方来源选择目标。用户定义仍不能与根目录内置 API 使用相同 UUID。
-- R2 object key 默认使用 `mokelay-apis/{API_JSON_UUID}.json`。`npm run sync:mokelay-apis:r2` 只同步根目录普通 API；`mokelay-apis/fragment` 中的内置 Fragment 随 server assets 打包，不写入 R2。
+- R2 object key 默认使用 `mokelay-apis/{API_JSON_UUID}.json`。`npm run sync:mokelay-apis:r2` 只同步根目录普通 API；`mokelay/apis/fragment` 中的内置 Fragment 随 server assets 打包，不写入 R2。
 - 请求路径里的 `{API_JSON_UUID}` 只能包含字母、数字、下划线、连字符，长度 `1-128`。
 - 顶层 `uuid` 必须等于请求路径里的 `{API_JSON_UUID}`，否则返回 `API_JSON_UUID_MISMATCH`。
 - 顶层对象、`request`、`block`、`processor` 对象、`condition` 对象都是严格结构，不允许多余字段。

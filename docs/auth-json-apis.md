@@ -1,6 +1,6 @@
 # 登录注册 JSON API 接口文档
 
-本文档覆盖 `server/assets/mokelay-apis` 下的 4 个认证相关 JSON API。系统认证 API 优先从本地/Nitro assets 读取；动态普通 API 的 R2 内容受数据库当前元数据保护，动态 Fragment 则只从数据库已发布记录读取：
+本文档覆盖 `server/assets/mokelay/apis` 下的 4 个认证相关 JSON API。系统认证 API 优先从本地/Nitro assets 读取；动态普通 API 的 R2 内容受数据库当前元数据保护，动态 Fragment 则只从数据库已发布记录读取：
 
 - `register.json`
 - `login.json`
@@ -103,9 +103,9 @@ OAuth callback 失败时会跳转：
 
 ## POST /api/mokelay/register
 
-注册新企业，并通过 `server/assets/mokelay-apis/fragment/provision_new_user.json` 内置 Fragment 创建首个员工、免费 schema 和 datasource。密码注册仍在入口 API 完成邮箱查重和密码 hash，Fragment 只负责公共开户流程。该内置 caller 不会解析同 UUID 的数据库 Fragment。
+注册新企业，并通过 `server/assets/mokelay/apis/fragment/provision_new_user.json` 内置 Fragment 创建首个员工、免费 schema 和 datasource。密码注册仍在入口 API 完成邮箱查重和密码 hash，Fragment 只负责公共开户流程。该内置 caller 不会解析同 UUID 的数据库 Fragment。
 
-对应配置：`server/assets/mokelay-apis/register.json`
+对应配置：`server/assets/mokelay/apis/register.json`
 
 ### 请求
 
@@ -172,7 +172,7 @@ Set-Cookie: mokelay_orchestration_session=...
 
 使用 email 和 password 登录。
 
-对应配置：`server/assets/mokelay-apis/login.json`
+对应配置：`server/assets/mokelay/apis/login.json`
 
 ### 请求
 
@@ -232,7 +232,7 @@ Set-Cookie: mokelay_orchestration_session=...
 
 读取当前 session 中的员工信息。
 
-对应配置：`server/assets/mokelay-apis/me.json`
+对应配置：`server/assets/mokelay/apis/me.json`
 
 ### 请求
 
@@ -280,7 +280,7 @@ curl http://127.0.0.1:8787/api/mokelay/me \
 
 退出登录，移除内部 session 中的 `user`。
 
-对应配置：`server/assets/mokelay-apis/logout.json`
+对应配置：`server/assets/mokelay/apis/logout.json`
 
 ### 请求
 

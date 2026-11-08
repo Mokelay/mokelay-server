@@ -10,7 +10,7 @@ import {
 } from '../server/utils/pageReferenceGraph.ts'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
-export const DEFAULT_PAGE_ASSETS_DIR = path.resolve(SCRIPT_DIR, '../server/assets/mokelay-pages')
+export const DEFAULT_PAGE_ASSETS_DIR = path.resolve(SCRIPT_DIR, '../server/assets/mokelay/pages')
 
 const RELATION_FIELDS = ['subPage', 'quotes', 'dependencies']
 
