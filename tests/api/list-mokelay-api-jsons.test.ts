@@ -7,44 +7,45 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
 import { serverBlockDefinitions } from '../../server/utils/blocks'
 
-const apiJsonDir = resolve(process.cwd(), 'server/assets/mokelay-apis')
+const apiJsonDir = resolve(process.cwd(), 'server/assets/mokelay/apis')
 const fragmentJsonDir = resolve(apiJsonDir, 'fragment')
-const pageJsonDir = resolve(process.cwd(), 'server/assets/mokelay-pages')
-const layoutJsonDir = resolve(process.cwd(), 'server/assets/mokelay-layouts')
+const pageJsonDir = resolve(process.cwd(), 'server/assets/mokelay/pages')
+const layoutJsonDir = resolve(process.cwd(), 'server/assets/mokelay/layouts')
 
 vi.mock('nitropack/runtime', () => ({
   useStorage: () => ({
     getKeys: async (base?: string) => {
-      const dir = base === 'mokelay-pages'
+      const dir = base === 'mokelay/pages'
         ? pageJsonDir
-        : base === 'mokelay-layouts'
+        : base === 'mokelay/layouts'
           ? layoutJsonDir
-          : base === 'mokelay-apis/fragment'
+          : base === 'mokelay/apis/fragment'
             ? fragmentJsonDir
             : apiJsonDir
-      const keyBase = base === 'mokelay-pages'
-        ? 'mokelay-pages'
-        : base === 'mokelay-layouts'
-          ? 'mokelay-layouts'
-          : base === 'mokelay-apis/fragment'
-            ? 'mokelay-apis:fragment'
-            : 'mokelay-apis'
+      const keyBase = base === 'mokelay/pages'
+        ? 'mokelay:pages'
+        : base === 'mokelay/layouts'
+          ? 'mokelay:layouts'
+          : base === 'mokelay/apis/fragment'
+            ? 'mokelay:apis:fragment'
+            : 'mokelay:apis'
       return (await readdir(dir))
         .filter((fileName) => fileName.endsWith('.json'))
         .map((fileName) => `${keyBase}:${fileName}`)
     },
     getItem: async (key: string) => {
-      if (key.startsWith('mokelay-pages')) {
-        const fileName = key.replace(/^mokelay-pages[:/]/, '')
+      key = key.replaceAll(':', '/')
+      if (key.startsWith('mokelay/pages')) {
+        const fileName = key.replace(/^mokelay\/pages[:/]/, '')
         return await readFile(resolve(pageJsonDir, fileName), 'utf8')
       }
 
-      if (key.startsWith('mokelay-layouts')) {
-        const fileName = key.replace(/^mokelay-layouts[:/]/, '')
+      if (key.startsWith('mokelay/layouts')) {
+        const fileName = key.replace(/^mokelay\/layouts[:/]/, '')
         return await readFile(resolve(layoutJsonDir, fileName), 'utf8')
       }
 
-      const fileName = key.replaceAll(':', '/').replace(/^mokelay-apis\//, '')
+      const fileName = key.replaceAll(':', '/').replace(/^mokelay\/apis\//, '')
       return await readFile(resolve(apiJsonDir, fileName), 'utf8')
     },
   }),

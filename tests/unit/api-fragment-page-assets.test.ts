@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const pageAssetsDir = resolve(process.cwd(), 'server/assets/mokelay-pages')
+const pageAssetsDir = resolve(process.cwd(), 'server/assets/mokelay/pages')
 
 async function page(uuid: string) {
   return JSON.parse(await readFile(resolve(pageAssetsDir, `${uuid}.json`), 'utf8')) as Record<string, unknown>

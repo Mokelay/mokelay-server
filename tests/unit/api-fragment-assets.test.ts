@@ -20,7 +20,7 @@ describe('Fragment server assets and migrations', () => {
       text('data/mysql_migrations/0028_api_fragments.sql'),
       text('data/postgres_schema.sql'),
       text('data/mysql_schema.sql'),
-      json('server/assets/mokelay-apis/fragment/provision_new_user.json'),
+      json('server/assets/mokelay/apis/fragment/provision_new_user.json'),
     ])
 
     for (const source of [postgresMigration, mysqlMigration]) {
@@ -46,9 +46,9 @@ describe('Fragment server assets and migrations', () => {
 
   it('routes password and OAuth registration through executeFragment', async () => {
     const assets = await Promise.all([
-      json('server/assets/mokelay-apis/register.json'),
-      json('server/assets/mokelay-apis/oauth_google_callback.json'),
-      json('server/assets/mokelay-apis/oauth_github_callback.json'),
+      json('server/assets/mokelay/apis/register.json'),
+      json('server/assets/mokelay/apis/oauth_google_callback.json'),
+      json('server/assets/mokelay/apis/oauth_github_callback.json'),
     ])
 
     for (const asset of assets) {
@@ -60,7 +60,7 @@ describe('Fragment server assets and migrations', () => {
       })
     }
 
-    expect(await json('server/assets/mokelay-apis/fragment/provision_new_user.json')).toMatchObject({
+    expect(await json('server/assets/mokelay/apis/fragment/provision_new_user.json')).toMatchObject({
       uuid: 'provision_new_user',
       fragment: true,
     })
@@ -124,9 +124,9 @@ describe('Fragment server assets and migrations', () => {
 
   it('exposes fragment in API persistence and filtering assets', async () => {
     const [saveApi, readApi, listApis] = await Promise.all([
-      json('server/assets/mokelay-apis/save_api.json'),
-      json('server/assets/mokelay-apis/read_api_by_uuid.json'),
-      json('server/assets/mokelay-apis/list_apis.json'),
+      json('server/assets/mokelay/apis/save_api.json'),
+      json('server/assets/mokelay/apis/read_api_by_uuid.json'),
+      json('server/assets/mokelay/apis/list_apis.json'),
     ])
 
     expect(JSON.stringify(saveApi)).toContain('validateApiDefinition')

@@ -45,14 +45,14 @@ describe('listMokelayLayoutJsons', () => {
     const alpha = layoutJson('alpha_layout', 'Alpha Layout')
     const zeta = layoutJson('zeta_layout', 'Zeta Layout')
     const result = await listMokelayLayoutJsons(storage([
-      'mokelay-layouts:zeta_layout.json',
-      'mokelay-layouts:nested/ignored.json',
-      'mokelay-layouts:notes.txt',
+      'mokelay:layouts:zeta_layout.json',
+      'mokelay:layouts:nested/ignored.json',
+      'mokelay:layouts:notes.txt',
       'other:outside.json',
-      'mokelay-layouts:alpha_layout.json',
+      'mokelay:layouts:alpha_layout.json',
     ], {
-      'mokelay-layouts:zeta_layout.json': JSON.stringify(zeta),
-      'mokelay-layouts:alpha_layout.json': alpha,
+      'mokelay:layouts:zeta_layout.json': JSON.stringify(zeta),
+      'mokelay:layouts:alpha_layout.json': alpha,
     }))
 
     expect(result).toEqual({
@@ -66,8 +66,8 @@ describe('listMokelayLayoutJsons', () => {
 
   it('fails when a layout asset is invalid JSON', async () => {
     await expect(listMokelayLayoutJsons(storage(
-      ['mokelay-layouts:broken.json'],
-      { 'mokelay-layouts:broken.json': '{not-json' },
+      ['mokelay:layouts:broken.json'],
+      { 'mokelay:layouts:broken.json': '{not-json' },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_JSON' },
       statusCode: 400,
@@ -76,8 +76,8 @@ describe('listMokelayLayoutJsons', () => {
 
   it('fails when the file name and layout UUID differ', async () => {
     await expect(listMokelayLayoutJsons(storage(
-      ['mokelay-layouts:expected.json'],
-      { 'mokelay-layouts:expected.json': layoutJson('different', 'Different Layout') },
+      ['mokelay:layouts:expected.json'],
+      { 'mokelay:layouts:expected.json': layoutJson('different', 'Different Layout') },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_UUID_MISMATCH' },
       statusCode: 400,
@@ -90,7 +90,7 @@ describe('readMokelayLayoutJson', () => {
     const layout = layoutJson('alpha_layout', 'Alpha Layout')
 
     await expect(readMokelayLayoutJson('alpha_layout', storage([], {
-      'mokelay-layouts/alpha_layout.json': JSON.stringify(layout),
+      'mokelay/layouts/alpha_layout.json': JSON.stringify(layout),
     }))).resolves.toEqual(layoutRecord('alpha_layout', 'Alpha Layout'))
   })
 

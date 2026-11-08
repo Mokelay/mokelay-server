@@ -46,7 +46,7 @@ describe('client Action and Processor documentation APIs', () => {
     const handler = createMokelayOrchestrationHandler({
       loadApiJson: async (uuid) => {
         if (!apiNames.includes(uuid)) throw new Error(`Unexpected API ${uuid}`)
-        return JSON.parse(await readFile(resolve(process.cwd(), `server/assets/mokelay-apis/${uuid}.json`), 'utf8'))
+        return JSON.parse(await readFile(resolve(process.cwd(), `server/assets/mokelay/apis/${uuid}.json`), 'utf8'))
       },
       executeSql: async <T extends Record<string, unknown> = Record<string, unknown>>(
         query: SQL,

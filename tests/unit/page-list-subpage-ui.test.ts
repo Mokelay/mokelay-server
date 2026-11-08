@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { executeNormalizePageRowsBlock } from '../../server/utils/blocks/pageRelationBlocks'
 
 const pageDsl = JSON.parse(readFileSync(
-  new URL('../../server/assets/mokelay-pages/mokelay_list_page.json', import.meta.url),
+  new URL('../../server/assets/mokelay/pages/mokelay_list_page.json', import.meta.url),
   'utf8',
 ))
 

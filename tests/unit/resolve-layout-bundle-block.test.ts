@@ -7,7 +7,7 @@ vi.mock('nitropack/runtime', () => ({
   useStorage: () => ({
     getKeys: async () => [],
     getItem: async (key: string) => {
-      if (key === 'mokelay-pages/system_page.json') {
+      if (key === 'mokelay/pages/system_page.json') {
         return JSON.stringify({
           uuid: 'system_page',
           name: 'System Page',
@@ -19,7 +19,7 @@ vi.mock('nitropack/runtime', () => ({
         })
       }
 
-      if (key === 'mokelay-layouts/asset-layout.json') {
+      if (key === 'mokelay/layouts/asset-layout.json') {
         return JSON.stringify({
           uuid: 'asset-layout',
           name: 'Asset Layout',

@@ -31,7 +31,7 @@ type SettingsResponse = {
   }
 }
 
-const apiPath = resolve(process.cwd(), 'server/assets/mokelay-apis/update_client_block_doc_settings.json')
+const apiPath = resolve(process.cwd(), 'server/assets/mokelay/apis/update_client_block_doc_settings.json')
 const pgDialect = new PgDialect()
 const originalEnv = { ...process.env }
 

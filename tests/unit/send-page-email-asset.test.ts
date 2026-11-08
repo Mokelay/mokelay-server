@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 describe('send_page_email API asset', () => {
   it('loads and renders the requested page before sending it to the fixed recipient', async () => {
     const api = JSON.parse(await readFile(
-      resolve(process.cwd(), 'server/assets/mokelay-apis/send_page_email.json'),
+      resolve(process.cwd(), 'server/assets/mokelay/apis/send_page_email.json'),
       'utf8',
     ))
 

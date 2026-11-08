@@ -153,7 +153,7 @@ type ApiAsset = {
 
 const settingPages = [
   {
-    pageFile: 'mokelay-pages/setting_enterprise_page.json',
+    pageFile: 'mokelay/pages/setting_enterprise_page.json',
     tableId: 'setting-enterprise-table',
     listApi: 'list_enterprise',
     deleteApi: 'delete_enterprise_by_uuid',
@@ -161,7 +161,7 @@ const settingPages = [
     expectedFields: ['id', 'uuid', 'name'],
   },
   {
-    pageFile: 'mokelay-pages/setting_employees_page.json',
+    pageFile: 'mokelay/pages/setting_employees_page.json',
     tableId: 'setting-employees-table',
     listApi: 'list_employees',
     deleteApi: 'delete_employee_by_id',
@@ -169,7 +169,7 @@ const settingPages = [
     expectedFields: ['id', 'enterprise_uuid', 'enterprise_name', 'name', 'email', 'plan', 'created_at', 'updated_at'],
   },
   {
-    pageFile: 'mokelay-pages/setting_employee_auth_identities_page.json',
+    pageFile: 'mokelay/pages/setting_employee_auth_identities_page.json',
     tableId: 'setting-employee-auth-identities-table',
     listApi: 'list_employee_auth_identities',
     deleteApi: 'delete_employee_auth_identity_by_id',
@@ -189,19 +189,19 @@ const settingPages = [
 
 const listApis = [
   {
-    apiFile: 'mokelay-apis/list_enterprise.json',
+    apiFile: 'mokelay/apis/list_enterprise.json',
     table: 'enterprise',
     responseKey: 'enterprises',
     expectedFields: ['id', 'uuid', 'name'],
   },
   {
-    apiFile: 'mokelay-apis/list_employees.json',
+    apiFile: 'mokelay/apis/list_employees.json',
     table: 'employees',
     responseKey: 'employees',
     expectedFields: ['id', 'enterprise_uuid', 'name', 'email', 'plan', 'created_at', 'updated_at'],
   },
   {
-    apiFile: 'mokelay-apis/list_employee_auth_identities.json',
+    apiFile: 'mokelay/apis/list_employee_auth_identities.json',
     table: 'employee_auth_identities',
     responseKey: 'employee_auth_identities',
     expectedFields: [
@@ -219,7 +219,7 @@ const listApis = [
 
 const deleteApis = [
   {
-    apiFile: 'mokelay-apis/delete_employee_auth_identity_by_id.json',
+    apiFile: 'mokelay/apis/delete_employee_auth_identity_by_id.json',
     table: 'employee_auth_identities',
     bodyKey: 'id',
     conditionField: 'id',
@@ -234,7 +234,7 @@ function tableBlock(page: PageAsset, tableId: string) {
 
 describe('setting assets', () => {
   it('adds the setting entry to the top navigation', async () => {
-    const layout = await readJsonAsset<LayoutAsset>('mokelay-layouts/mokelay_layout.json')
+    const layout = await readJsonAsset<LayoutAsset>('mokelay/layouts/mokelay_layout.json')
 
     expect(layout.resources.mainMenu.items).toContainEqual(expect.objectContaining({
       href: '#/setting',
@@ -243,7 +243,7 @@ describe('setting assets', () => {
   })
 
   it('configures tenant and relocated system resource tabs on setting', async () => {
-    const page = await readJsonAsset<PageAsset>('mokelay-pages/setting.json')
+    const page = await readJsonAsset<PageAsset>('mokelay/pages/setting.json')
     const tabsBlock = page.blocks.find((block) => block.id === 'setting-tabs')
 
     expect(tabsBlock?.type).toBe('MTabs')
@@ -300,7 +300,7 @@ describe('setting assets', () => {
   })
 
   it('configures the API user list table for pagination and affected delete refresh', async () => {
-    const page = await readJsonAsset<PageAsset>('mokelay-pages/mokelay_apis_user_page.json')
+    const page = await readJsonAsset<PageAsset>('mokelay/pages/mokelay_apis_user_page.json')
     const listBlocks = (page.blocks[0]?.data as {
       areas?: Array<{ id?: string, blocks?: PageAsset['blocks'] }>
     })?.areas?.find(area => area.id === 'main')?.blocks ?? []
@@ -416,7 +416,7 @@ describe('setting assets', () => {
   })
 
   it('configures the employees list API to read enterprise_name through page relations', async () => {
-    const api = await readJsonAsset<ApiAsset>('mokelay-apis/list_employees.json')
+    const api = await readJsonAsset<ApiAsset>('mokelay/apis/list_employees.json')
     const pageBlock = api.blocks.find((block) => block.functionName === 'page')
 
     expect(pageBlock?.inputs?.relations).toEqual([
@@ -437,7 +437,7 @@ describe('setting assets', () => {
   })
 
   it('shows enterprise_name after enterprise_uuid on the employees setting page', async () => {
-    const page = await readJsonAsset<PageAsset>('mokelay-pages/setting_employees_page.json')
+    const page = await readJsonAsset<PageAsset>('mokelay/pages/setting_employees_page.json')
     const table = tableBlock(page, 'setting-employees-table')
 
     expect(table?.data?.columns?.map((column) => column.fieldVariable)).toEqual([
@@ -471,7 +471,7 @@ describe('setting assets', () => {
   })
 
   it('deletes an enterprise dependency graph before dropping its tenant schemas', async () => {
-    const api = await readJsonAsset<any>('mokelay-apis/delete_enterprise_by_uuid.json')
+    const api = await readJsonAsset<any>('mokelay/apis/delete_enterprise_by_uuid.json')
     const cleanupBlock = api.blocks.find((block: any) => block.uuid === 'delete_enterprise_records')
     const dropSchemasBlock = api.blocks.find((block: any) => block.uuid === 'drop_enterprise_schemas')
     const response = api.responses.drop_enterprise_schemas
@@ -582,7 +582,7 @@ describe('setting assets', () => {
   })
 
   it('deletes employee auth identities through the generic cascade before deleting the employee', async () => {
-    const api = await readJsonAsset<any>('mokelay-apis/delete_employee_by_id.json')
+    const api = await readJsonAsset<any>('mokelay/apis/delete_employee_by_id.json')
     const cleanupBlock = api.blocks.find((block: any) => block.uuid === 'delete_employee_block')
 
     expect(api.request.body).toEqual([
@@ -637,7 +637,7 @@ describe('setting assets', () => {
   })
 
   it('declares a batch delete API asset for user APIs', async () => {
-    const api = await readJsonAsset<ApiAsset>('mokelay-apis/batch_delete_apis.json')
+    const api = await readJsonAsset<ApiAsset>('mokelay/apis/batch_delete_apis.json')
     const deleteBlock = api.blocks.find((block) => block.functionName === 'delete')
     const condition = deleteBlock?.inputs?.conditions?.[0]
 

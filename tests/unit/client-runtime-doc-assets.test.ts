@@ -56,10 +56,10 @@ describe('client Action and Processor documentation assets', () => {
   })
 
   it.each([
-    'mokelay-apis/list_client_action_docs.json',
-    'mokelay-apis/read_client_action_doc.json',
-    'mokelay-apis/list_client_processor_docs.json',
-    'mokelay-apis/read_client_processor_doc.json',
+    'mokelay/apis/list_client_action_docs.json',
+    'mokelay/apis/read_client_action_doc.json',
+    'mokelay/apis/list_client_processor_docs.json',
+    'mokelay/apis/read_client_processor_doc.json',
   ])('declares a valid API asset: %s', async (fileName) => {
     const api = await readJsonAsset<{ method: string, request?: { query?: unknown[] }, blocks: unknown[], responses: unknown }>(fileName)
     expect(api.method).toMatch(/^(GET)$/)
@@ -71,7 +71,7 @@ describe('client Action and Processor documentation assets', () => {
   it('uses the client runtime tabs and stable detail routes', async () => {
     const page = await readJsonAsset<{
       blocks: Array<{ data?: { tabs?: Array<{ name?: string, pageUUID?: string }> } }>
-    }>('mokelay-pages/client_docs.json')
+    }>('mokelay/pages/client_docs.json')
     const tabs = page.blocks.flatMap((block) => block.data?.tabs ?? [])
 
     expect(tabs).toEqual(expect.arrayContaining([
@@ -82,8 +82,8 @@ describe('client Action and Processor documentation assets', () => {
   })
 
   it.each([
-    ['mokelay-pages/client_action_doc_detail.json', '/api/mokelay/read_client_action_doc'],
-    ['mokelay-pages/client_processor_doc_detail.json', '/api/mokelay/read_client_processor_doc'],
+    ['mokelay/pages/client_action_doc_detail.json', '/api/mokelay/read_client_action_doc'],
+    ['mokelay/pages/client_processor_doc_detail.json', '/api/mokelay/read_client_processor_doc'],
   ])('binds detail page %s to route UUID and the correct API', async (fileName, apiPath) => {
     const page = await readJsonAsset<{
       layoutUuid?: string
@@ -105,8 +105,8 @@ describe('client Action and Processor documentation assets', () => {
   })
 
   it.each([
-    ['mokelay-pages/client_action_docs.json', ['Action', '名称', '类型', '说明', '操作']],
-    ['mokelay-pages/client_processor_docs.json', ['Processor', '名称', '分类', '说明', '操作']],
+    ['mokelay/pages/client_action_docs.json', ['Action', '名称', '类型', '说明', '操作']],
+    ['mokelay/pages/client_processor_docs.json', ['Processor', '名称', '分类', '说明', '操作']],
   ])('omits source file columns from list page %s', async (fileName, expectedColumns) => {
     const page = await readJsonAsset<{
       blocks: Array<{ type?: string, data?: { columns?: Array<{ columnName?: string, fieldVariable?: string }> } }>

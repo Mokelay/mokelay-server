@@ -142,8 +142,8 @@ const defaultPageRequestField = {
 
 describe('client block document assets', () => {
   it.each([
-    'mokelay-apis/list_client_block_docs.json',
-    'mokelay-apis/list_block_component_docs.json',
+    'mokelay/apis/list_client_block_docs.json',
+    'mokelay/apis/list_block_component_docs.json',
   ])('declares optional filters as optional request fields in %s', async (fileName) => {
     const api = await readJsonAsset<ClientBlockDocsApi>(fileName)
 
@@ -156,9 +156,9 @@ describe('client block document assets', () => {
   })
 
   it.each([
-    'mokelay-apis/list_client_block_docs.json',
-    'mokelay-apis/list_block_component_docs.json',
-    'mokelay-apis/read_block_component_doc.json',
+    'mokelay/apis/list_client_block_docs.json',
+    'mokelay/apis/list_block_component_docs.json',
+    'mokelay/apis/read_block_component_doc.json',
   ])('returns the editor_block field in %s', async (fileName) => {
     const api = await readJsonAsset<ClientBlockDocsApi>(fileName)
 
@@ -181,7 +181,7 @@ describe('client block document assets', () => {
   })
 
   it('loads only active client blocks on the documentation page', async () => {
-    const page = await readJsonAsset<ClientBlockDocsPage>('mokelay-pages/block_component_docs.json')
+    const page = await readJsonAsset<ClientBlockDocsPage>('mokelay/pages/block_component_docs.json')
     const datasource = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.ds
 
     expect(datasource?.queryData).toContainEqual({
@@ -213,7 +213,7 @@ describe('client block document assets', () => {
   })
 
   it('declares a narrow settings API for the three toolbox configuration fields', async () => {
-    const api = await readJsonAsset<ClientBlockDocSettingsApi>('mokelay-apis/update_client_block_doc_settings.json')
+    const api = await readJsonAsset<ClientBlockDocSettingsApi>('mokelay/apis/update_client_block_doc_settings.json')
 
     expect(api.request.body.map((field) => typeof field === 'string' ? field : field.key)).toEqual([
       'uuid',
@@ -233,7 +233,7 @@ describe('client block document assets', () => {
   it('provides Block toolbox filters and configuration controls on the documentation page', async () => {
     const page = await readJsonAsset<{
       blocks: Array<{ id: string, data?: ClientBlockDocsPageData }>
-    }>('mokelay-pages/block_component_docs.json')
+    }>('mokelay/pages/block_component_docs.json')
     const searchForm = page.blocks.find((block) => block.id === 'block-docs-search-form')?.data
     const toolboxColumn = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
       ?.find((column) => column.columnName === '工具箱')
@@ -301,7 +301,7 @@ describe('client block document assets', () => {
   it('keeps detail data out of the list and links each Block to the detail page', async () => {
     const page = await readJsonAsset<{
       blocks: Array<{ id: string, data?: ClientBlockDocsPageData }>
-    }>('mokelay-pages/block_component_docs.json')
+    }>('mokelay/pages/block_component_docs.json')
     const columns = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
     const actionColumn = columns?.find((column) => column.columnName === '操作')
     const detailAction = actionColumn?.columnContent?.[0]?.events?.[0]?.actions?.[0]
@@ -332,7 +332,7 @@ describe('client block document assets', () => {
   })
 
   it('declares a shareable Block detail page driven by the route UUID', async () => {
-    const page = await readJsonAsset<BlockComponentDocDetailPage>('mokelay-pages/block_component_doc_detail.json')
+    const page = await readJsonAsset<BlockComponentDocDetailPage>('mokelay/pages/block_component_doc_detail.json')
     const datasource = page.dataSources?.find((source) => source.key === 'doc')
     const uuidQuery = datasource?.ds?.queryData?.find((item) => item.key === 'uuid')
     const recordList = page.blocks?.find((block) => block.id === 'block-doc-detail-records')
@@ -482,16 +482,16 @@ describe('client block document assets', () => {
   })
 
   it('removes the obsolete per-field dialog page assets', () => {
-    expect(existsSync(resolve(assetsDir, 'mokelay-pages/block_component_doc_properties.json'))).toBe(false)
-    expect(existsSync(resolve(assetsDir, 'mokelay-pages/block_component_doc_events.json'))).toBe(false)
-    expect(existsSync(resolve(assetsDir, 'mokelay-pages/block_component_doc_methods.json'))).toBe(false)
+    expect(existsSync(resolve(assetsDir, 'mokelay/pages/block_component_doc_properties.json'))).toBe(false)
+    expect(existsSync(resolve(assetsDir, 'mokelay/pages/block_component_doc_events.json'))).toBe(false)
+    expect(existsSync(resolve(assetsDir, 'mokelay/pages/block_component_doc_methods.json'))).toBe(false)
   })
 
   it('groups the client Block list under the client documentation tabs', async () => {
-    const docs = await readJsonAsset<TabsPage>('mokelay-pages/docs.json')
+    const docs = await readJsonAsset<TabsPage>('mokelay/pages/docs.json')
     const clientDocs = docs.blocks.find((block) => block.id === 'mokelay-docs-tabs')?.data?.tabs
       ?.find((tab) => tab.id === 'client-docs')
-    const clientPage = await readJsonAsset<TabsPage>('mokelay-pages/client_docs.json')
+    const clientPage = await readJsonAsset<TabsPage>('mokelay/pages/client_docs.json')
     const blockDocs = clientPage.blocks.find((block) => block.id === 'client-docs-tabs')?.data?.tabs
 
     expect(clientDocs).toEqual({

@@ -25,7 +25,7 @@ describe('readMokelayApiJson', () => {
     const expected = apiJson('alpha')
 
     await expect(readMokelayApiJson('alpha', false, storage({
-      'mokelay-apis/alpha.json': JSON.stringify(expected),
+      'mokelay/apis/alpha.json': JSON.stringify(expected),
     }))).resolves.toEqual(expected)
   })
 
@@ -39,7 +39,7 @@ describe('readMokelayApiJson', () => {
     }
 
     await expect(readMokelayApiJson('shared_logic', true, storage({
-      'mokelay-apis/fragment/shared_logic.json': expected,
+      'mokelay/apis/fragment/shared_logic.json': expected,
     }))).resolves.toEqual(expected)
   })
 
@@ -53,8 +53,8 @@ describe('readMokelayApiJson', () => {
       response: { source: 'fragment' },
     }
     const assetStorage = storage({
-      'mokelay-apis/same_name.json': endpoint,
-      'mokelay-apis/fragment/same_name.json': fragment,
+      'mokelay/apis/same_name.json': endpoint,
+      'mokelay/apis/fragment/same_name.json': fragment,
     })
 
     await expect(readMokelayApiJson('same_name', false, assetStorage)).resolves.toEqual(endpoint)

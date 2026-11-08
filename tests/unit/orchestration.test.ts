@@ -133,7 +133,7 @@ describe('loadApiJson', () => {
       useStorage: (base: string) => ({
         getItem: async (key: string) => {
           expect(base).toBe('assets:server')
-          expect(key).toBe('mokelay-apis/from_nitro_assets.json')
+          expect(key).toBe('mokelay/apis/from_nitro_assets.json')
 
           return apiJson
         },

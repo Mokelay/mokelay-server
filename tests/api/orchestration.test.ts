@@ -1799,7 +1799,7 @@ function seedEnterpriseCleanupFixture(fakeSqlExecutor: FakeSqlExecutor, includeR
 
 async function readApiAssetFixture(uuid: string) {
   return JSON.parse(await readFile(
-    new URL(`../../server/assets/mokelay-apis/${uuid}.json`, import.meta.url),
+    new URL(`../../server/assets/mokelay/apis/${uuid}.json`, import.meta.url),
     'utf8',
   )) as Record<string, unknown>
 }

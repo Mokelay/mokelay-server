@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const layoutDir = resolve(process.cwd(), 'server/assets/mokelay-layouts')
+const layoutDir = resolve(process.cwd(), 'server/assets/mokelay/layouts')
 const layoutFiles = ['mokelay_layout.json', 'web_layout.json', 'internal_admin_layout.json']
 
 describe('localized system layout assets', () => {

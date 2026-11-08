@@ -28,14 +28,14 @@ describe('listMokelayPageJsons', () => {
     const alpha = pageJson('alpha_page', 'Alpha Page')
     const zeta = pageJson('zeta_page', 'Zeta Page')
     const result = await listMokelayPageJsons(storage([
-      'mokelay-pages:zeta_page.json',
-      'mokelay-pages:nested/ignored.json',
-      'mokelay-pages:notes.txt',
+      'mokelay:pages:zeta_page.json',
+      'mokelay:pages:nested/ignored.json',
+      'mokelay:pages:notes.txt',
       'other:outside.json',
-      'mokelay-pages:alpha_page.json',
+      'mokelay:pages:alpha_page.json',
     ], {
-      'mokelay-pages:zeta_page.json': JSON.stringify(zeta),
-      'mokelay-pages:alpha_page.json': alpha,
+      'mokelay:pages:zeta_page.json': JSON.stringify(zeta),
+      'mokelay:pages:alpha_page.json': alpha,
     }))
 
     expect(result).toEqual({
@@ -46,8 +46,8 @@ describe('listMokelayPageJsons', () => {
 
   it('fails when a page asset is invalid JSON', async () => {
     await expect(listMokelayPageJsons(storage(
-      ['mokelay-pages:broken.json'],
-      { 'mokelay-pages:broken.json': '{not-json' },
+      ['mokelay:pages:broken.json'],
+      { 'mokelay:pages:broken.json': '{not-json' },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_JSON' },
       statusCode: 400,
@@ -56,8 +56,8 @@ describe('listMokelayPageJsons', () => {
 
   it('fails when the file name and page UUID differ', async () => {
     await expect(listMokelayPageJsons(storage(
-      ['mokelay-pages:expected.json'],
-      { 'mokelay-pages:expected.json': pageJson('different', 'Different Page') },
+      ['mokelay:pages:expected.json'],
+      { 'mokelay:pages:expected.json': pageJson('different', 'Different Page') },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_UUID_MISMATCH' },
       statusCode: 400,
@@ -66,8 +66,8 @@ describe('listMokelayPageJsons', () => {
 
   it.each(['', '   ', 'x'.repeat(121)])('fails when a page name is invalid: %j', async (name) => {
     await expect(listMokelayPageJsons(storage(
-      ['mokelay-pages:invalid_name.json'],
-      { 'mokelay-pages:invalid_name.json': pageJson('invalid_name', name) },
+      ['mokelay:pages:invalid_name.json'],
+      { 'mokelay:pages:invalid_name.json': pageJson('invalid_name', name) },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_SCHEMA' },
       statusCode: 400,
@@ -80,7 +80,7 @@ describe('readMokelayPageJson', () => {
     const page = pageJson('alpha_page', 'Alpha Page')
 
     await expect(readMokelayPageJson('alpha_page', storage([], {
-      'mokelay-pages/alpha_page.json': JSON.stringify(page),
+      'mokelay/pages/alpha_page.json': JSON.stringify(page),
     }))).resolves.toEqual(page)
   })
 

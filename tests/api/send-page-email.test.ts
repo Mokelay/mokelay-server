@@ -34,7 +34,7 @@ beforeAll(async () => {
   })
 
   const rawApiJson = JSON.parse(await readFile(
-    resolve(process.cwd(), 'server/assets/mokelay-apis/send_page_email.json'),
+    resolve(process.cwd(), 'server/assets/mokelay/apis/send_page_email.json'),
     'utf8',
   ))
   executeSql.mockResolvedValue({

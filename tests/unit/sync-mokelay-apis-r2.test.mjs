@@ -13,7 +13,7 @@ const r2Env = {
 }
 
 let tempDir
-const defaultApiJsonDir = new URL('../../server/assets/mokelay-apis/', import.meta.url)
+const defaultApiJsonDir = new URL('../../server/assets/mokelay/apis/', import.meta.url)
 
 afterEach(async () => {
   if (tempDir) {

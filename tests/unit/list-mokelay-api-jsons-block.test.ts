@@ -36,14 +36,14 @@ describe('listMokelayApiJsons', () => {
     const alpha = apiJson('alpha', 'Alpha API')
     const zeta = apiJson('zeta', 'Zeta API')
     const result = await listMokelayApiJsons(false, storage([
-      'mokelay-apis:zeta.json',
-      'mokelay-apis:nested/ignored.json',
-      'mokelay-apis:notes.txt',
+      'mokelay:apis:zeta.json',
+      'mokelay:apis:nested/ignored.json',
+      'mokelay:apis:notes.txt',
       'other:outside.json',
-      'mokelay-apis:alpha.json',
+      'mokelay:apis:alpha.json',
     ], {
-      'mokelay-apis:zeta.json': JSON.stringify(zeta),
-      'mokelay-apis:alpha.json': alpha,
+      'mokelay:apis:zeta.json': JSON.stringify(zeta),
+      'mokelay:apis:alpha.json': alpha,
     }))
 
     expect(result).toEqual({
@@ -70,11 +70,11 @@ describe('listMokelayApiJsons', () => {
     }
     const fragment = fragmentJson('shared_logic')
     const result = await listMokelayApiJsons(true, storage([
-      'mokelay-apis:calls_shared_logic.json',
-      'mokelay-apis:fragment/shared_logic.json',
+      'mokelay:apis:calls_shared_logic.json',
+      'mokelay:apis:fragment/shared_logic.json',
     ], {
-      'mokelay-apis:calls_shared_logic.json': endpoint,
-      'mokelay-apis:fragment/shared_logic.json': fragment,
+      'mokelay:apis:calls_shared_logic.json': endpoint,
+      'mokelay:apis:fragment/shared_logic.json': fragment,
     }))
 
     expect(result).toEqual({ apis: [fragment], count: 1 })
@@ -97,11 +97,11 @@ describe('listMokelayApiJsons', () => {
     }
 
     await expect(listMokelayApiJsons(false, storage(
-      ['mokelay-apis:invalid_system_caller.json'],
-      { 'mokelay-apis:invalid_system_caller.json': caller },
+      ['mokelay:apis:invalid_system_caller.json'],
+      { 'mokelay:apis:invalid_system_caller.json': caller },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_FLOW' },
-      message: expect.stringMatching(/只能引用.*mokelay-apis\/fragment.*database_only/),
+      message: expect.stringMatching(/只能引用.*mokelay\/apis\/fragment.*database_only/),
     })
   })
 
@@ -121,11 +121,11 @@ describe('listMokelayApiJsons', () => {
     }
 
     await expect(listMokelayApiJsons(false, storage([
-      'mokelay-apis:invalid_system_params.json',
-      'mokelay-apis:fragment/shared_logic.json',
+      'mokelay:apis:invalid_system_params.json',
+      'mokelay:apis:fragment/shared_logic.json',
     ], {
-      'mokelay-apis:invalid_system_params.json': caller,
-      'mokelay-apis:fragment/shared_logic.json': fragmentJson('shared_logic'),
+      'mokelay:apis:invalid_system_params.json': caller,
+      'mokelay:apis:fragment/shared_logic.json': fragmentJson('shared_logic'),
     }))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_FLOW' },
       message: expect.stringMatching(/未声明参数：rogue.*缺少必填参数：name/),
@@ -134,8 +134,8 @@ describe('listMokelayApiJsons', () => {
 
   it('rejects a Fragment outside the dedicated nested directory', async () => {
     await expect(listMokelayApiJsons(false, storage(
-      ['mokelay-apis:misplaced.json'],
-      { 'mokelay-apis:misplaced.json': fragmentJson('misplaced') },
+      ['mokelay:apis:misplaced.json'],
+      { 'mokelay:apis:misplaced.json': fragmentJson('misplaced') },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_SCHEMA' },
       message: expect.stringContaining('根目录'),
@@ -144,8 +144,8 @@ describe('listMokelayApiJsons', () => {
 
   it('fails the whole operation when an asset is invalid JSON', async () => {
     await expect(listMokelayApiJsons(false, storage(
-      ['mokelay-apis:broken.json'],
-      { 'mokelay-apis:broken.json': '{not-json' },
+      ['mokelay:apis:broken.json'],
+      { 'mokelay:apis:broken.json': '{not-json' },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_INVALID_JSON' },
       statusCode: 400,
@@ -154,9 +154,9 @@ describe('listMokelayApiJsons', () => {
 
   it('fails the whole operation when an asset has an invalid DSL schema', async () => {
     await expect(listMokelayApiJsons(false, storage(
-      ['mokelay-apis:broken.json'],
+      ['mokelay:apis:broken.json'],
       {
-        'mokelay-apis:broken.json': {
+        'mokelay:apis:broken.json': {
           uuid: 'broken',
           blocks: [{ uuid: 'starter', nextBlock: null }],
         },
@@ -169,8 +169,8 @@ describe('listMokelayApiJsons', () => {
 
   it('fails the whole operation when the file name and DSL UUID differ', async () => {
     await expect(listMokelayApiJsons(false, storage(
-      ['mokelay-apis:expected.json'],
-      { 'mokelay-apis:expected.json': apiJson('different', 'Different API') },
+      ['mokelay:apis:expected.json'],
+      { 'mokelay:apis:expected.json': apiJson('different', 'Different API') },
     ))).rejects.toMatchObject({
       data: { code: 'API_JSON_UUID_MISMATCH' },
       statusCode: 400,

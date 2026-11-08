@@ -35,27 +35,27 @@ function collectButtons(value: unknown): any[] {
 const docKinds = [
   {
     kind: 'block',
-    listPage: 'mokelay-pages/server_block_docs.json',
-    detailPage: 'mokelay-pages/server_block_doc_detail.json',
-    readApi: 'mokelay-apis/read_server_block_doc.json',
+    listPage: 'mokelay/pages/server_block_docs.json',
+    detailPage: 'mokelay/pages/server_block_doc_detail.json',
+    readApi: 'mokelay/apis/read_server_block_doc.json',
     table: 'docs_server_block',
     expectedColumns: ['Function', '名称', '分类', '数据源', '说明', '操作'],
     detailPath: '/#/server_block_doc_detail?uuid={{uuid}}',
   },
   {
     kind: 'controller',
-    listPage: 'mokelay-pages/server_controller_docs.json',
-    detailPage: 'mokelay-pages/server_controller_doc_detail.json',
-    readApi: 'mokelay-apis/read_server_controller_doc.json',
+    listPage: 'mokelay/pages/server_controller_docs.json',
+    detailPage: 'mokelay/pages/server_controller_doc_detail.json',
+    readApi: 'mokelay/apis/read_server_controller_doc.json',
     table: 'docs_server_controller',
     expectedColumns: ['Function', '名称', '分类', '说明', '操作'],
     detailPath: '/#/server_controller_doc_detail?uuid={{uuid}}',
   },
   {
     kind: 'processor',
-    listPage: 'mokelay-pages/server_processor_docs.json',
-    detailPage: 'mokelay-pages/server_processor_doc_detail.json',
-    readApi: 'mokelay-apis/read_server_processor_doc.json',
+    listPage: 'mokelay/pages/server_processor_docs.json',
+    detailPage: 'mokelay/pages/server_processor_doc_detail.json',
+    readApi: 'mokelay/apis/read_server_processor_doc.json',
     table: 'docs_server_processor',
     expectedColumns: ['Processor', '名称', '分类', '说明', '操作'],
     detailPath: '/#/server_processor_doc_detail?uuid={{uuid}}',
@@ -115,9 +115,9 @@ describe('server runtime documentation assets', () => {
   })
 
   it('disables loading labels on create dialog entry buttons', async () => {
-    const datasources = await readJsonAsset('mokelay-pages/datasources.json')
-    const layouts = await readJsonAsset('mokelay-pages/layouts.json')
-    const pages = await readJsonAsset('mokelay-pages/mokelay_list_page.json')
+    const datasources = await readJsonAsset('mokelay/pages/datasources.json')
+    const layouts = await readJsonAsset('mokelay/pages/layouts.json')
+    const pages = await readJsonAsset('mokelay/pages/mokelay_list_page.json')
 
     const datasourceCreate = datasources.blocks
       .find((block: any) => block.id === 'mokelay-datasources-toolbar')
