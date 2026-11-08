@@ -278,7 +278,7 @@ async function readSystemLayoutByUuid(
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "需要 datasource，读取 pages/apps/layouts 表并在 system layout 缺失时回退数据库。" },
- *     { "key": "assetFallback", "type": "string", "value": "mokelay-pages/mokelay-layouts", "description": "system source 会读取系统页面与布局资产。" }
+ *     { "key": "assetFallback", "type": "string", "value": "mokelay/pages + mokelay/layouts", "description": "system source 会读取系统页面与布局资产。" }
  *   ],
  *   "examples": [
  *     { "title": "解析系统页面 bundle", "block": { "uuid": "resolve_layout_bundle_block", "functionName": "resolveLayoutBundle", "inputs": { "datasource": "Mokelay", "uuid": { "template": "{{request.query.uuid}}" }, "source": "system" }, "outputs": ["page", "layout"], "nextBlock": null } }

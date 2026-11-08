@@ -87,8 +87,8 @@ function referencesFragment(apiJson: unknown, fragmentUuid: string) {
 
 async function systemApiUuidExists(uuid: string) {
   const storage = await getMokelayApiAssetStorage()
-  const target = `mokelay-apis/${uuid}.json`
-  const keys = await storage.getKeys('mokelay-apis')
+  const target = `mokelay/apis/${uuid}.json`
+  const keys = await storage.getKeys('mokelay/apis')
   return keys.some(key => key.replaceAll('\\', '/').replaceAll(':', '/') === target)
 }
 

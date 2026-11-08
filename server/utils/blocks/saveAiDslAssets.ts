@@ -604,9 +604,9 @@ export const executeSaveAiDslAssetsBlock: BlockExecutor = async ({
   const transactionRunner = requireTransactionRunner(withTransaction)
   const systemNodes = await loadSystemPageNodes()
   const apiAssetStorage = await getMokelayApiAssetStorage()
-  const systemApiUuids = new Set((await apiAssetStorage.getKeys('mokelay-apis')).flatMap((key) => {
+  const systemApiUuids = new Set((await apiAssetStorage.getKeys('mokelay/apis')).flatMap((key) => {
     const normalized = key.replaceAll('\\', '/').replaceAll(':', '/')
-    const match = /^mokelay-apis\/([A-Za-z0-9_-]{1,128})\.json$/.exec(normalized)
+    const match = /^mokelay\/apis\/([A-Za-z0-9_-]{1,128})\.json$/.exec(normalized)
     return match?.[1] ? [match[1]] : []
   }))
   const store = createAiDslAssetSqlStore(executeSql, resolvedDatabaseType, undefined, async entries => {

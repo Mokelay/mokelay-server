@@ -13,7 +13,7 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
   let value: unknown
 
   try {
-    value = await assetStorage.getItem(`mokelay-pages/${fileName}`)
+    value = await assetStorage.getItem(`mokelay/pages/${fileName}`)
   } catch (error) {
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
@@ -36,10 +36,10 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
  *   "functionName": "readMokelayPageJson",
  *   "displayName": "读取系统页面 JSON",
  *   "category": "asset",
- *   "description": "按 uuid 从 Nitro server assets 的 mokelay-pages 目录读取并校验单个系统页面 JSON。",
+ *   "description": "按 uuid 从 Nitro server assets 的 mokelay/pages 目录读取并校验单个系统页面 JSON。",
  *   "inputs": [
  *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，用于合并用户页面对系统页面的动态引用。" },
- *     { "key": "uuid", "type": "string", "required": true, "description": "页面 JSON uuid，同时对应 mokelay-pages/{uuid}.json。" }
+ *     { "key": "uuid", "type": "string", "required": true, "description": "页面 JSON uuid，同时对应 mokelay/pages/{uuid}.json。" }
  *   ],
  *   "outputs": [
  *     { "key": "page", "type": "PageJson", "description": "已解析并校验的页面 JSON。" }
@@ -54,7 +54,7 @@ export async function readMokelayPageJson(uuid: unknown, storage?: MokelayApiAss
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "读取用户页面依赖并合并动态 quotes。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "读取系统页面", "block": { "uuid": "read_mokelay_page_json_block", "functionName": "readMokelayPageJson", "inputs": { "uuid": { "template": "{{request.query.uuid}}" } }, "outputs": ["page"], "nextBlock": null } }

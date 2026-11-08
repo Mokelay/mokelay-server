@@ -20,10 +20,10 @@ export async function readMokelayApiJson(uuid: unknown, fragment: unknown = fals
  *   "functionName": "readMokelayApiJson",
  *   "displayName": "读取系统 API JSON",
  *   "category": "asset",
- *   "description": "按 uuid 从 Nitro server assets 的 mokelay-apis 根目录或 fragment 子目录读取并校验单个内置 API/Fragment JSON。",
+ *   "description": "按 uuid 从 Nitro server assets 的 mokelay/apis 根目录或 fragment 子目录读取并校验单个内置 API/Fragment JSON。",
  *   "inputs": [
  *     { "key": "uuid", "type": "string", "required": true, "description": "API JSON uuid。" },
- *     { "key": "fragment", "type": "boolean", "required": false, "defaultValue": false, "description": "false 从 mokelay-apis 根目录读取；true 从 mokelay-apis/fragment 读取。" }
+ *     { "key": "fragment", "type": "boolean", "required": false, "defaultValue": false, "description": "false 从 mokelay/apis 根目录读取；true 从 mokelay/apis/fragment 读取。" }
  *   ],
  *   "outputs": [
  *     { "key": "api", "type": "ApiJson", "description": "已解析并校验的 API JSON。" }
@@ -38,7 +38,7 @@ export async function readMokelayApiJson(uuid: unknown, fragment: unknown = fals
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-apis + mokelay-apis/fragment", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/apis + mokelay/apis/fragment", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "读取系统 API", "block": { "uuid": "read_mokelay_api_json_block", "functionName": "readMokelayApiJson", "inputs": { "uuid": { "template": "{{request.query.uuid}}" } }, "outputs": ["api"], "nextBlock": null } }

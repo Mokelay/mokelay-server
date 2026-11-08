@@ -13,7 +13,7 @@ export async function readMokelayLayoutJson(uuid: unknown, storage?: MokelayApiA
   let value: unknown
 
   try {
-    value = await assetStorage.getItem(`mokelay-layouts/${fileName}`)
+    value = await assetStorage.getItem(`mokelay/layouts/${fileName}`)
   } catch (error) {
     const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined
 
@@ -36,9 +36,9 @@ export async function readMokelayLayoutJson(uuid: unknown, storage?: MokelayApiA
  *   "functionName": "readMokelayLayoutJson",
  *   "displayName": "读取系统布局 JSON",
  *   "category": "asset",
- *   "description": "按 uuid 从 Nitro server assets 的 mokelay-layouts 目录读取并校验单个系统布局 JSON。",
+ *   "description": "按 uuid 从 Nitro server assets 的 mokelay/layouts 目录读取并校验单个系统布局 JSON。",
  *   "inputs": [
- *     { "key": "uuid", "type": "string", "required": true, "description": "布局 JSON uuid，同时对应 mokelay-layouts/{uuid}.json。" }
+ *     { "key": "uuid", "type": "string", "required": true, "description": "布局 JSON uuid，同时对应 mokelay/layouts/{uuid}.json。" }
  *   ],
  *   "outputs": [
  *     { "key": "layout", "type": "MokelayLayoutJsonRecord", "description": "已标准化的布局 JSON 记录。" }
@@ -53,7 +53,7 @@ export async function readMokelayLayoutJson(uuid: unknown, storage?: MokelayApiA
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-layouts", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/layouts", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "读取系统布局", "block": { "uuid": "read_mokelay_layout_json_block", "functionName": "readMokelayLayoutJson", "inputs": { "uuid": { "template": "{{request.query.uuid}}" } }, "outputs": ["layout"], "nextBlock": null } }

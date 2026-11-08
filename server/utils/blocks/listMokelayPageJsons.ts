@@ -7,7 +7,7 @@ import {
 
 function pageAssetFileName(key: string) {
   const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
-  const prefix = 'mokelay-pages/'
+  const prefix = 'mokelay/pages/'
 
   if (!normalizedKey.startsWith(prefix)) {
     return undefined
@@ -71,7 +71,7 @@ export function parseMokelayPageJsonAsset(fileName: string, value: unknown) {
 
 export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
   const assetStorage = storage ?? await getMokelayApiAssetStorage()
-  const keys = await assetStorage.getKeys('mokelay-pages')
+  const keys = await assetStorage.getKeys('mokelay/pages')
   const assetsByFileName = new Map<string, string>()
 
   for (const key of keys) {
@@ -107,7 +107,7 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   "functionName": "listMokelayPageJsons",
  *   "displayName": "列出系统页面 JSON",
  *   "category": "asset",
- *   "description": "从 Nitro server assets 的 mokelay-pages 目录读取并校验系统页面 JSON 列表。",
+ *   "description": "从 Nitro server assets 的 mokelay/pages 目录读取并校验系统页面 JSON 列表。",
  *   "inputs": [
  *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，用于合并用户页面对系统页面的动态引用。" }
  *   ],
@@ -124,7 +124,7 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "读取用户页面依赖并合并动态 quotes。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "列出系统页面", "block": { "uuid": "list_mokelay_page_jsons_block", "functionName": "listMokelayPageJsons", "inputs": {}, "outputs": ["pages", "count"], "nextBlock": null } }

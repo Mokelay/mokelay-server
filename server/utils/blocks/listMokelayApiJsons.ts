@@ -22,7 +22,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function assetEntry(key: string): MokelayApiAssetEntry | undefined {
   const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
-  const match = /^mokelay-apis\/(?:(fragment)\/)?([A-Za-z0-9_-]{1,128})\.json$/.exec(normalizedKey)
+  const match = /^mokelay\/apis\/(?:(fragment)\/)?([A-Za-z0-9_-]{1,128})\.json$/.exec(normalizedKey)
   const uuid = match?.[2]
   if (!uuid) return undefined
   const fragment = match[1] === 'fragment'
@@ -35,7 +35,7 @@ function assetEntry(key: string): MokelayApiAssetEntry | undefined {
 }
 
 export function parseMokelayApiJsonAsset(relativePath: string, value: unknown) {
-  const entry = assetEntry(`mokelay-apis/${relativePath}`)
+  const entry = assetEntry(`mokelay/apis/${relativePath}`)
   if (!entry) {
     throw mokelayError('API_JSON_UUID_INVALID', `API JSON 资产路径 ${relativePath} 无效。`, 400)
   }
@@ -55,8 +55,8 @@ export function parseMokelayApiJsonAsset(relativePath: string, value: unknown) {
     throw mokelayError(
       'API_JSON_INVALID_SCHEMA',
       entry.fragment
-        ? `内置 Fragment ${apiJsonUuid} 必须配置 fragment=true 并保存在 mokelay-apis/fragment。`
-        : `内置 API ${apiJsonUuid} 不能在 mokelay-apis 根目录声明为 Fragment。`,
+        ? `内置 Fragment ${apiJsonUuid} 必须配置 fragment=true 并保存在 mokelay/apis/fragment。`
+        : `内置 API ${apiJsonUuid} 不能在 mokelay/apis 根目录声明为 Fragment。`,
       400,
     )
   }
@@ -76,7 +76,7 @@ function assertBuiltInFragmentReferences(
       if (!fragment) {
         throw mokelayError(
           'API_JSON_INVALID_FLOW',
-          `内置 API ${asset.entry.uuid} 只能引用 mokelay-apis/fragment 中的内置 Fragment：${call.fragmentUuid}。`,
+          `内置 API ${asset.entry.uuid} 只能引用 mokelay/apis/fragment 中的内置 Fragment：${call.fragmentUuid}。`,
           409,
         )
       }
@@ -127,8 +127,8 @@ export async function listMokelayApiJsons(fragment: unknown = false, storage?: M
   const selectedFragment = fragmentSelector(fragment)
   const assetStorage = storage ?? await getMokelayApiAssetStorage()
   const keys = (await Promise.all([
-    assetStorage.getKeys('mokelay-apis'),
-    assetStorage.getKeys('mokelay-apis/fragment'),
+    assetStorage.getKeys('mokelay/apis'),
+    assetStorage.getKeys('mokelay/apis/fragment'),
   ])).flat()
   const assetsByPath = new Map<string, MokelayApiAssetEntry>()
 
@@ -170,7 +170,7 @@ export async function listMokelayApiJsons(fragment: unknown = false, storage?: M
  *   "functionName": "listMokelayApiJsons",
  *   "displayName": "列出系统 API JSON",
  *   "category": "asset",
- *   "description": "从 Nitro server assets 读取 mokelay-apis 根目录中的内置 API 与 fragment 子目录中的内置 Fragment，并校验引用不会跨到数据库命名空间。",
+ *   "description": "从 Nitro server assets 读取 mokelay/apis 根目录中的内置 API 与 fragment 子目录中的内置 Fragment，并校验引用不会跨到数据库命名空间。",
  *   "inputs": [
  *     { "key": "fragment", "type": "boolean", "required": false, "defaultValue": false, "description": "false 仅列出根目录内置 API；true 仅列出 fragment 子目录内置 Fragment。" }
  *   ],
@@ -187,7 +187,7 @@ export async function listMokelayApiJsons(fragment: unknown = false, storage?: M
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-apis + mokelay-apis/fragment", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/apis + mokelay/apis/fragment", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "列出系统 API", "block": { "uuid": "list_mokelay_api_jsons_block", "functionName": "listMokelayApiJsons", "inputs": {}, "outputs": ["apis", "count"], "nextBlock": null } }

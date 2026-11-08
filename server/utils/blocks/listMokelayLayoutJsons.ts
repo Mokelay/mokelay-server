@@ -15,7 +15,7 @@ export type MokelayLayoutJsonRecord = {
 
 function layoutAssetFileName(key: string) {
   const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
-  const prefix = 'mokelay-layouts/'
+  const prefix = 'mokelay/layouts/'
 
   if (!normalizedKey.startsWith(prefix)) {
     return undefined
@@ -88,7 +88,7 @@ export function parseMokelayLayoutJsonAsset(fileName: string, value: unknown): M
 
 export async function listMokelayLayoutJsons(storage?: MokelayApiAssetStorage) {
   const assetStorage = storage ?? await getMokelayApiAssetStorage()
-  const keys = await assetStorage.getKeys('mokelay-layouts')
+  const keys = await assetStorage.getKeys('mokelay/layouts')
   const assetsByFileName = new Map<string, string>()
 
   for (const key of keys) {
@@ -124,7 +124,7 @@ export async function listMokelayLayoutJsons(storage?: MokelayApiAssetStorage) {
  *   "functionName": "listMokelayLayoutJsons",
  *   "displayName": "列出系统布局 JSON",
  *   "category": "asset",
- *   "description": "从 Nitro server assets 的 mokelay-layouts 目录读取并校验系统布局 JSON 列表。",
+ *   "description": "从 Nitro server assets 的 mokelay/layouts 目录读取并校验系统布局 JSON 列表。",
  *   "inputs": [],
  *   "outputs": [
  *     { "key": "layouts", "type": "MokelayLayoutJsonRecord[]", "description": "已标准化的布局 JSON 数组。" },
@@ -139,7 +139,7 @@ export async function listMokelayLayoutJsons(storage?: MokelayApiAssetStorage) {
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": false, "description": "不需要数据库连接。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay-layouts", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/mokelay/layouts", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "列出系统布局", "block": { "uuid": "list_mokelay_layout_jsons_block", "functionName": "listMokelayLayoutJsons", "inputs": {}, "outputs": ["layouts", "count"], "nextBlock": null } }
