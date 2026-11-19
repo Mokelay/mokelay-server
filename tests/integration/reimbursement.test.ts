@@ -23,6 +23,7 @@ for (const { name, url, larkUrl } of databases) {
     const business = (query: SQL) => executeDatasourceSql(query, 'Lark')
     let server: Server
     let base: string
+    let responseReferences: RegExpMatchArray[]
     const cookies: string[] = []
     beforeAll(async () => {
       vi.stubEnv('Mokelay_DATABASE_URL', url!)
@@ -45,6 +46,8 @@ for (const { name, url, larkUrl } of databases) {
       const asset = (name: string) => readFile(new URL(`../../server/assets/lark/apis/${name}.json`, import.meta.url), 'utf8').then(JSON.parse)
       const save = await asset('reimbursement_201_save_draft')
       const write = await asset('fragment/reimbursement_201_write')
+      const page = await readFile(new URL('../../server/assets/lark/pages/reimbursement_201.json', import.meta.url), 'utf8')
+      responseReferences = [...page.matchAll(/\{\{actions\.(load|save|send)\.outputs\.rawResponse\.data\.record\.([^}]+)\}\}/g)]
       router.use('/rollback/:apiJsonUuid', createMokelayOrchestrationHandler({
         blockDefinitions: serverBlockDefinitions,
         loadApiJson: async uuid => uuid === save.uuid ? save : {
@@ -78,17 +81,25 @@ for (const { name, url, larkUrl } of databases) {
       }
     })
 
-    async function call(action: string, body?: Record<string, unknown>, cookie = cookies[0]) {
+    async function call(action: 'init' | 'save_draft' | 'submit', body?: Record<string, unknown>, cookie = cookies[0]) {
       const res = await fetch(base + '/api/lark/reimbursement_201_' + action, {
         method: body ? 'POST' : 'GET', headers: { cookie: cookie ?? '', 'content-type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
       })
-      return res.json()
+      const response = await res.json()
+      if (response.ok) {
+        const actionId = { init: 'load', save_draft: 'save', submit: 'send' }[action]
+        for (const [, source, field] of responseReferences) {
+          if (source === actionId) expect(response.data.record, `${action} must supply the DSL field ${field}`).toHaveProperty(field)
+        }
+      }
+      return response
     }
 
     it('autosaves a travel draft with blank amounts once, even when two first saves overlap', async () => {
       const cookie = cookies[1]
       const { data } = await call('init', undefined, cookie)
+      expect(data.record).not.toHaveProperty('approval_amount')
       const payload = { ...data.record, category: 'travel', fiat: '', crypto: '', loan: '' }
       const [first, retry] = await Promise.all([call('save_draft', payload, cookie), call('save_draft', payload, cookie)])
       expect(first).toMatchObject({ ok: true, data: { record: {

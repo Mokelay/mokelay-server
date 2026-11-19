@@ -6,19 +6,31 @@
   "name": "201.报销申请",
   "blocks": [
     {
+      "id": "reimbursement-form-state",
+      "type": "MPageState",
+      "data": {
+        "initialState": {
+          "record": {},
+          "ready": false,
+          "locked": true,
+          "busy": true,
+          "submitted": false,
+          "hideRetry": true,
+          "failedBlock": "reimbursement-form",
+          "failedEvent": "init"
+        }
+      }
+    },
+    {
       "id": "reimbursement-form",
       "type": "MForm",
       "data": {
         "draft": {
           "title": "201.报销申请",
-          "initApi": "reimbursement_201_init",
-          "saveApi": "reimbursement_201_save_draft",
-          "submitApi": "reimbursement_201_submit",
           "showHintsWhen": {
             "field": "show_help",
             "equals": "yes"
-          },
-          "apiApp": "lark"
+          }
         },
         "defaultValues": {
           "show_help": "no",
@@ -193,7 +205,604 @@
           }
         ]
       },
-      "events": []
+      "events": [
+        {
+          "event": "init",
+          "execution": {
+            "concurrency": "drop"
+          },
+          "actions": [
+            {
+              "uuid": "loading",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "loading": true,
+                "disabled": true,
+                "message": "正在加载…",
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "load"
+            },
+            {
+              "uuid": "load",
+              "action": "execute_ds",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/lark/reimbursement_201_init",
+                  "method": "GET",
+                  "headerData": [],
+                  "queryData": [],
+                  "bodyData": []
+                }
+              },
+              "outputs": [
+                "rawResponse"
+              ],
+              "nextAction": "store_record"
+            },
+            {
+              "uuid": "store_record",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "record": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record}}"
+                  },
+                  "hideRetry": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "restore_fields"
+            },
+            {
+              "uuid": "restore_fields",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setValues",
+                "values": {
+                  "show_help": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.show_help}}"
+                  },
+                  "category": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.category}}"
+                  },
+                  "fiat": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.fiat}}"
+                  },
+                  "crypto": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.crypto}}"
+                  },
+                  "loan": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.loan}}"
+                  },
+                  "settlement": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.settlement}}"
+                  },
+                  "note": {
+                    "template": "{{actions.load.outputs.rawResponse.data.record.note}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "options"
+            },
+            {
+              "uuid": "options",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setFieldOptions",
+                "options": {
+                  "template": "{{actions.load.outputs.rawResponse.data.options}}"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "ready"
+            },
+            {
+              "uuid": "ready",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "locked": false,
+                  "ready": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "loaded"
+            },
+            {
+              "uuid": "loaded",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "将自动保存填写内容",
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "onError": [
+            {
+              "uuid": "remember_failure",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "hideRetry": false,
+                  "failedBlock": "reimbursement-form",
+                  "failedEvent": "init"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error"
+            },
+            {
+              "uuid": "show_error",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "初始化失败",
+                "errors": [
+                  {
+                    "message": {
+                      "template": "{{event.error.message}}"
+                    }
+                  }
+                ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "onFinally": [
+            {
+              "uuid": "finish_init",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "busy": false
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "finish_loading"
+            },
+            {
+              "uuid": "finish_loading",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "loading": false,
+                "disabled": {
+                  "template": "{{blocks['reimbursement-form-state'].locked}}"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        },
+        {
+          "event": "change",
+          "execution": {
+            "concurrency": "serialLatest",
+            "debounceMs": 400,
+            "retry": "resumeUnconfirmed",
+            "flushOn": [
+              "hidden",
+              "unmount"
+            ]
+          },
+          "actions": [
+            {
+              "uuid": "valid",
+              "action": "if_controller",
+              "type": "controller",
+              "inputs": {
+                "value": {
+                  "template": "{{event.valid}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "yes",
+                  "value": true,
+                  "nextAction": "saving"
+                },
+                {
+                  "uuid": "no",
+                  "value": false,
+                  "nextAction": null
+                }
+              ],
+              "nextAction": null
+            },
+            {
+              "uuid": "saving",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "正在保存…",
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "save"
+            },
+            {
+              "uuid": "save",
+              "action": "execute_ds",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/lark/reimbursement_201_save_draft",
+                  "method": "POST",
+                  "headerData": [],
+                  "queryData": [],
+                  "bodyData": [
+                    {
+                      "key": "id",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{blocks['reimbursement-form-state'].record.id}}"
+                      }
+                    },
+                    {
+                      "key": "version",
+                      "dataType": "number",
+                      "value": {
+                        "template": "{{blocks['reimbursement-form-state'].record.version}}"
+                      }
+                    },
+                    {
+                      "key": "show_help",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.show_help}}"
+                      }
+                    },
+                    {
+                      "key": "category",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.category}}"
+                      }
+                    },
+                    {
+                      "key": "fiat",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.fiat}}"
+                      }
+                    },
+                    {
+                      "key": "crypto",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.crypto}}"
+                      }
+                    },
+                    {
+                      "key": "loan",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.loan}}"
+                      }
+                    },
+                    {
+                      "key": "note",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{event.values.note}}"
+                      }
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse"
+              ],
+              "nextAction": "store_record"
+            },
+            {
+              "uuid": "store_record",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "record": {
+                    "template": "{{actions.save.outputs.rawResponse.data.record}}"
+                  },
+                  "hideRetry": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "restore_fields"
+            },
+            {
+              "uuid": "restore_fields",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setValues",
+                "values": {
+                  "settlement": {
+                    "template": "{{actions.save.outputs.rawResponse.data.record.settlement}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "saved"
+            },
+            {
+              "uuid": "saved",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "草稿已保存",
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "onError": [
+            {
+              "uuid": "remember_failure",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "hideRetry": false,
+                  "failedBlock": "reimbursement-form",
+                  "failedEvent": "change"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error"
+            },
+            {
+              "uuid": "show_error",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "草稿未保存",
+                "errors": [
+                  {
+                    "message": {
+                      "template": "{{event.error.message}}"
+                    }
+                  }
+                ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reimbursement-form-retry",
+      "type": "MButton",
+      "data": {
+        "label": "重试",
+        "variant": "text",
+        "align": "center",
+        "hidden": {
+          "mode": "variable",
+          "source": "Block",
+          "blockId": "reimbursement-form-state",
+          "variable": "hideRetry"
+        },
+        "disabled": {
+          "mode": "variable",
+          "source": "Block",
+          "blockId": "reimbursement-form-state",
+          "variable": "busy"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "execution": {
+            "concurrency": "drop"
+          },
+          "actions": [
+            {
+              "uuid": "retry_busy",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "busy": true,
+                  "locked": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "retry_lock"
+            },
+            {
+              "uuid": "retry_lock",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "disabled": true
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "retry"
+            },
+            {
+              "uuid": "retry",
+              "action": "retry_event",
+              "inputs": {
+                "blockId": {
+                  "template": "{{blocks['reimbursement-form-state'].failedBlock}}"
+                },
+                "event": {
+                  "template": "{{blocks['reimbursement-form-state'].failedEvent}}"
+                }
+              },
+              "nextAction": null
+            }
+          ],
+          "onError": [
+            {
+              "uuid": "retry_error",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "errors": [
+                  {
+                    "message": {
+                      "template": "{{event.error.message}}"
+                    }
+                  }
+                ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "onFinally": [
+            {
+              "uuid": "retry_ready",
+              "action": "if_controller",
+              "type": "controller",
+              "inputs": {
+                "value": {
+                  "template": "{{blocks['reimbursement-form-state'].ready}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "yes",
+                  "value": true,
+                  "nextAction": "retry_finished"
+                },
+                {
+                  "uuid": "no",
+                  "value": false,
+                  "nextAction": "retry_not_ready"
+                }
+              ],
+              "nextAction": null
+            },
+            {
+              "uuid": "retry_finished",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "busy": false,
+                  "locked": {
+                    "template": "{{blocks['reimbursement-form-state'].submitted}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "retry_unlock"
+            },
+            {
+              "uuid": "retry_not_ready",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "busy": false,
+                  "locked": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "retry_unlock"
+            },
+            {
+              "uuid": "retry_unlock",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "disabled": {
+                  "template": "{{blocks['reimbursement-form-state'].locked}}"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "reimbursement-submit",
@@ -206,14 +815,14 @@
         "disabled": {
           "mode": "variable",
           "source": "Block",
-          "blockId": "reimbursement-form",
-          "variable": "$draft.locked"
+          "blockId": "reimbursement-form-state",
+          "variable": "locked"
         },
         "hidden": {
           "mode": "variable",
           "source": "Block",
-          "blockId": "reimbursement-form",
-          "variable": "$draft.submitted"
+          "blockId": "reimbursement-form-state",
+          "variable": "submitted"
         }
       },
       "events": [
@@ -221,11 +830,309 @@
           "event": "click",
           "actions": [
             {
-              "uuid": "submit_reimbursement",
+              "uuid": "lock",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "locked": true,
+                  "busy": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "submitting"
+            },
+            {
+              "uuid": "submitting",
               "action": "call_block_method",
               "inputs": {
                 "blockId": "reimbursement-form",
-                "method": "submitDraft"
+                "method": "setStatus",
+                "disabled": true,
+                "message": "正在提交…",
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "flush"
+            },
+            {
+              "uuid": "flush",
+              "action": "flush_event",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "event": "change"
+              },
+              "nextAction": "validate"
+            },
+            {
+              "uuid": "validate",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "submit"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "valid"
+            },
+            {
+              "uuid": "valid",
+              "action": "if_controller",
+              "type": "controller",
+              "inputs": {
+                "value": {
+                  "template": "{{actions.validate.outputs.returnData.valid}}"
+                }
+              },
+              "nodes": [
+                {
+                  "uuid": "yes",
+                  "value": true,
+                  "nextAction": "send"
+                },
+                {
+                  "uuid": "no",
+                  "value": false,
+                  "nextAction": "invalid"
+                }
+              ],
+              "nextAction": null
+            },
+            {
+              "uuid": "invalid",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "请检查表单填写内容。"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            },
+            {
+              "uuid": "send",
+              "action": "execute_ds",
+              "inputs": {
+                "dsConfig": {
+                  "type": "API",
+                  "domain": "mokelay",
+                  "path": "/api/lark/reimbursement_201_submit",
+                  "method": "POST",
+                  "headerData": [],
+                  "queryData": [],
+                  "bodyData": [
+                    {
+                      "key": "id",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{blocks['reimbursement-form-state'].record.id}}"
+                      }
+                    },
+                    {
+                      "key": "version",
+                      "dataType": "number",
+                      "value": {
+                        "template": "{{blocks['reimbursement-form-state'].record.version}}"
+                      }
+                    },
+                    {
+                      "key": "show_help",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.show_help}}"
+                      }
+                    },
+                    {
+                      "key": "category",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.category}}"
+                      }
+                    },
+                    {
+                      "key": "fiat",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.fiat}}"
+                      }
+                    },
+                    {
+                      "key": "crypto",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.crypto}}"
+                      }
+                    },
+                    {
+                      "key": "loan",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.loan}}"
+                      }
+                    },
+                    {
+                      "key": "note",
+                      "dataType": "string",
+                      "value": {
+                        "template": "{{actions.validate.outputs.returnData.values.note}}"
+                      }
+                    }
+                  ]
+                }
+              },
+              "outputs": [
+                "rawResponse"
+              ],
+              "nextAction": "store_record"
+            },
+            {
+              "uuid": "store_record",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "record": {
+                    "template": "{{actions.send.outputs.rawResponse.data.record}}"
+                  },
+                  "hideRetry": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "restore_fields"
+            },
+            {
+              "uuid": "restore_fields",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setValues",
+                "values": {
+                  "settlement": {
+                    "template": "{{actions.send.outputs.rawResponse.data.record.settlement}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "submitted"
+            },
+            {
+              "uuid": "submitted",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "submitted": true,
+                  "hideRetry": true
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "receipt"
+            },
+            {
+              "uuid": "receipt",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": {
+                  "template": "已提交 · 申请单号 {{actions.send.outputs.rawResponse.data.record.id}}"
+                },
+                "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "execution": {
+            "concurrency": "drop",
+            "retry": "resumeUnconfirmed"
+          },
+          "onError": [
+            {
+              "uuid": "remember_failure",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "hideRetry": false,
+                  "failedBlock": "reimbursement-submit",
+                  "failedEvent": "click"
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error"
+            },
+            {
+              "uuid": "show_error",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "message": "提交失败",
+                "errors": [
+                  {
+                    "message": {
+                      "template": "{{event.error.message}}"
+                    }
+                  }
+                ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ],
+          "onFinally": [
+            {
+              "uuid": "finish",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "busy": false,
+                  "locked": {
+                    "template": "{{blocks['reimbursement-form-state'].submitted}}"
+                  }
+                }
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "unlock"
+            },
+            {
+              "uuid": "unlock",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "setStatus",
+                "loading": false,
+                "disabled": {
+                  "template": "{{blocks['reimbursement-form-state'].locked}}"
+                }
               },
               "outputs": [
                 "returnData"

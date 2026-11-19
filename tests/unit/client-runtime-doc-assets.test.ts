@@ -27,6 +27,9 @@ async function readJsonAsset<T>(relativePath: string) {
   return JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
 }
 
+type LocalizedLabel = string | { $i18n: Record<string, string> }
+const labelText = (value: LocalizedLabel | undefined) => typeof value === 'string' ? value : value?.$i18n['zh-CN']
+
 describe('client Action and Processor documentation assets', () => {
   it('scans all registered client runtime docs from source comments', async () => {
     const docs = await collectClientRuntimeDocs() as RuntimeDocs
@@ -34,8 +37,9 @@ describe('client Action and Processor documentation assets', () => {
     expect(docs.actions.map((doc) => doc.action_name)).toEqual(expect.arrayContaining([
       'execute_ds', 'confirm', 'open_dialog', 'close_dialog', 'jump_url',
       'call_block_method', 'upload_file', 'download_blob', 'if_controller', 'switch_controller',
+      'flush_event', 'retry_event',
     ]))
-    expect(docs.actions).toHaveLength(10)
+    expect(docs.actions).toHaveLength(12)
     expect(docs.actions.every((doc) => (
       doc.source_kind === 'mokelay-components'
       && doc.source_package === 'mokelay-components'
@@ -70,9 +74,9 @@ describe('client Action and Processor documentation assets', () => {
 
   it('uses the client runtime tabs and stable detail routes', async () => {
     const page = await readJsonAsset<{
-      blocks: Array<{ data?: { tabs?: Array<{ name?: string, pageUUID?: string }> } }>
+      blocks: Array<{ data?: { tabs?: Array<{ name?: LocalizedLabel, pageUUID?: string }> } }>
     }>('mokelay/pages/client_docs.json')
-    const tabs = page.blocks.flatMap((block) => block.data?.tabs ?? [])
+    const tabs = page.blocks.flatMap((block) => block.data?.tabs ?? []).map(tab => ({ ...tab, name: labelText(tab.name) }))
 
     expect(tabs).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'Block文档', pageUUID: 'block_component_docs' }),
@@ -109,11 +113,11 @@ describe('client Action and Processor documentation assets', () => {
     ['mokelay/pages/client_processor_docs.json', ['Processor', '名称', '分类', '说明', '操作']],
   ])('omits source file columns from list page %s', async (fileName, expectedColumns) => {
     const page = await readJsonAsset<{
-      blocks: Array<{ type?: string, data?: { columns?: Array<{ columnName?: string, fieldVariable?: string }> } }>
+      blocks: Array<{ type?: string, data?: { columns?: Array<{ columnName?: LocalizedLabel, fieldVariable?: string }> } }>
     }>(fileName)
     const columns = page.blocks.find((block) => block.type === 'MAdvanceTable')?.data?.columns ?? []
 
-    expect(columns.map((column) => column.columnName)).toEqual(expectedColumns)
+    expect(columns.map((column) => labelText(column.columnName))).toEqual(expectedColumns)
     expect(columns.map((column) => column.fieldVariable)).not.toContain('source_file')
   })
 })
