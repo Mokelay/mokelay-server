@@ -2179,8 +2179,11 @@ describe('mokelay orchestration API', () => {
 
     expect(rootList.apis.some(api => api.uuid === 'provision_new_user')).toBe(false)
     expect(fragmentList).toEqual({
-      apis: [expect.objectContaining({ uuid: 'provision_new_user', fragment: true })],
-      count: 1,
+      apis: expect.arrayContaining([
+        expect.objectContaining({ uuid: 'provision_new_user', fragment: true }),
+        expect.objectContaining({ uuid: 'reimbursement_201_write', fragment: true }),
+      ]),
+      count: 2,
     })
     expect(fragmentRead.api).toMatchObject({ uuid: 'provision_new_user', fragment: true })
     await expectMokelayError(rootReadResponse, 'API_JSON_NOT_FOUND')

@@ -177,7 +177,7 @@
                         "alias": "打开系统 Fragment",
                         "inputs": {
                           "url": {
-                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system&fragment=true"
+                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system&assetApp={{sourceBlock.data.action.assetApp}}&fragment=true"
                           }
                         },
                         "outputs": [],

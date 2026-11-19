@@ -81,7 +81,8 @@ describe('collectServerBlockDocs', () => {
     const docs = await collectServerBlockDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(47)
+    expect(docs).toHaveLength(48)
+    expect(functionNames).toContain('assert')
     expect(functionNames).toContain('renderPage')
     expect(functionNames).toContain('sendEmail')
     expect(functionNames).toContain('requireTenantContext')

@@ -5,7 +5,7 @@ import { executeResolveLayoutBundleBlock } from '../../server/utils/blocks/resol
 
 vi.mock('nitropack/runtime', () => ({
   useStorage: () => ({
-    getKeys: async () => [],
+    getKeys: async () => ['mokelay/pages/system_page.json'],
     getItem: async (key: string) => {
       if (key === 'mokelay/pages/system_page.json') {
         return JSON.stringify({

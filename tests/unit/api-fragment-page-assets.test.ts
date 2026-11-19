@@ -97,8 +97,8 @@ describe('API and Fragment list page assets', () => {
     expect(byId(userFragment, 'mokelay-api-samples-list')).toBeUndefined()
     expect(byUuid(userApi, 'mokelay_api_user_open_detail')?.inputs?.url?.template).toContain('appUuid={{context.route.query.uuid}}')
     expect(byUuid(userFragment, 'mokelay_fragment_user_open_detail')?.inputs?.url?.template).toContain('appUuid={{context.route.query.uuid}}')
-    expect(byUuid(systemApi, 'mokelay_api_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system')
-    expect(byUuid(systemFragment, 'mokelay_fragment_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system&fragment=true')
+    expect(byUuid(systemApi, 'mokelay_api_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system&assetApp={{sourceBlock.data.action.assetApp}}')
+    expect(byUuid(systemFragment, 'mokelay_fragment_system_open_detail')?.inputs?.url?.template).toBe('#/apis/{{sourceBlock.data.action.uuid}}?source=system&assetApp={{sourceBlock.data.action.assetApp}}&fragment=true')
   })
 
   it('creates a database Fragment draft with Fragment metadata and DSL shape', async () => {

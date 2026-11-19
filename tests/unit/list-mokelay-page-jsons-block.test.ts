@@ -39,7 +39,7 @@ describe('listMokelayPageJsons', () => {
     }))
 
     expect(result).toEqual({
-      pages: [alpha, zeta],
+      pages: [alpha, zeta].map(page => ({ ...page, assetApp: 'mokelay' })),
       count: 2,
     })
   })
@@ -79,9 +79,9 @@ describe('readMokelayPageJson', () => {
   it('reads one page JSON asset by UUID', async () => {
     const page = pageJson('alpha_page', 'Alpha Page')
 
-    await expect(readMokelayPageJson('alpha_page', storage([], {
+    await expect(readMokelayPageJson('alpha_page', storage(['mokelay/pages/alpha_page.json'], {
       'mokelay/pages/alpha_page.json': JSON.stringify(page),
-    }))).resolves.toEqual(page)
+    }))).resolves.toEqual({ ...page, assetApp: 'mokelay' })
   })
 
   it('fails when the page asset is missing', async () => {
@@ -90,4 +90,15 @@ describe('readMokelayPageJson', () => {
       statusCode: 404,
     })
   })
+})
+
+it('discovers and reads a lark page with its application metadata', async () => {
+  const page = pageJson('expense', 'Expense')
+  const assets = storage(['lark:pages:expense.json'], { 'lark:pages:expense.json': page })
+  await expect(readMokelayPageJson('expense', assets)).resolves.toMatchObject({ ...page, assetApp: 'lark' })
+})
+
+it('rejects duplicate page UUIDs across applications instead of silently selecting one', async () => {
+  const assets = storage(['lark/pages/expense.json', 'mokelay/pages/expense.json'], {})
+  await expect(listMokelayPageJsons(assets)).rejects.toMatchObject({ data: { code: 'PAGE_ASSET_UUID_DUPLICATE' } })
 })

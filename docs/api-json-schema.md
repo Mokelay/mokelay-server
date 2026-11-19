@@ -1,6 +1,6 @@
 # API JSON Schema 描述文档
 
-本文档描述服务端 API/Fragment JSON DSL 的完整配置结构。内置普通 API 保存在 `server/assets/mokelay/apis/{API_JSON_UUID}.json`，其引用的内置 Fragment 必须保存在 `server/assets/mokelay/apis/fragment/{FRAGMENT_UUID}.json`；用户创建的 API 与 Fragment 都保存在数据库。两类来源是隔离命名空间：内置 API 只能引用 nested 内置 Fragment，用户 API 只能引用数据库中已发布的 Fragment，即使两边 UUID 相同也不会串用。
+本文档描述服务端 API/Fragment JSON DSL 的完整配置结构。内置普通 API 保存在 `server/assets/{app}/apis/{API_JSON_UUID}.json`，其引用的内置 Fragment 必须保存在 `server/assets/{app}/apis/fragment/{FRAGMENT_UUID}.json`；用户创建的 API 与 Fragment 都保存在数据库。两类来源是隔离命名空间：内置 API 只能引用 nested 内置 Fragment，用户 API 只能引用数据库中已发布的 Fragment，即使两边 UUID 相同也不会串用。
 
 普通 API 运行时优先读取本地文件和 Nitro assets；动态 API 会同时读取 R2 内容与数据库元数据，数据库已配置时必须存在当前记录，且记录为 Fragment 或元数据查询失败都会拒绝执行旧 R2 对象。R2 miss 时可回退到数据库中的已发布普通 API；未配置 Mokelay 数据库的 R2-only 部署仍可直接读取 R2。Fragment 不读 R2，并依据调用方来源严格选择 nested 内置资产或数据库已发布记录。API JSON 由编排路由加载，并由 core 编排运行时解析和执行。
 
@@ -8,10 +8,10 @@
 
 ## 总体规则
 
-- API JSON 文件名必须与顶层 `uuid` 一致，例如 `server/assets/mokelay/apis/login.json` 的 `uuid` 为 `login`，`server/assets/mokelay/apis/fragment/provision_new_user.json` 的 `uuid` 为 `provision_new_user`。
-- 根目录内置 API 不能声明 `fragment: true`，内置 Fragment 必须位于 `mokelay/apis/fragment`。用户 API/Fragment 不允许引用内置 Fragment，内置 API 也不允许引用数据库 Fragment。
+- API JSON 文件名必须与顶层 `uuid` 一致，例如 `server/assets/{app}/apis/login.json` 的 `uuid` 为 `login`，`server/assets/{app}/apis/fragment/provision_new_user.json` 的 `uuid` 为 `provision_new_user`。
+- 根目录内置 API 不能声明 `fragment: true`，内置 Fragment 必须位于 `{app}/apis/fragment`。用户 API/Fragment 不允许引用内置 Fragment，内置 API 也不允许引用数据库 Fragment。
 - nested 内置 Fragment 与数据库 Fragment 允许使用相同 UUID；运行时始终按调用方来源选择目标。用户定义仍不能与根目录内置 API 使用相同 UUID。
-- R2 object key 默认使用 `mokelay-apis/{API_JSON_UUID}.json`。`npm run sync:mokelay-apis:r2` 只同步根目录普通 API；`mokelay/apis/fragment` 中的内置 Fragment 随 server assets 打包，不写入 R2。
+- R2 object key 默认使用 `mokelay-apis/{API_JSON_UUID}.json`。`npm run sync:mokelay-apis:r2` 只同步根目录普通 API；`{app}/apis/fragment` 中的内置 Fragment 随 server assets 打包，不写入 R2。
 - 请求路径里的 `{API_JSON_UUID}` 只能包含字母、数字、下划线、连字符，长度 `1-128`。
 - 顶层 `uuid` 必须等于请求路径里的 `{API_JSON_UUID}`，否则返回 `API_JSON_UUID_MISMATCH`。
 - 顶层对象、`request`、`block`、`processor` 对象、`condition` 对象都是严格结构，不允许多余字段。
@@ -39,6 +39,11 @@ type FragmentApiJson = {
   uuid: string
   alias?: string
   fragment: true
+  transaction?: {
+    datasource: string
+    isolationLevel?: 'read committed' | 'repeatable read' | 'serializable'
+    retries?: number
+  }
   params?: ProcessableKey[]
   blocks?: Block[]
   response?: Record<string, unknown>
@@ -109,6 +114,7 @@ type OrderBy = {
 | `alias` | `string` | 否 | - | 给人看的接口名称或说明，不参与执行。 |
 | `method` | `string` | 是 | - | HTTP 方法，解析时会转成大写；运行时必须与真实请求方法一致。当前示例主要使用 `GET`、`POST`。 |
 | `fragment` | `boolean` | 否 | `false` | 为 `true` 时表示逻辑片段，此时禁止 `method` 和 `request`。 |
+| `transaction` | `object` | Fragment 否 | 无 | 将 Fragment 中同一数据源的 SQL 放入一个事务。 |
 | `params` | `ProcessableKey[]` | Fragment 否 | `[]` | Fragment 的入参声明；普通 API 禁止配置。 |
 | `request` | `RequestSchema` | 否 | 空声明 | 声明允许读取和预处理的 header、query、body 参数。 |
 | `blocks` | `Block[]` | 否 | `[]` | 通过 `nextBlock`/`errorNextBlock` 连线执行的编排 block。未配置错误边时，任一 block 抛错都会终止编排。 |
@@ -149,6 +155,8 @@ type OrderBy = {
 ```
 
 Fragment 必须提供非空 object `response`，或为每个终点提供非空 object `responses`；禁止 redirect，且多终点必须返回相同的顶层 key。V1 禁止 Fragment 内再次使用 `executeFragment`。
+
+事务 Fragment 在解析出响应后提交，任一步骤抛错都会回滚。调用方可以用 `executeFragment.errorNextBlock` 处理事务失败。片段内的数据库 Block 共用 `transaction.datasource` 的连接，`read.lock` 取 `"update"` 或 `"share"` 可以持有行锁直到事务结束。默认隔离级别为 `serializable`。设置 `retries` 可在死锁或序列化冲突后重跑整个 Fragment，取值 0 到 10，默认 0。数据库回滚只覆盖 SQL 写入。
 
 保存用户普通 API 草稿时，`executeFragment` 目标就必须是数据库中的 Fragment；发布时目标还必须处于 `published`，且 `inputs.params` 会与目标 `params` 契约校验：不能传入未声明 key，字符串简写参数以及 processors 包含 `is_not_null` 的参数必须映射。更新已发布数据库 Fragment 时只反向校验已发布的数据库 caller；内置 caller 的 target 与 Params 则由 nested asset 静态校验，绝不参与数据库 Fragment 的引用关系。只要仍存在已发布的同来源 caller，新 result 必须保留现有 Fragment 的全部顶层 key；允许新增 key，但删除或改名会被拒绝。
 
@@ -728,3 +736,11 @@ SQL 标识符规则：
 - `create.outputs` 固定写 `["uuid"]`，不要写物理字段名；物理唯一 ID 字段由 `inputs.idField` 指定。
 - `update`、`delete` 只返回 `affected`。如果需要返回最新业务数据，请追加 `read` block。
 - `response` 只拼装对前端有意义的数据，不建议直接透出数据库 block 的完整内部结构。
+
+## 内置应用命名空间
+
+`/api/{app}/{uuid}` 从 `server/assets/{app}/apis/{uuid}.json` 加载。应用名只允许以小写字母开头的字母、数字、下划线和连字符，最长 64 字符；`mokelay-schema` 为保留目录。编排选项 `assetApp` 默认 `mokelay`，同一次执行的 Fragment 继承该应用。其他应用缺失资产时直接报错，不回退到 Mokelay、R2 或平台数据库；原 Mokelay 动态 API 的加载规则保留。
+
+内置 API 管理接口 `list_mokelay_api_jsons` 支持可选 `assetApp`（省略列出所有应用）；`read_mokelay_api_json` 默认读取 `mokelay`，可显式传 `assetApp=lark`。结果附带 `assetApp`，它是管理元数据，不属于可执行 API DSL。页面仍采用全局唯一 UUID，跨目录冲突会报错。
+
+报销业务 DSL 位于 `lark`。MForm 的 `draft.apiApp` 决定初始化、自动保存、提交请求使用的应用路径，省略时默认 `mokelay`；提交按钮仍是独立 DSL Block，字段规则位于 `items[].rules`。

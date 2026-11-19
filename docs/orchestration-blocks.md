@@ -2,6 +2,8 @@
 
 本文档说明当前编排接口支持的标准 Blocks，以及 `mokelay-server` 注册的 `listMokelayApiJsons` 宿主 Block。
 
+每个 Block 只提供一个可独立复用的操作。业务表、字段、状态流转和错误提示由 API DSL 配置。多个接口共用的业务步骤放进 Fragment，需要原子性的数据库操作使用 Fragment 的 `transaction` 配置。例如，报销草稿保存和提交共用[报销写入 Fragment](../server/assets/lark/apis/fragment/reimbursement_201_write.json)。
+
 编排接口优先读取本地 `server/assets/mokelay/apis/{API_JSON_UUID}.json` 与 Nitro assets。内置 Fragment 固定读取 `server/assets/mokelay/apis/fragment/{FRAGMENT_UUID}.json`；内置 API 只能引用这里的 Fragment。动态普通 API 会并行读取 R2 内容和数据库元数据：数据库已配置时，当前记录必须存在且不能是 Fragment，查询失败采用 fail-closed；R2 miss 才使用数据库中的已发布 API JSON。用户 API 只能引用数据库中已发布的 Fragment。内置与数据库命名空间隔离，同 UUID 也按调用方来源解析，不允许跨来源引用。执行从 `starter.nextBlock` 开始，通过每个 block 或 controller node 的 `nextBlock` 连线向后走。Block 未配置 `errorNextBlock` 时，执行失败会终止编排并返回错误；配置后会沿错误边继续，值为 `null` 时当前 Block 成为错误终点。
 
 `list`、`page`、`count`、`read`、`delete`、`create`、`upsert`、`assertUnique`、`update` 都是数据库 block，必须在 `inputs.datasource` 中声明数据源名称。执行器会读取环境变量 `${datasource}_DATABASE_URL` 作为该 block 的数据库连接，不依赖全局 `DATABASE_URL`。当前支持 `postgres://`、`postgresql://` 和 `mysql://` 数据库 URL。

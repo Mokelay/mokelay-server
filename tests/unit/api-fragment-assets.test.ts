@@ -117,8 +117,11 @@ describe('Fragment server assets and migrations', () => {
       expect.objectContaining({ uuid: 'oauth_github_callback', method: 'GET' }),
     ]))
     expect(fragments).toEqual({
-      apis: [expect.objectContaining({ uuid: 'provision_new_user', fragment: true })],
-      count: 1,
+      apis: expect.arrayContaining([
+        expect.objectContaining({ uuid: 'provision_new_user', fragment: true }),
+        expect.objectContaining({ uuid: 'reimbursement_201_write', fragment: true }),
+      ]),
+      count: 2,
     })
   })
 

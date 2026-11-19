@@ -209,6 +209,9 @@ describe('collectClientBlockDocs', () => {
       source_kind: 'mokelay-components',
       source_package: 'mokelay-components',
       source_file: 'submodule/mokelay-components/src/blocks/MForm.vue',
+      property_schema: expect.arrayContaining([
+        expect.objectContaining({ key: 'draft', configurable: true, type: 'component', component: 'MFormDraftEditor' }),
+      ]),
       raw_meta: expect.objectContaining({
         componentModule: '@/editors/blocks/MFormEditor.vue',
         runtimeComponentModule: './MForm.vue',

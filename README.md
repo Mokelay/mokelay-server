@@ -6,9 +6,11 @@ Mokelay public API service. It owns Mokelay orchestration execution and the Post
 
 Built-in app resources live under `server/assets/{app}/pages`, `apis`, and `layouts`.
 The existing Mokelay resources are in `server/assets/mokelay`; built-in API fragments
-live in `mokelay/apis/fragment`. `server/assets/mokelay-schema` remains a temporary
-exception for shared AI DSL schemas. Runtime loading currently selects only the
-`mokelay` app, and the HTTP routes and R2 object prefix (`mokelay-apis`) are unchanged.
+live in `{app}/apis/fragment`. `server/assets/mokelay-schema` remains a temporary
+exception for shared AI DSL schemas. The route `/api/{app}/{uuid}` selects the matching application directory.
+Built-in Fragments stay in that application; only `mokelay` retains the existing
+R2/database fallback and `mokelay-apis` R2 prefix. Pages are discovered across applications
+and retain globally unique UUIDs. Asset list/read responses include `assetApp`.
 
 The server requires the matching `mokelay-server-core` loader for these paths. In the
 workspace, run `npm run sync:server-core` before verification. Deployments must use a
@@ -16,7 +18,7 @@ core release containing this loader change together with the reorganized assets.
 
 ## API
 
-- `GET|POST /api/mokelay/{API_JSON_UUID}`
+- `GET|POST /api/{app}/{API_JSON_UUID}` (platform: `mokelay`, reimbursement: `lark`)
 - `GET /api/database/schema`
 - `POST /api/mokelay/analyze-data-source`
 - `POST /api/mokelay/ai-generate-dsl`
@@ -150,3 +152,21 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+## Local Lark database
+
+Configure `Lark_DATABASE_URL` with a separate `lark` database on your local MySQL or PostgreSQL instance. Keep `Mokelay_DATABASE_URL` for platform accounts and tenants. The database user needs permission to create/use the target database; a local administrator can create it and grant privileges on `lark.*` first.
+
+From the server directory:
+
+```sh
+npm run db:lark:init -- --copy-existing
+```
+
+The command creates the business tables, copies the existing reimbursement categories/applications from the platform database, verifies every copied field including the generated settlement, then adds missing default categories. Conflicting rows abort the data transaction without overwriting. Source tables are retained. Repeating the command verifies existing rows without duplicating them. For a fresh installation without legacy reimbursement tables, omit `--copy-existing`. Use the same database engine for copying; stop old reimbursement writes during migration.
+
+Lark schema and initialization SQL live in `server/database/lark`. The write Fragment uses `Lark` throughout its transaction. Employee membership is checked in `Mokelay` before that transaction; `reimbursement_write_locks` serializes concurrent writes per tenant/applicant through the generic `upsert` Block. No cross-database foreign keys or transactions are required.
+
+The page remains available as `#/pages/reimbursement_201/preview?source=system` in the editor. Its MForm DSL sets `draft.apiApp: "lark"`; the visual draft panel exposes this application setting. Existing drafts without `apiApp` continue using `mokelay`. System API/Fragment detail links carry `assetApp=lark`.
+
+To run the split-database integration suite, set `REIMBURSEMENT_TEST_MYSQL_URL` (platform) and `LARK_TEST_MYSQL_URL` (business), or the corresponding `REIMBURSEMENT_TEST_POSTGRES_URL` and `LARK_TEST_POSTGRES_URL`, then run `npx vitest run tests/integration/reimbursement.test.ts`. Fixtures clean up only their own records.

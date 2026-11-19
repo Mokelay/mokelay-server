@@ -10,7 +10,7 @@ import {
 } from '../server/utils/pageReferenceGraph.ts'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
-export const DEFAULT_PAGE_ASSETS_DIR = path.resolve(SCRIPT_DIR, '../server/assets/mokelay/pages')
+export const DEFAULT_PAGE_ASSETS_DIR = path.resolve(SCRIPT_DIR, '../server/assets')
 
 const RELATION_FIELDS = ['subPage', 'quotes', 'dependencies']
 
@@ -78,14 +78,22 @@ function renderPageAsset(source, relation) {
 }
 
 export async function analyzeSystemPageAssets(directory = DEFAULT_PAGE_ASSETS_DIR) {
-  const fileNames = (await readdir(directory))
+  const directoryEntries = await readdir(directory, { withFileTypes: true })
+  const singleDirectory = directoryEntries.some(entry => entry.isFile() && entry.name.endsWith('.json'))
+  const directories = singleDirectory ? [directory] : (await Promise.all(directoryEntries
+    .filter(entry => entry.isDirectory() && /^[a-z][a-z0-9_-]{0,63}$/.test(entry.name) && entry.name !== 'mokelay-schema')
+    .map(async entry => {
+      const pages = path.join(directory, entry.name, 'pages')
+      try { await readdir(pages); return pages }
+      catch (error) { if (error.code === 'ENOENT') return null; throw error }
+    }))).filter(Boolean)
+  const files = (await Promise.all(directories.map(async dir => (await readdir(dir))
     .filter(fileName => fileName.endsWith('.json'))
-    .sort((left, right) => left.localeCompare(right))
-
+    .map(fileName => ({ fileName, filePath: path.join(dir, fileName) }))))).flat()
+    .sort((a, b) => a.filePath.localeCompare(b.filePath))
   const assets = []
   const byUuid = new Map()
-  for (const fileName of fileNames) {
-    const filePath = path.join(directory, fileName)
+  for (const { fileName, filePath } of files) {
     const source = await readFile(filePath, 'utf8')
     let page
     try {

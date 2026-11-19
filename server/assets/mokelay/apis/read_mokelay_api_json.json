@@ -10,6 +10,9 @@
         "processors": [
           "boolean_value"
         ]
+      },
+      {
+        "key": "assetApp"
       }
     ]
   },
@@ -28,6 +31,9 @@
         },
         "fragment": {
           "template": "{{request.query.fragment}}"
+        },
+        "assetApp": {
+          "template": "{{request.query.assetApp}}"
         }
       },
       "outputs": [

@@ -87,7 +87,9 @@ describe('collectServerProcessorDocs', () => {
     const docs = await collectServerProcessorDocs()
     const functionNames = docs.map((doc) => doc.function_name)
 
-    expect(docs).toHaveLength(18)
+    expect(docs).toHaveLength(20)
+    expect(functionNames).toContain('integer_add')
+    expect(functionNames).toContain('decimal_fixed')
     expect(functionNames).toContain('trim')
     expect(functionNames).toContain('env_value')
     expect(functionNames).toContain('api_json_when_published')

@@ -26,7 +26,7 @@ describe('readMokelayApiJson', () => {
 
     await expect(readMokelayApiJson('alpha', false, storage({
       'mokelay/apis/alpha.json': JSON.stringify(expected),
-    }))).resolves.toEqual(expected)
+    }))).resolves.toEqual({ ...expected, assetApp: 'mokelay' })
   })
 
   it('reads and validates a built-in Fragment from the nested directory', async () => {
@@ -40,7 +40,7 @@ describe('readMokelayApiJson', () => {
 
     await expect(readMokelayApiJson('shared_logic', true, storage({
       'mokelay/apis/fragment/shared_logic.json': expected,
-    }))).resolves.toEqual(expected)
+    }))).resolves.toEqual({ ...expected, assetApp: 'mokelay' })
   })
 
   it('keeps root API and nested Fragment selectors isolated when they share a UUID', async () => {
@@ -57,8 +57,8 @@ describe('readMokelayApiJson', () => {
       'mokelay/apis/fragment/same_name.json': fragment,
     })
 
-    await expect(readMokelayApiJson('same_name', false, assetStorage)).resolves.toEqual(endpoint)
-    await expect(readMokelayApiJson('same_name', true, assetStorage)).resolves.toEqual(fragment)
+    await expect(readMokelayApiJson('same_name', false, assetStorage)).resolves.toEqual({ ...endpoint, assetApp: 'mokelay' })
+    await expect(readMokelayApiJson('same_name', true, assetStorage)).resolves.toEqual({ ...fragment, assetApp: 'mokelay' })
   })
 
   it('rejects an invalid UUID', async () => {

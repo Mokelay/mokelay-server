@@ -47,7 +47,7 @@ describe('listMokelayApiJsons', () => {
     }))
 
     expect(result).toEqual({
-      apis: [alpha, zeta],
+      apis: [alpha, zeta].map(api => ({ ...api, assetApp: 'mokelay' })),
       count: 2,
     })
     expect(result.apis[0]).not.toHaveProperty('request')
@@ -77,7 +77,7 @@ describe('listMokelayApiJsons', () => {
       'mokelay:apis:fragment/shared_logic.json': fragment,
     }))
 
-    expect(result).toEqual({ apis: [fragment], count: 1 })
+    expect(result).toEqual({ apis: [{ ...fragment, assetApp: 'mokelay' }], count: 1 })
     expect(result.apis[0]).toMatchObject({ uuid: 'shared_logic', fragment: true })
   })
 
@@ -176,4 +176,19 @@ describe('listMokelayApiJsons', () => {
       statusCode: 400,
     })
   })
+})
+
+it('filters by application and rejects cross-application Fragment references', async () => {
+  const caller = { ...apiJson('caller', 'Lark caller'), blocks: [
+    { uuid: 'starter', nextBlock: 'call' },
+    { uuid: 'call', functionName: 'executeFragment', inputs: { fragmentUuid: 'logic', params: { name: 'lark' } }, outputs: ['result'], nextBlock: null },
+  ] }
+  const values = {
+    'lark/apis/caller.json': caller,
+    'mokelay/apis/fragment/logic.json': fragmentJson('logic'),
+  }
+  await expect(listMokelayApiJsons(false, storage(Object.keys(values), values))).rejects.toMatchObject({ data: { code: 'API_JSON_INVALID_FLOW' } })
+  const complete = { ...values, 'lark/apis/fragment/logic.json': fragmentJson('logic') }
+  const result = await listMokelayApiJsons(true, storage(Object.keys(complete), complete), 'lark')
+  expect(result).toMatchObject({ count: 1, apis: [{ uuid: 'logic', assetApp: 'lark' }] })
 })

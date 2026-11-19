@@ -5,23 +5,6 @@ import {
   type MokelayApiAssetStorage,
 } from './listMokelayApiJsons'
 
-function pageAssetFileName(key: string) {
-  const normalizedKey = key.replaceAll('\\', '/').replaceAll(':', '/')
-  const prefix = 'mokelay/pages/'
-
-  if (!normalizedKey.startsWith(prefix)) {
-    return undefined
-  }
-
-  const fileName = normalizedKey.slice(prefix.length)
-
-  if (!fileName.endsWith('.json') || fileName.includes('/')) {
-    return undefined
-  }
-
-  return fileName
-}
-
 export function parseMokelayPageJsonAsset(fileName: string, value: unknown) {
   const pageJsonUuid = fileName.slice(0, -'.json'.length)
   let pageJson = value
@@ -71,27 +54,25 @@ export function parseMokelayPageJsonAsset(fileName: string, value: unknown) {
 
 export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
   const assetStorage = storage ?? await getMokelayApiAssetStorage()
-  const keys = await assetStorage.getKeys('mokelay/pages')
-  const assetsByFileName = new Map<string, string>()
-
+  const keys = await assetStorage.getKeys('')
+  const entries = new Map<string, { key: string; assetApp: string; fileName: string }>()
   for (const key of keys) {
-    const fileName = pageAssetFileName(key)
-
-    if (fileName) {
-      assetsByFileName.set(fileName, key)
+    const match = /^([a-z][a-z0-9_-]{0,63})\/pages\/([A-Za-z0-9_-]{1,128}\.json)$/.exec(key.replaceAll('\\', '/').replaceAll(':', '/'))
+    if (!match || match[1] === 'mokelay-schema') continue
+    const assetApp = match[1]!
+    const fileName = match[2]!
+    const existing = entries.get(fileName)
+    if (existing && existing.assetApp !== assetApp) {
+      throw mokelayError('PAGE_ASSET_UUID_DUPLICATE', `页面 ${fileName} 同时存在于 ${existing.assetApp} 和 ${assetApp}。`, 409)
     }
+    entries.set(fileName, { key, assetApp, fileName })
   }
-
-  const fileNames = [...assetsByFileName.keys()].sort()
-  const pages = await Promise.all(fileNames.map(async (fileName) => {
-    const key = assetsByFileName.get(fileName)!
-    const value = await assetStorage.getItem(key)
-
+  const pages = await Promise.all([...entries.values()].sort((a, b) => a.fileName < b.fileName ? -1 : a.fileName > b.fileName ? 1 : 0).map(async (entry): Promise<Record<string, unknown> & { assetApp: string }> => {
+    const value = await assetStorage.getItem(entry.key)
     if (value === null || value === undefined) {
-      throw mokelayError('API_JSON_NOT_FOUND', `页面 JSON 资产 ${fileName} 不存在。`, 404)
+      throw mokelayError('API_JSON_NOT_FOUND', `页面 JSON 资产 ${entry.fileName} 不存在。`, 404)
     }
-
-    return parseMokelayPageJsonAsset(fileName, value)
+    return { ...(parseMokelayPageJsonAsset(entry.fileName, value) as Record<string, unknown>), assetApp: entry.assetApp }
   }))
 
   return {
@@ -107,12 +88,12 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   "functionName": "listMokelayPageJsons",
  *   "displayName": "列出系统页面 JSON",
  *   "category": "asset",
- *   "description": "从 Nitro server assets 的 mokelay/pages 目录读取并校验系统页面 JSON 列表。",
+ *   "description": "从 Nitro server assets 的 {app}/pages 目录读取并校验系统页面 JSON 列表。",
  *   "inputs": [
  *     { "key": "datasource", "type": "string", "required": true, "description": "Mokelay 数据源，用于合并用户页面对系统页面的动态引用。" }
  *   ],
  *   "outputs": [
- *     { "key": "pages", "type": "PageJson[]", "description": "已解析并校验的页面 JSON 数组。" },
+ *     { "key": "pages", "type": "PageJson[]", "description": "已解析并校验、附带 assetApp 的页面 JSON 数组。" },
  *     { "key": "count", "type": "number", "description": "页面 JSON 数量。" }
  *   ],
  *   "errors": [
@@ -124,7 +105,7 @@ export async function listMokelayPageJsons(storage?: MokelayApiAssetStorage) {
  *   "config": [],
  *   "runtime": [
  *     { "key": "requiresDatasource", "type": "boolean", "value": true, "description": "读取用户页面依赖并合并动态 quotes。" },
- *     { "key": "source", "type": "string", "value": "assets:server/mokelay/pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
+ *     { "key": "source", "type": "string", "value": "assets:server/{app}/pages", "description": "通过 Nitro storage 读取打包后的服务端资产。" }
  *   ],
  *   "examples": [
  *     { "title": "列出系统页面", "block": { "uuid": "list_mokelay_page_jsons_block", "functionName": "listMokelayPageJsons", "inputs": {}, "outputs": ["pages", "count"], "nextBlock": null } }

@@ -14,39 +14,20 @@ const layoutJsonDir = resolve(process.cwd(), 'server/assets/mokelay/layouts')
 
 vi.mock('nitropack/runtime', () => ({
   useStorage: () => ({
-    getKeys: async (base?: string) => {
-      const dir = base === 'mokelay/pages'
-        ? pageJsonDir
-        : base === 'mokelay/layouts'
-          ? layoutJsonDir
-          : base === 'mokelay/apis/fragment'
-            ? fragmentJsonDir
-            : apiJsonDir
-      const keyBase = base === 'mokelay/pages'
-        ? 'mokelay:pages'
-        : base === 'mokelay/layouts'
-          ? 'mokelay:layouts'
-          : base === 'mokelay/apis/fragment'
-            ? 'mokelay:apis:fragment'
-            : 'mokelay:apis'
-      return (await readdir(dir))
-        .filter((fileName) => fileName.endsWith('.json'))
-        .map((fileName) => `${keyBase}:${fileName}`)
+    getKeys: async (base = '') => {
+      const root = resolve(process.cwd(), 'server/assets')
+      const walk = async (relative: string): Promise<string[]> => {
+        const entries = await readdir(resolve(root, relative), { withFileTypes: true })
+        return (await Promise.all(entries.map(entry => {
+          const key = relative ? `${relative}/${entry.name}` : entry.name
+          return entry.isDirectory() ? walk(key) : [key]
+        }))).flat()
+      }
+      return walk(base)
     },
     getItem: async (key: string) => {
-      key = key.replaceAll(':', '/')
-      if (key.startsWith('mokelay/pages')) {
-        const fileName = key.replace(/^mokelay\/pages[:/]/, '')
-        return await readFile(resolve(pageJsonDir, fileName), 'utf8')
-      }
-
-      if (key.startsWith('mokelay/layouts')) {
-        const fileName = key.replace(/^mokelay\/layouts[:/]/, '')
-        return await readFile(resolve(layoutJsonDir, fileName), 'utf8')
-      }
-
-      const fileName = key.replaceAll(':', '/').replace(/^mokelay\/apis\//, '')
-      return await readFile(resolve(apiJsonDir, fileName), 'utf8')
+      try { return await readFile(resolve(process.cwd(), 'server/assets', key.replaceAll(':', '/')), 'utf8') }
+      catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error }
     },
   }),
 }))
@@ -84,7 +65,7 @@ afterAll(async () => {
 
 describe('GET /api/mokelay/list_mokelay_api_jsons', () => {
   it('returns every built-in API DSL including itself in file-name order', async () => {
-    const expectedFileNames = (await readdir(apiJsonDir))
+    const expectedFileNames = (await readdir(apiJsonDir)).concat(await readdir(resolve(process.cwd(), 'server/assets/lark/apis')))
       .filter((fileName) => fileName.endsWith('.json'))
       .sort()
     const response = await fetch(`${baseUrl}/api/mokelay/list_mokelay_api_jsons`)
@@ -104,7 +85,7 @@ describe('GET /api/mokelay/list_mokelay_api_jsons', () => {
   })
 
   it('returns only nested built-in Fragments when fragment=true', async () => {
-    const expectedFileNames = (await readdir(fragmentJsonDir))
+    const expectedFileNames = (await readdir(fragmentJsonDir)).concat(await readdir(resolve(process.cwd(), 'server/assets/lark/apis/fragment')))
       .filter((fileName) => fileName.endsWith('.json'))
       .sort()
     const response = await fetch(`${baseUrl}/api/mokelay/list_mokelay_api_jsons?fragment=true`)
@@ -176,7 +157,7 @@ describe('GET /api/mokelay/read_mokelay_api_json', () => {
 
 describe('GET /api/mokelay/list_mokelay_page_jsons', () => {
   it('returns every built-in page DSL in file-name order', async () => {
-    const expectedFileNames = (await readdir(pageJsonDir))
+    const expectedFileNames = (await readdir(pageJsonDir)).concat(await readdir(resolve(process.cwd(), 'server/assets/lark/pages')))
       .filter((fileName) => fileName.endsWith('.json'))
       .sort()
     const response = await fetch(`${baseUrl}/api/mokelay/list_mokelay_page_jsons`)

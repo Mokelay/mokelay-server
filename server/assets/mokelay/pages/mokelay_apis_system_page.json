@@ -177,7 +177,7 @@
                         "alias": "打开系统 API",
                         "inputs": {
                           "url": {
-                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system"
+                            "template": "#/apis/{{sourceBlock.data.action.uuid}}?source=system&assetApp={{sourceBlock.data.action.assetApp}}"
                           }
                         },
                         "outputs": [],
