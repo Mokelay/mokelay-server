@@ -36,7 +36,6 @@ const propertyComponentNames = new Set([
   'MAdvanceTableColumnsEditor',
   'MChartDataEditor',
   'MDatasourceEditor',
-  'MFormDraftEditor',
   'MFormItemRulesEditor',
   'MFormItemsEditor',
   'MTabsConfigEditor',

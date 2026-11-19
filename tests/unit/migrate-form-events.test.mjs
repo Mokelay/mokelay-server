@@ -6,6 +6,46 @@ const legacy = () => ({ blocks: [
   { id: 'send', type: 'MButton', data: { label: 'Send' }, events: [{ event: 'click', actions: [{ uuid: 'send', action: 'call_block_method', inputs: { blockId: 'form', method: 'submitDraft' } }] }] }
 ] })
 describe('form event migration', () => {
+  it('extracts display blocks and status updates while preserving control flow and item rules', () => {
+    const page = legacy()
+    page.blocks[0].data.draft.fields = { note: { hint: 'Legacy hint', readOnly: true, description: 'Old' } }
+    page.blocks[0].data.items[0].rules = { readOnly: false, description: 'Current' }
+    const { document } = migrateFormEvents(page)
+    const form = document.blocks.find(block => block.id === 'form')
+    expect(document.blocks.find(block => block.id === 'form-title')).toMatchObject({ type: 'MHeading', data: { text: 'Test' } })
+    expect(document.blocks.find(block => block.id === 'form-status')).toMatchObject({ type: 'MRichText', data: { content: { mode: 'variable', source: 'Block', blockId: 'form-state', variable: 'statusMessage' } } })
+    expect(document.blocks.find(block => block.id === 'form-state').data.initialState.statusMessage).toBe('')
+    expect(form.data.items[0].rules).toEqual({ hint: 'Legacy hint', readOnly: false, description: 'Current' })
+    const init = form.events.find(event => event.event === 'init').actions
+    expect(init[0]).toMatchObject({ uuid: 'loading', inputs: { disabled: true, loading: true, showHints: false, errors: [] }, nextAction: 'loading-message' })
+    expect(init[0].inputs).not.toHaveProperty('message')
+    expect(init[1]).toMatchObject({ uuid: 'loading-message', inputs: { blockId: 'form-state', method: 'merge', value: { statusMessage: '正在加载…' } }, nextAction: 'load' })
+    const submit = document.blocks.find(block => block.id === 'send').events[0]
+    const invalid = submit.actions.find(action => action.uuid === 'invalid')
+    expect(invalid.nextAction).toBe('invalid-message')
+    expect(submit.actions.find(action => action.uuid === 'invalid-message').nextAction).toBeNull()
+    expect(submit.onError.find(action => action.uuid === 'show_error-message').inputs.value.statusMessage).toBe('提交失败')
+    expect(migrateFormEvents(document)).toEqual({ document, changed: 0 })
+  })
+
+  it('handles title-only forms without adding status blocks and rejects presentation ID conflicts', () => {
+    const page = { blocks: [{ id: 'plain', type: 'MForm', data: { draft: { title: 'Title' }, items: [] } }] }
+    const { document } = migrateFormEvents(page)
+    expect(document.blocks.map(block => block.type)).toEqual(['MHeading', 'MForm'])
+    expect(document.blocks[1].events[0].actions[0].inputs.showHints).toBe(false)
+    expect(migrateFormEvents(document).changed).toBe(0)
+    const empty = structuredClone(page)
+    empty.blocks[0].data.draft.title = ''
+    expect(migrateFormEvents(empty).document.blocks).toHaveLength(1)
+    for (const id of ['form-title', 'form-status']) {
+      const conflicting = legacy()
+      conflicting.blocks.push({ id, type: 'MHeading', data: { text: 'Existing' } })
+      const original = structuredClone(conflicting)
+      expect(() => migrateFormEvents(conflicting)).toThrow('Migration ID conflict')
+      expect(conflicting).toEqual(original)
+    }
+  })
+
   it('moves hint conditions into editor events and reuses them after a silent restore', () => {
     const page = legacy()
     const form = page.blocks[0]
@@ -15,7 +55,7 @@ describe('form event migration', () => {
     const { document, changed } = migrateFormEvents(page)
     expect(changed).toBe(1)
     const migrated = document.blocks.find(block => block.id === 'form')
-    expect(migrated.data.draft).toEqual({ title: 'Test' })
+    expect(migrated.data).not.toHaveProperty('draft')
     const field = migrated.data.items.find(item => item.variableName === 'help')
     expect(field).not.toHaveProperty('events')
     expect(field.editor.events[0]).toEqual(existing)
@@ -37,7 +77,7 @@ describe('form event migration', () => {
     page.blocks[0].data.items.push({ variableName: 'help', editor: { id: 'help', type: 'MSelectField', data: {} } })
     const { document } = migrateFormEvents(page)
     const form = document.blocks.find(block => block.id === 'form')
-    form.data.draft.showHintsWhen = { field: 'help', equals: 'yes' }
+    form.data.draft = { title: '', showHintsWhen: { field: 'help', equals: 'yes' } }
     expect(migrateFormEvents(document).changed).toBe(1)
     form.events[0].actions.find(action => action.uuid === 'restore_fields').uuid = 'custom_restore'
     expect(() => migrateFormEvents(document)).toThrow('Custom hint initialization requires review')
@@ -48,7 +88,7 @@ describe('form event migration', () => {
     const original = legacy(), { document, changed } = migrateFormEvents(original)
     expect(changed).toBe(1)
     const form = document.blocks.find(block => block.id === 'form')
-    expect(form.data.draft).toEqual({ title: 'Test' })
+    expect(form.data).not.toHaveProperty('draft')
     expect(form.events.map(event => event.event)).toEqual(['init', 'change'])
     expect(form.events[1].execution).toMatchObject({ debounceMs: 400, concurrency: 'serialLatest', retry: 'resumeUnconfirmed' })
     const json = JSON.stringify(document)

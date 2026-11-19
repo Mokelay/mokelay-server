@@ -59,6 +59,89 @@ function migrateHintEvent(form, condition) {
   delete form.data.draft.showHintsWhen
 }
 
+function walk(value, visit) {
+  if (!value || typeof value !== 'object') return
+  visit(value)
+  Object.values(value).forEach(child => walk(child, visit))
+}
+
+// Legacy configuration is interpreted only by this offline migration, never by MForm.
+function migrateFormPresentation(document, blocks, form, draft) {
+  if (!form.id) throw new Error('Form presentation migration requires a block ID')
+  const unknown = Object.keys(draft).filter(key => !['title', 'fields', 'showHintsWhen', 'initApi', 'saveApi', 'submitApi', 'apiApp'].includes(key))
+  if (unknown.length) throw new Error(`Custom draft configuration requires review: ${form.id}: ${unknown.join(', ')}`)
+  const ids = new Set()
+  const graphs = []
+  walk(document, value => {
+    if (value.type && value.data && value.id) ids.add(value.id)
+    for (const event of Array.isArray(value.events) ? value.events : []) {
+      for (const key of ['actions', 'onError', 'onFinally']) if (Array.isArray(event[key])) graphs.push(event[key])
+    }
+  })
+  const reserve = id => {
+    if (ids.has(id)) throw new Error(`Migration ID conflict: ${id}`)
+    ids.add(id)
+  }
+  const prefix = []
+  if (draft.title !== undefined && typeof draft.title !== 'string') throw new Error(`Custom title requires review: ${form.id}`)
+  if (draft.title?.trim()) {
+    const id = `${form.id}-title`
+    reserve(id)
+    prefix.push({ id, type: 'MHeading', data: { text: draft.title, level: '1', align: 'left' } })
+  }
+  const matches = action => action.action === 'call_block_method' && action.inputs?.blockId === form.id
+    && action.inputs?.method === 'setStatus' && Object.hasOwn(action.inputs, 'message')
+  if (graphs.some(actions => actions.some(matches))) {
+    const stateId = `${form.id}-state`, textId = `${form.id}-status`
+    reserve(textId)
+    let state = blocks.find(block => block.id === stateId)
+    if (state && (state.type !== 'MPageState' || state.data?.readonly || Object.hasOwn(state.data?.initialState ?? {}, 'statusMessage'))) {
+      throw new Error(`Status state requires review: ${stateId}`)
+    }
+    if (!state) {
+      reserve(stateId)
+      state = { id: stateId, type: 'MPageState', data: { initialState: {} } }
+      prefix.unshift(state)
+    }
+    state.data.initialState = { ...state.data.initialState, statusMessage: '' }
+    prefix.push({ id: textId, type: 'MRichText', data: { content: binding(stateId, 'statusMessage') } })
+    for (const actions of graphs) {
+      for (const action of [...actions]) {
+        if (!matches(action)) continue
+        const uuid = `${action.uuid}-message`
+        if (actions.some(candidate => candidate.uuid === uuid)) throw new Error(`Status action ID conflict: ${uuid}`)
+        // A caller consuming the old message return value needs an explicit rewrite.
+        if (JSON.stringify(document).includes(`actions.${action.uuid}.outputs.returnData.message`)) {
+          throw new Error(`Status message output requires review: ${action.uuid}`)
+        }
+        const message = action.inputs.message
+        delete action.inputs.message
+        actions.splice(actions.indexOf(action) + 1, 0, {
+          ...method(uuid, stateId, 'merge', { value: { statusMessage: message } }), nextAction: action.nextAction ?? null
+        })
+        action.nextAction = uuid
+      }
+    }
+  }
+  const initializers = form.events?.filter(event => event.event === 'init') ?? []
+  if (initializers.length > 1) throw new Error(`Custom form initialization requires review: ${form.id}`)
+  let init = initializers[0]
+  if (!init) {
+    init = { event: 'init', actions: [] }
+    form.events = [...(form.events ?? []), init]
+  }
+  const first = init.actions?.[0]
+  if (first?.action === 'call_block_method' && first.inputs?.blockId === form.id && first.inputs?.method === 'setStatus') {
+    if (!Object.hasOwn(first.inputs, 'showHints')) first.inputs.showHints = false
+  } else {
+    const uuid = `${form.id}-initial-hints`
+    if (init.actions?.some(action => action.uuid === uuid)) throw new Error(`Hint action ID conflict: ${uuid}`)
+    init.actions = [{ ...method(uuid, form.id, 'setStatus', { showHints: false }), nextAction: first?.uuid ?? null }, ...(init.actions ?? [])]
+  }
+  blocks.splice(blocks.indexOf(form), 0, ...prefix)
+  delete form.data.draft
+}
+
 export function migrateFormEvents(document, getRecordFields) {
   const result = structuredClone(document)
   let changed = 0
@@ -67,6 +150,11 @@ export function migrateFormEvents(document, getRecordFields) {
     for (const form of [...blocks]) {
       const draft = form?.type === 'MForm' && form.data?.draft
       let migrated = false
+      if (draft?.fields) {
+        for (const item of form.data.items ?? []) {
+          if (Object.hasOwn(draft.fields, item.variableName)) item.rules = { ...draft.fields[item.variableName], ...item.rules }
+        }
+      }
       if (draft?.initApi || draft?.saveApi || draft?.submitApi) {
         if (!form.id || !draft.initApi || !draft.saveApi || !draft.submitApi) throw new Error('Incomplete legacy form API configuration')
         const id = form.id, stateId = `${id}-state`, retryId = `${id}-retry`
@@ -146,6 +234,9 @@ export function migrateFormEvents(document, getRecordFields) {
       }
       if (draft?.showHintsWhen) {
         migrateHintEvent(form, draft.showHintsWhen)
+      }
+      if (draft) {
+        migrateFormPresentation(result, blocks, form, draft)
         if (!migrated) changed++
       }
       function visit(value) {

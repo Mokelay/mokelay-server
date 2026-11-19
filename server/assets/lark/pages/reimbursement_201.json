@@ -17,7 +17,29 @@
           "submitted": false,
           "hideRetry": true,
           "failedBlock": "reimbursement-form",
-          "failedEvent": "init"
+          "failedEvent": "init",
+          "statusMessage": ""
+        }
+      }
+    },
+    {
+      "id": "reimbursement-form-title",
+      "type": "MHeading",
+      "data": {
+        "text": "201.报销申请",
+        "level": "1",
+        "align": "left"
+      }
+    },
+    {
+      "id": "reimbursement-form-status",
+      "type": "MRichText",
+      "data": {
+        "content": {
+          "mode": "variable",
+          "source": "Block",
+          "blockId": "reimbursement-form-state",
+          "variable": "statusMessage"
         }
       }
     },
@@ -25,9 +47,6 @@
       "id": "reimbursement-form",
       "type": "MForm",
       "data": {
-        "draft": {
-          "title": "201.报销申请"
-        },
         "defaultValues": {
           "show_help": "no",
           "category": "",
@@ -276,8 +295,23 @@
                 "method": "setStatus",
                 "loading": true,
                 "disabled": true,
-                "message": "正在加载…",
-                "errors": []
+                "errors": [],
+                "showHints": false
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "loading-message"
+            },
+            {
+              "uuid": "loading-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "正在加载…"
+                }
               },
               "outputs": [
                 "returnData"
@@ -410,8 +444,22 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "将自动保存填写内容",
                 "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "loaded-message"
+            },
+            {
+              "uuid": "loaded-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "将自动保存填写内容"
+                }
               },
               "outputs": [
                 "returnData"
@@ -443,7 +491,6 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "初始化失败",
                 "errors": [
                   {
                     "message": {
@@ -451,6 +498,21 @@
                     }
                   }
                 ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error-message"
+            },
+            {
+              "uuid": "show_error-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "初始化失败"
+                }
               },
               "outputs": [
                 "returnData"
@@ -533,8 +595,22 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "正在保存…",
                 "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "saving-message"
+            },
+            {
+              "uuid": "saving-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "正在保存…"
+                }
               },
               "outputs": [
                 "returnData"
@@ -658,8 +734,22 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "草稿已保存",
                 "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "saved-message"
+            },
+            {
+              "uuid": "saved-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "草稿已保存"
+                }
               },
               "outputs": [
                 "returnData"
@@ -691,7 +781,6 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "草稿未保存",
                 "errors": [
                   {
                     "message": {
@@ -699,6 +788,21 @@
                     }
                   }
                 ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error-message"
+            },
+            {
+              "uuid": "show_error-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "草稿未保存"
+                }
               },
               "outputs": [
                 "returnData"
@@ -925,8 +1029,22 @@
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
                 "disabled": true,
-                "message": "正在提交…",
                 "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "submitting-message"
+            },
+            {
+              "uuid": "submitting-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "正在提交…"
+                }
               },
               "outputs": [
                 "returnData"
@@ -982,8 +1100,22 @@
               "action": "call_block_method",
               "inputs": {
                 "blockId": "reimbursement-form",
-                "method": "setStatus",
-                "message": "请检查表单填写内容。"
+                "method": "setStatus"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "invalid-message"
+            },
+            {
+              "uuid": "invalid-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "请检查表单填写内容。"
+                }
               },
               "outputs": [
                 "returnData"
@@ -1123,10 +1255,24 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": {
-                  "template": "已提交 · 申请单号 {{actions.send.outputs.rawResponse.data.record.id}}"
-                },
                 "errors": []
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "receipt-message"
+            },
+            {
+              "uuid": "receipt-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": {
+                    "template": "已提交 · 申请单号 {{actions.send.outputs.rawResponse.data.record.id}}"
+                  }
+                }
               },
               "outputs": [
                 "returnData"
@@ -1162,7 +1308,6 @@
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
-                "message": "提交失败",
                 "errors": [
                   {
                     "message": {
@@ -1170,6 +1315,21 @@
                     }
                   }
                 ]
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": "show_error-message"
+            },
+            {
+              "uuid": "show_error-message",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form-state",
+                "method": "merge",
+                "value": {
+                  "statusMessage": "提交失败"
+                }
               },
               "outputs": [
                 "returnData"
