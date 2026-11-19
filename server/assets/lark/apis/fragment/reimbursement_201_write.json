@@ -1,0 +1,645 @@
+{
+  "uuid": "reimbursement_201_write",
+  "alias": "报销申请保存与提交",
+  "fragment": true,
+  "transaction": {
+    "datasource": "Lark",
+    "isolationLevel": "read committed",
+    "retries": 2
+  },
+  "params": [
+    "enterprise_uuid",
+    "employee_id",
+    "id",
+    "changes"
+  ],
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "positive_version"
+    },
+    {
+      "uuid": "positive_version",
+      "alias": "写入的版本号必须大于零",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{params.changes.version}}"
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "positive_version_yes",
+          "value": true,
+          "nextBlock": "lock_applicant"
+        },
+        {
+          "uuid": "positive_version_no",
+          "value": false,
+          "nextBlock": "reject_version"
+        }
+      ]
+    },
+    {
+      "uuid": "reject_version",
+      "alias": "拒绝无效版本",
+      "functionName": "assert",
+      "inputs": {
+        "condition": false,
+        "code": "BLOCK_UNIQUE_CONFLICT",
+        "message": "草稿版本无效，请刷新后继续。",
+        "statusCode": 409
+      },
+      "outputs": [],
+      "nextBlock": null
+    },
+    {
+      "uuid": "lock_applicant",
+      "alias": "串行化当前租户申请人的写入",
+      "functionName": "upsert",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_write_locks",
+        "idField": "id",
+        "fields": {
+          "id": {
+            "template": "{{params.enterprise_uuid}}:{{params.employee_id}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_previous"
+    },
+    {
+      "uuid": "read_previous",
+      "alias": "读取本人申请的当前版本",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "fields": [
+          "version",
+          "status",
+          "show_help",
+          "category",
+          "fiat",
+          "crypto",
+          "loan",
+          "note"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.enterprise_uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "employee_id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.employee_id}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "has_previous"
+    },
+    {
+      "uuid": "has_previous",
+      "alias": "申请是否已存在",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{blocks.read_previous.outputs.data}}",
+          "processors": [
+            "not_null"
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "has_previous_yes",
+          "value": true,
+          "nextBlock": "is_submitted"
+        },
+        {
+          "uuid": "has_previous_no",
+          "value": false,
+          "nextBlock": "require_initial_version"
+        }
+      ]
+    },
+    {
+      "uuid": "is_submitted",
+      "alias": "申请是否已提交",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{blocks.read_previous.outputs.data.status}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": "submitted"
+            }
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "is_submitted_yes",
+          "value": true,
+          "nextBlock": "require_repeat_submit"
+        },
+        {
+          "uuid": "is_submitted_no",
+          "value": false,
+          "nextBlock": "version_matches"
+        }
+      ]
+    },
+    {
+      "uuid": "require_repeat_submit",
+      "alias": "已提交的申请只允许重复提交",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{params.changes.status}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": "submitted"
+            }
+          ]
+        },
+        "code": "BLOCK_UNIQUE_CONFLICT",
+        "message": "申请已提交，不能继续保存草稿。",
+        "statusCode": 409
+      },
+      "outputs": [],
+      "nextBlock": "read_result"
+    },
+    {
+      "uuid": "version_matches",
+      "alias": "写入版本是否恰好比当前版本大一",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{blocks.read_previous.outputs.data.version}}",
+          "processors": [
+            {
+              "processor": "integer_add",
+              "param": 1
+            },
+            {
+              "processor": "equals",
+              "param": {
+                "template": "{{params.changes.version}}"
+              }
+            }
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "version_matches_yes",
+          "value": true,
+          "nextBlock": "has_category"
+        },
+        {
+          "uuid": "version_matches_no",
+          "value": false,
+          "nextBlock": "require_same_save"
+        }
+      ]
+    },
+    {
+      "uuid": "require_same_save",
+      "alias": "校验重试的版本和全部写入字段",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{blocks.read_previous.outputs.data}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": {
+                "template": "{{params.changes}}"
+              }
+            }
+          ]
+        },
+        "code": "BLOCK_UNIQUE_CONFLICT",
+        "message": "这份草稿已在其他窗口更新，请刷新后继续。",
+        "statusCode": 409
+      },
+      "outputs": [],
+      "nextBlock": "read_result"
+    },
+    {
+      "uuid": "require_initial_version",
+      "alias": "新申请的首个版本必须为一",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{params.changes.version}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": 1
+            }
+          ]
+        },
+        "code": "BLOCK_UNIQUE_CONFLICT",
+        "message": "这份草稿已在其他窗口更新，请刷新后继续。",
+        "statusCode": 409
+      },
+      "outputs": [],
+      "nextBlock": "read_open_draft"
+    },
+    {
+      "uuid": "read_open_draft",
+      "alias": "查找申请人的未提交草稿",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "fields": [
+          "id"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.enterprise_uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "employee_id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.employee_id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "status",
+            "conditionType": "EQ",
+            "fieldValue": "draft"
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "require_no_open_draft"
+    },
+    {
+      "uuid": "require_no_open_draft",
+      "alias": "每人只能有一份草稿",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{blocks.read_open_draft.outputs.data}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": null
+            }
+          ]
+        },
+        "code": "BLOCK_UNIQUE_CONFLICT",
+        "message": "这份草稿已在其他窗口更新，请刷新后继续。",
+        "statusCode": 409
+      },
+      "outputs": [],
+      "nextBlock": "has_category"
+    },
+    {
+      "uuid": "has_category",
+      "alias": "是否已选报销类别",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{params.changes.category}}",
+          "processors": [
+            "not_null"
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "has_category_yes",
+          "value": true,
+          "nextBlock": "read_category"
+        },
+        {
+          "uuid": "has_category_no",
+          "value": false,
+          "nextBlock": "require_draft"
+        }
+      ]
+    },
+    {
+      "uuid": "read_category",
+      "alias": "读取并锁定启用的类别",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_categories",
+        "fields": [
+          "value"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "value",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.changes.category}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "active",
+            "conditionType": "EQ",
+            "fieldValue": true
+          }
+        ],
+        "lock": "share"
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "require_category"
+    },
+    {
+      "uuid": "require_category",
+      "alias": "校验所选类别",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{blocks.read_category.outputs.data}}",
+          "processors": [
+            "not_null"
+          ]
+        },
+        "code": "REQUEST_INVALID_BODY",
+        "message": "请选择有效的报销类别。",
+        "statusCode": 400
+      },
+      "outputs": [],
+      "nextBlock": "choose_write"
+    },
+    {
+      "uuid": "require_draft",
+      "alias": "提交时必须选择类别",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{params.changes.status}}",
+          "processors": [
+            {
+              "processor": "equals",
+              "param": "draft"
+            }
+          ]
+        },
+        "code": "REQUEST_PARAMETER_MISSING",
+        "message": "请选择申请报销类别。",
+        "statusCode": 400
+      },
+      "outputs": [],
+      "nextBlock": "choose_write"
+    },
+    {
+      "uuid": "choose_write",
+      "alias": "更新已有申请或创建新申请",
+      "functionName": "if_controller",
+      "type": "controller",
+      "inputs": {
+        "value": {
+          "template": "{{blocks.read_previous.outputs.data}}",
+          "processors": [
+            "not_null"
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "uuid": "choose_write_yes",
+          "value": true,
+          "nextBlock": "update_record"
+        },
+        {
+          "uuid": "choose_write_no",
+          "value": false,
+          "nextBlock": "create_record"
+        }
+      ]
+    },
+    {
+      "uuid": "create_record",
+      "alias": "创建申请",
+      "functionName": "create",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "idField": "id",
+        "conflictMessage": "这份草稿已在其他窗口更新，请刷新后继续。",
+        "fields": {
+          "id": {
+            "template": "{{params.id}}"
+          },
+          "enterprise_uuid": {
+            "template": "{{params.enterprise_uuid}}"
+          },
+          "employee_id": {
+            "template": "{{params.employee_id}}"
+          },
+          "version": {
+            "template": "{{params.changes.version}}"
+          },
+          "status": {
+            "template": "{{params.changes.status}}"
+          },
+          "show_help": {
+            "template": "{{params.changes.show_help}}"
+          },
+          "category": {
+            "template": "{{params.changes.category}}"
+          },
+          "fiat": {
+            "template": "{{params.changes.fiat}}"
+          },
+          "crypto": {
+            "template": "{{params.changes.crypto}}"
+          },
+          "loan": {
+            "template": "{{params.changes.loan}}"
+          },
+          "note": {
+            "template": "{{params.changes.note}}"
+          }
+        }
+      },
+      "outputs": [
+        "uuid"
+      ],
+      "nextBlock": "read_result"
+    },
+    {
+      "uuid": "update_record",
+      "alias": "保存下一版本",
+      "functionName": "update",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.enterprise_uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "employee_id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.employee_id}}"
+            }
+          }
+        ],
+        "fields": {
+          "version": {
+            "template": "{{params.changes.version}}"
+          },
+          "status": {
+            "template": "{{params.changes.status}}"
+          },
+          "show_help": {
+            "template": "{{params.changes.show_help}}"
+          },
+          "category": {
+            "template": "{{params.changes.category}}"
+          },
+          "fiat": {
+            "template": "{{params.changes.fiat}}"
+          },
+          "crypto": {
+            "template": "{{params.changes.crypto}}"
+          },
+          "loan": {
+            "template": "{{params.changes.loan}}"
+          },
+          "note": {
+            "template": "{{params.changes.note}}"
+          },
+          "updated_at": {
+            "template": "{{now}}"
+          }
+        }
+      },
+      "outputs": [
+        "affected"
+      ],
+      "nextBlock": "read_result"
+    },
+    {
+      "uuid": "read_result",
+      "alias": "返回申请及数据库计算的结算金额",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "fields": [
+          "id",
+          "version",
+          "status",
+          "show_help",
+          "category",
+          "fiat",
+          "crypto",
+          "loan",
+          "settlement",
+          "note"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.enterprise_uuid}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "employee_id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{params.employee_id}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "key": "data",
+          "processors": [
+            "is_not_null"
+          ]
+        }
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "record": {
+      "template": "{{blocks.read_result.outputs.data}}"
+    }
+  }
+}

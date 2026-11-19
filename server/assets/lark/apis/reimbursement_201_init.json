@@ -1,0 +1,206 @@
+{
+  "uuid": "reimbursement_201_init",
+  "alias": "报销申请：读取类别和本人草稿",
+  "method": "GET",
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "tenant"
+    },
+    {
+      "uuid": "tenant",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay"
+      },
+      "outputs": [
+        "enterpriseUuid"
+      ],
+      "nextBlock": "session"
+    },
+    {
+      "uuid": "session",
+      "functionName": "readSession",
+      "inputs": {
+        "key": "user"
+      },
+      "outputs": [
+        "value"
+      ],
+      "nextBlock": "read_employee"
+    },
+    {
+      "uuid": "read_employee",
+      "alias": "读取当前租户申请人",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "employees",
+        "fields": [
+          "id"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{blocks.session.outputs.value.id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{blocks.tenant.outputs.enterpriseUuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "require_employee"
+    },
+    {
+      "uuid": "require_employee",
+      "alias": "校验申请人归属",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{blocks.read_employee.outputs.data}}",
+          "processors": [
+            "not_null"
+          ]
+        },
+        "code": "BLOCK_SESSION_VALUE_MISSING",
+        "message": "请重新登录。",
+        "statusCode": 401
+      },
+      "outputs": [],
+      "nextBlock": "categories"
+    },
+    {
+      "uuid": "categories",
+      "functionName": "list",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_categories",
+        "fields": [
+          "value",
+          "label"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "active",
+            "fieldValue": true,
+            "conditionType": "EQ"
+          }
+        ],
+        "orderBy": [
+          {
+            "fieldName": "position",
+            "direction": "ASC"
+          }
+        ]
+      },
+      "outputs": [
+        "datas"
+      ],
+      "nextBlock": "new_id"
+    },
+    {
+      "uuid": "new_id",
+      "functionName": "randomId",
+      "inputs": {
+        "prefix": "BX-",
+        "length": 16,
+        "alphabet": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "lowerCase": false
+      },
+      "outputs": [
+        "value"
+      ],
+      "nextBlock": "current"
+    },
+    {
+      "uuid": "current",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Lark",
+        "table": "reimbursement_applications",
+        "fields": [
+          "id",
+          "version",
+          "status",
+          "show_help",
+          "category",
+          "fiat",
+          "crypto",
+          "loan",
+          "settlement",
+          "note"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "fieldValue": {
+              "template": "{{blocks.tenant.outputs.enterpriseUuid}}"
+            },
+            "conditionType": "EQ"
+          },
+          {
+            "group": false,
+            "fieldName": "employee_id",
+            "fieldValue": {
+              "template": "{{blocks.session.outputs.value.id}}"
+            },
+            "conditionType": "EQ"
+          },
+          {
+            "group": false,
+            "fieldName": "status",
+            "fieldValue": "draft",
+            "conditionType": "EQ"
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "options": {
+      "category": {
+        "template": "{{blocks.categories.outputs.datas}}"
+      }
+    },
+    "record": {
+      "template": "{{blocks.current.outputs.data}}",
+      "processors": [
+        {
+          "processor": "default_value",
+          "param": {
+            "id": {
+              "template": "{{blocks.new_id.outputs.value}}"
+            },
+            "version": 0,
+            "status": "draft",
+            "show_help": "no",
+            "category": "",
+            "fiat": "",
+            "crypto": "",
+            "loan": "",
+            "settlement": "0.00",
+            "note": ""
+          }
+        }
+      ]
+    }
+  }
+}

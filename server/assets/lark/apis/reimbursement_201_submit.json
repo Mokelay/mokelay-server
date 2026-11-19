@@ -1,0 +1,262 @@
+{
+  "uuid": "reimbursement_201_submit",
+  "alias": "提交报销申请",
+  "method": "POST",
+  "request": {
+    "body": [
+      {
+        "key": "id",
+        "processors": [
+          {
+            "processor": "regex",
+            "param": "^BX-[0-9A-Z]{16}$"
+          }
+        ]
+      },
+      {
+        "key": "version",
+        "processors": [
+          "number_check"
+        ]
+      },
+      {
+        "key": "show_help",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": "no"
+          },
+          {
+            "processor": "regex",
+            "param": "^(yes|no)$"
+          }
+        ]
+      },
+      {
+        "key": "category",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": ""
+          },
+          {
+            "processor": "max",
+            "param": [
+              40
+            ]
+          }
+        ]
+      },
+      {
+        "key": "fiat",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": "0"
+          },
+          {
+            "processor": "regex",
+            "param": "^[0-9]{1,14}(\\.[0-9]{1,2})?$"
+          },
+          {
+            "processor": "decimal_fixed",
+            "param": 2
+          }
+        ]
+      },
+      {
+        "key": "crypto",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": "0"
+          },
+          {
+            "processor": "regex",
+            "param": "^[0-9]{1,14}(\\.[0-9]{1,2})?$"
+          },
+          {
+            "processor": "decimal_fixed",
+            "param": 2
+          }
+        ]
+      },
+      {
+        "key": "loan",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": "0"
+          },
+          {
+            "processor": "regex",
+            "param": "^[0-9]{1,14}(\\.[0-9]{1,2})?$"
+          },
+          {
+            "processor": "decimal_fixed",
+            "param": 2
+          }
+        ]
+      },
+      {
+        "key": "note",
+        "processors": [
+          {
+            "processor": "default_value",
+            "param": ""
+          },
+          {
+            "processor": "max",
+            "param": [
+              2000
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "uuid": "starter",
+      "nextBlock": "tenant"
+    },
+    {
+      "uuid": "tenant",
+      "functionName": "requireTenantContext",
+      "inputs": {
+        "datasource": "Mokelay"
+      },
+      "outputs": [
+        "enterpriseUuid"
+      ],
+      "nextBlock": "session"
+    },
+    {
+      "uuid": "session",
+      "functionName": "readSession",
+      "inputs": {
+        "key": "user"
+      },
+      "outputs": [
+        "value"
+      ],
+      "nextBlock": "read_employee"
+    },
+    {
+      "uuid": "read_employee",
+      "alias": "读取当前租户申请人",
+      "functionName": "read",
+      "inputs": {
+        "datasource": "Mokelay",
+        "table": "employees",
+        "fields": [
+          "id"
+        ],
+        "conditions": [
+          {
+            "group": false,
+            "fieldName": "id",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{blocks.session.outputs.value.id}}"
+            }
+          },
+          {
+            "group": false,
+            "fieldName": "enterprise_uuid",
+            "conditionType": "EQ",
+            "fieldValue": {
+              "template": "{{blocks.tenant.outputs.enterpriseUuid}}"
+            }
+          }
+        ]
+      },
+      "outputs": [
+        "data"
+      ],
+      "nextBlock": "require_employee"
+    },
+    {
+      "uuid": "require_employee",
+      "alias": "校验申请人归属",
+      "functionName": "assert",
+      "inputs": {
+        "condition": {
+          "template": "{{blocks.read_employee.outputs.data}}",
+          "processors": [
+            "not_null"
+          ]
+        },
+        "code": "BLOCK_SESSION_VALUE_MISSING",
+        "message": "请重新登录。",
+        "statusCode": 401
+      },
+      "outputs": [],
+      "nextBlock": "write"
+    },
+    {
+      "uuid": "write",
+      "alias": "执行报销写入流程",
+      "functionName": "executeFragment",
+      "inputs": {
+        "fragmentUuid": "reimbursement_201_write",
+        "params": {
+          "enterprise_uuid": {
+            "template": "{{blocks.tenant.outputs.enterpriseUuid}}"
+          },
+          "employee_id": {
+            "template": "{{blocks.session.outputs.value.id}}"
+          },
+          "id": {
+            "template": "{{request.body.id}}"
+          },
+          "changes": {
+            "version": {
+              "template": "{{request.body.version}}",
+              "processors": [
+                {
+                  "processor": "integer_add",
+                  "param": 1
+                }
+              ]
+            },
+            "status": "submitted",
+            "show_help": {
+              "template": "{{request.body.show_help}}"
+            },
+            "category": {
+              "template": "{{request.body.category}}",
+              "processors": [
+                {
+                  "processor": "default_value",
+                  "param": null
+                }
+              ]
+            },
+            "fiat": {
+              "template": "{{request.body.fiat}}"
+            },
+            "crypto": {
+              "template": "{{request.body.crypto}}"
+            },
+            "loan": {
+              "template": "{{request.body.loan}}"
+            },
+            "note": {
+              "template": "{{request.body.note}}"
+            }
+          }
+        }
+      },
+      "outputs": [
+        "result"
+      ],
+      "nextBlock": null
+    }
+  ],
+  "response": {
+    "record": {
+      "template": "{{blocks.write.outputs.result.record}}"
+    }
+  }
+}

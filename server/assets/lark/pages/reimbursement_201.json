@@ -1,0 +1,240 @@
+{
+  "uuid": "reimbursement_201",
+  "subPage": false,
+  "quotes": [],
+  "dependencies": [],
+  "name": "201.报销申请",
+  "blocks": [
+    {
+      "id": "reimbursement-form",
+      "type": "MForm",
+      "data": {
+        "draft": {
+          "title": "201.报销申请",
+          "initApi": "reimbursement_201_init",
+          "saveApi": "reimbursement_201_save_draft",
+          "submitApi": "reimbursement_201_submit",
+          "showHintsWhen": {
+            "field": "show_help",
+            "equals": "yes"
+          },
+          "apiApp": "lark"
+        },
+        "defaultValues": {
+          "show_help": "no",
+          "category": "",
+          "fiat": "",
+          "crypto": "",
+          "loan": "",
+          "settlement": "0.00",
+          "approval_amount": "0",
+          "note": ""
+        },
+        "items": [
+          {
+            "variableName": "show_help",
+            "labelName": "是否需要展示填单说明",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-show_help",
+              "type": "MSelectField",
+              "data": {
+                "options": [
+                  {
+                    "value": "no",
+                    "label": "否，不需要展示说明"
+                  },
+                  {
+                    "value": "yes",
+                    "label": "是，需要展示说明"
+                  }
+                ]
+              }
+            },
+            "rules": {
+              "description": "⬆️填单说明：\n1.申请单页面各字段下会展示这一字段的解释说明与填写提示。\n2.若需展示填单说明，可选择“是，需要展示说明”。"
+            }
+          },
+          {
+            "variableName": "category",
+            "labelName": "申请报销类别",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-category",
+              "type": "MSelectField",
+              "data": {
+                "options": [],
+                "required": true,
+                "placeholder": "请选择"
+              }
+            },
+            "rules": {
+              "hint": "选择本次报销的费用类别。"
+            }
+          },
+          {
+            "variableName": "fiat",
+            "labelName": "法定货币报销金额（折合 USDT）",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-fiat",
+              "type": "MInput",
+              "data": {
+                "placeholder": "0.00",
+                "inputMode": "decimal"
+              }
+            },
+            "rules": {
+              "visibleWhen": {
+                "field": "category"
+              },
+              "hint": "填写已折合为 USDT 的法币报销总额。",
+              "pattern": "^[0-9]{1,14}(\\.[0-9]{1,2})?$",
+              "invalidMessage": "请输入非负金额，整数最多 14 位，小数最多 2 位。"
+            }
+          },
+          {
+            "variableName": "crypto",
+            "labelName": "数字货币报销金额（USDT）",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-crypto",
+              "type": "MInput",
+              "data": {
+                "placeholder": "0.00",
+                "inputMode": "decimal"
+              }
+            },
+            "rules": {
+              "visibleWhen": {
+                "field": "category"
+              },
+              "hint": "填写以 USDT 计价的数字货币报销总额。",
+              "pattern": "^[0-9]{1,14}(\\.[0-9]{1,2})?$",
+              "invalidMessage": "请输入非负金额，整数最多 14 位，小数最多 2 位。"
+            }
+          },
+          {
+            "variableName": "loan",
+            "labelName": "借款金额（USDT）",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-loan",
+              "type": "MInput",
+              "data": {
+                "placeholder": "0.00",
+                "inputMode": "decimal"
+              }
+            },
+            "rules": {
+              "visibleWhen": {
+                "field": "category"
+              },
+              "hint": "填写本次抵扣的借款，没有借款可留空。",
+              "pattern": "^[0-9]{1,14}(\\.[0-9]{1,2})?$",
+              "invalidMessage": "请输入非负金额，整数最多 14 位，小数最多 2 位。"
+            }
+          },
+          {
+            "variableName": "settlement",
+            "labelName": "应补或应退金额\n（USDT）",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-settlement",
+              "type": "MInput",
+              "data": {
+                "disabled": true
+              }
+            },
+            "rules": {
+              "readOnly": true,
+              "description": "⬆️填单说明-报销款结算：\n1.公司报销款结算为USDT。\n2.报销款结算金额合计\n= 法定货币报销金额合计（折合USDT）+ 数字货币报销数量合计（USDT）- 借款金额（USDT）\n= 应补或应退金额（USDT）"
+            }
+          },
+          {
+            "variableName": "approval_amount",
+            "labelName": "审批条件用金额（请忽略）",
+            "layout": "Horizontal",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-approval_amount",
+              "type": "MInput",
+              "data": {
+                "disabled": true
+              }
+            },
+            "rules": {
+              "readOnly": true
+            }
+          },
+          {
+            "variableName": "note",
+            "labelName": "备注",
+            "layout": "Vertical",
+            "fieldDataType": "string",
+            "editor": {
+              "id": "expense-note",
+              "type": "MTextareaField",
+              "data": {
+                "placeholder": "其他补充说明",
+                "maxLength": 2000,
+                "rows": 2
+              }
+            },
+            "rules": {
+              "hint": "可填写与本次报销有关的其他信息。"
+            }
+          }
+        ]
+      },
+      "events": []
+    },
+    {
+      "id": "reimbursement-submit",
+      "type": "MButton",
+      "data": {
+        "label": "提交",
+        "variant": "primary",
+        "align": "center",
+        "width": "min(568px, calc(100% - 32px))",
+        "disabled": {
+          "mode": "variable",
+          "source": "Block",
+          "blockId": "reimbursement-form",
+          "variable": "$draft.locked"
+        },
+        "hidden": {
+          "mode": "variable",
+          "source": "Block",
+          "blockId": "reimbursement-form",
+          "variable": "$draft.submitted"
+        }
+      },
+      "events": [
+        {
+          "event": "click",
+          "actions": [
+            {
+              "uuid": "submit_reimbursement",
+              "action": "call_block_method",
+              "inputs": {
+                "blockId": "reimbursement-form",
+                "method": "submitDraft"
+              },
+              "outputs": [
+                "returnData"
+              ],
+              "nextAction": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
