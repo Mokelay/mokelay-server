@@ -6,6 +6,44 @@ const legacy = () => ({ blocks: [
   { id: 'send', type: 'MButton', data: { label: 'Send' }, events: [{ event: 'click', actions: [{ uuid: 'send', action: 'call_block_method', inputs: { blockId: 'form', method: 'submitDraft' } }] }] }
 ] })
 describe('form event migration', () => {
+  it('moves hint conditions into editor events and reuses them after a silent restore', () => {
+    const page = legacy()
+    const form = page.blocks[0]
+    form.data.draft.showHintsWhen = { field: 'help', equals: 'yes' }
+    const existing = { event: 'change', actions: [{ uuid: 'custom', action: 'call_block_method', inputs: { blockId: 'form', method: 'getData' } }] }
+    form.data.items.push({ variableName: 'help', editor: { id: 'help-field', type: 'MSelectField', data: {}, events: [existing] } })
+    const { document, changed } = migrateFormEvents(page)
+    expect(changed).toBe(1)
+    const migrated = document.blocks.find(block => block.id === 'form')
+    expect(migrated.data.draft).toEqual({ title: 'Test' })
+    const field = migrated.data.items.find(item => item.variableName === 'help')
+    expect(field).not.toHaveProperty('events')
+    expect(field.editor.events[0]).toEqual(existing)
+    expect(field.editor.events[1]).toMatchObject({ event: 'change', execution: { concurrency: 'serialLatest' }, actions: [
+      { action: 'switch_controller', inputs: { value: { template: '{{event.value}}' } } },
+      { inputs: { showHints: true } }, { inputs: { showHints: false } }
+    ] })
+    const init = migrated.events.find(event => event.event === 'init')
+    expect(init.actions.find(action => action.uuid === 'restore_fields').nextAction).toBe('help-field-sync-hints')
+    expect(init.actions.find(action => action.action === 'trigger_event')).toMatchObject({ inputs: {
+      blockId: 'help-field', event: 'change', payload: { value: { template: '{{actions.restore_fields.outputs.returnData.values.help}}' } }
+    }, nextAction: 'options' })
+    expect(migrateFormEvents(document)).toEqual({ document, changed: 0 })
+    expect(form.data.draft).toHaveProperty('showHintsWhen')
+  })
+
+  it('migrates hints on an already event-based form, but refuses ambiguous initialization', () => {
+    const page = legacy()
+    page.blocks[0].data.items.push({ variableName: 'help', editor: { id: 'help', type: 'MSelectField', data: {} } })
+    const { document } = migrateFormEvents(page)
+    const form = document.blocks.find(block => block.id === 'form')
+    form.data.draft.showHintsWhen = { field: 'help', equals: 'yes' }
+    expect(migrateFormEvents(document).changed).toBe(1)
+    form.events[0].actions.find(action => action.uuid === 'restore_fields').uuid = 'custom_restore'
+    expect(() => migrateFormEvents(document)).toThrow('Custom hint initialization requires review')
+    expect(form.data.draft).toHaveProperty('showHintsWhen')
+  })
+
   it('moves all API interactions to events and is idempotent', () => {
     const original = legacy(), { document, changed } = migrateFormEvents(original)
     expect(changed).toBe(1)

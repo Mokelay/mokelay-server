@@ -37,9 +37,9 @@ describe('client Action and Processor documentation assets', () => {
     expect(docs.actions.map((doc) => doc.action_name)).toEqual(expect.arrayContaining([
       'execute_ds', 'confirm', 'open_dialog', 'close_dialog', 'jump_url',
       'call_block_method', 'upload_file', 'download_blob', 'if_controller', 'switch_controller',
-      'flush_event', 'retry_event',
+      'flush_event', 'retry_event', 'trigger_event',
     ]))
-    expect(docs.actions).toHaveLength(12)
+    expect(docs.actions).toHaveLength(13)
     expect(docs.actions.every((doc) => (
       doc.source_kind === 'mokelay-components'
       && doc.source_package === 'mokelay-components'

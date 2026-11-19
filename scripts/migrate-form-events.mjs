@@ -22,6 +22,43 @@ export function readApiRecordFields(api) {
   return defaults ? fields.filter(field => Object.hasOwn(defaults, field)) : fields
 }
 
+function migrateHintEvent(form, condition) {
+  const item = form.data.items?.find(item => item.variableName === condition.field)
+  const editor = item?.editor
+  if (!form.id || !editor?.id || editor.type !== 'MSelectField' || typeof condition.equals !== 'string') {
+    throw new Error(`Hint controller requires review: ${form.id}`)
+  }
+  const initializers = form.events?.filter(event => event.event === 'init') ?? []
+  const init = initializers[0]
+  const restore = init?.actions?.find(action => action.uuid === 'restore_fields'
+    && action.action === 'call_block_method' && action.inputs?.blockId === form.id
+    && action.inputs?.method === 'setValues' && Object.hasOwn(action.inputs.values ?? {}, condition.field))
+  if (initializers.length !== 1 || !restore || restore.nextAction === undefined) {
+    throw new Error(`Custom hint initialization requires review: ${form.id}`)
+  }
+  const ruleId = `${editor.id}-hint-visibility`
+  const triggerId = `${editor.id}-sync-hints`
+  if (editor.events?.some(event => event.actions?.some(action => action.uuid === ruleId))
+      || init.actions.some(action => action.uuid === triggerId)) throw new Error(`Hint event ID conflict: ${editor.id}`)
+  editor.events = [...(editor.events ?? []), {
+    event: 'change', execution: { concurrency: 'serialLatest' }, actions: [
+      { uuid: ruleId, action: 'switch_controller', type: 'controller', inputs: { dataType: 'string', value: template('event.value') }, nodes: [
+        { uuid: 'show', value: condition.equals, nextAction: 'show_hints' },
+        { uuid: 'hide', type: 'DEFAULT', nextAction: 'hide_hints' }
+      ], nextAction: null },
+      { ...method('show_hints', form.id, 'setStatus', { showHints: true }), nextAction: null },
+      { ...method('hide_hints', form.id, 'setStatus', { showHints: false }), nextAction: null }
+    ]
+  }]
+  init.actions.splice(init.actions.indexOf(restore) + 1, 0, {
+    uuid: triggerId, action: 'trigger_event', inputs: { blockId: editor.id, event: 'change', payload: {
+      value: template(`actions.${restore.uuid}.outputs.returnData.values.${condition.field}`)
+    } }, outputs: ['result'], nextAction: restore.nextAction
+  })
+  restore.nextAction = triggerId
+  delete form.data.draft.showHintsWhen
+}
+
 export function migrateFormEvents(document, getRecordFields) {
   const result = structuredClone(document)
   let changed = 0
@@ -29,6 +66,7 @@ export function migrateFormEvents(document, getRecordFields) {
     if (!Array.isArray(blocks)) return
     for (const form of [...blocks]) {
       const draft = form?.type === 'MForm' && form.data?.draft
+      let migrated = false
       if (draft?.initApi || draft?.saveApi || draft?.submitApi) {
         if (!form.id || !draft.initApi || !draft.saveApi || !draft.submitApi) throw new Error('Incomplete legacy form API configuration')
         const id = form.id, stateId = `${id}-state`, retryId = `${id}-retry`
@@ -104,6 +142,11 @@ export function migrateFormEvents(document, getRecordFields) {
         blocks.splice(blocks.indexOf(form), 0, { id: stateId, type: 'MPageState', data: { initialState: { record: {}, ready: false, locked: true, busy: true, submitted: false, hideRetry: true, failedBlock: id, failedEvent: 'init' } } })
         blocks.splice(blocks.indexOf(form) + 1, 0, retry)
         changed++
+        migrated = true
+      }
+      if (draft?.showHintsWhen) {
+        migrateHintEvent(form, draft.showHintsWhen)
+        if (!migrated) changed++
       }
       function visit(value) {
         if (!value || typeof value !== 'object') return

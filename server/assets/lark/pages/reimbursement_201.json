@@ -26,11 +26,7 @@
       "type": "MForm",
       "data": {
         "draft": {
-          "title": "201.报销申请",
-          "showHintsWhen": {
-            "field": "show_help",
-            "equals": "yes"
-          }
+          "title": "201.报销申请"
         },
         "defaultValues": {
           "show_help": "no",
@@ -62,7 +58,67 @@
                     "label": "是，需要展示说明"
                   }
                 ]
-              }
+              },
+              "events": [
+                {
+                  "event": "change",
+                  "execution": {
+                    "concurrency": "serialLatest"
+                  },
+                  "actions": [
+                    {
+                      "uuid": "expense-show_help-hint-visibility",
+                      "action": "switch_controller",
+                      "type": "controller",
+                      "inputs": {
+                        "dataType": "string",
+                        "value": {
+                          "template": "{{event.value}}"
+                        }
+                      },
+                      "nodes": [
+                        {
+                          "uuid": "show",
+                          "value": "yes",
+                          "nextAction": "show_hints"
+                        },
+                        {
+                          "uuid": "hide",
+                          "type": "DEFAULT",
+                          "nextAction": "hide_hints"
+                        }
+                      ],
+                      "nextAction": null
+                    },
+                    {
+                      "uuid": "show_hints",
+                      "action": "call_block_method",
+                      "inputs": {
+                        "blockId": "reimbursement-form",
+                        "method": "setStatus",
+                        "showHints": true
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    },
+                    {
+                      "uuid": "hide_hints",
+                      "action": "call_block_method",
+                      "inputs": {
+                        "blockId": "reimbursement-form",
+                        "method": "setStatus",
+                        "showHints": false
+                      },
+                      "outputs": [
+                        "returnData"
+                      ],
+                      "nextAction": null
+                    }
+                  ]
+                }
+              ]
             },
             "rules": {
               "description": "⬆️填单说明：\n1.申请单页面各字段下会展示这一字段的解释说明与填写提示。\n2.若需展示填单说明，可选择“是，需要展示说明”。"
@@ -297,6 +353,23 @@
               },
               "outputs": [
                 "returnData"
+              ],
+              "nextAction": "expense-show_help-sync-hints"
+            },
+            {
+              "uuid": "expense-show_help-sync-hints",
+              "action": "trigger_event",
+              "inputs": {
+                "blockId": "expense-show_help",
+                "event": "change",
+                "payload": {
+                  "value": {
+                    "template": "{{actions.restore_fields.outputs.returnData.values.show_help}}"
+                  }
+                }
+              },
+              "outputs": [
+                "result"
               ],
               "nextAction": "options"
             },
