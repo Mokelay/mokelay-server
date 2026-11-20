@@ -175,9 +175,12 @@ export const executeSavePageRelationsBlock: BlockExecutor = async ({
     throw mokelayError('REQUEST_INVALID_BODY', 'mode 仅支持 create 或 update。', 400)
   }
   const enterpriseUuid = requireEnterpriseUuid(event)
+  const uuid = inputs.mode === 'create' && inputs.uuid === undefined
+    ? undefined
+    : requireUserPageUuid(inputs.uuid)
   let appUuid = typeof inputs.appUuid === 'string' ? inputs.appUuid : ''
   if (inputs.mode === 'update') {
-    const existing = await executeSql(sql`SELECT app_uuid FROM ${sql.identifier('pages')} WHERE uuid = ${String(inputs.uuid)} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
+    const existing = await executeSql(sql`SELECT app_uuid FROM ${sql.identifier('pages')} WHERE uuid = ${uuid} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
     if (!existing.rows[0]) throw mokelayError('BLOCK_PAGE_NOT_FOUND', '页面不存在。', 404)
     appUuid = String((existing.rows[0] as Record<string, unknown>).app_uuid ?? '')
   }
@@ -187,7 +190,7 @@ export const executeSavePageRelationsBlock: BlockExecutor = async ({
 
   const input: PageSaveInput = {
     mode: inputs.mode,
-    uuid: inputs.uuid,
+    uuid,
     name: inputs.name,
     blocks: inputs.blocks,
     dependencies: inputs.dependencies,
@@ -240,10 +243,11 @@ export const executeDeletePageRelationsBlock: BlockExecutor = async ({
   executeSql,
   event,
 }) => {
-  const uuids = Array.isArray(inputs.uuids) ? inputs.uuids : [inputs.uuid]
   const enterpriseUuid = requireEnterpriseUuid(event)
+  const uuids = (Array.isArray(inputs.uuids) ? inputs.uuids : [inputs.uuid])
+    .map(uuid => requireUserPageUuid(uuid))
   for (const uuid of uuids) {
-    const owned = await executeSql(sql`SELECT uuid FROM ${sql.identifier('pages')} WHERE uuid = ${String(uuid)} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
+    const owned = await executeSql(sql`SELECT uuid FROM ${sql.identifier('pages')} WHERE uuid = ${uuid} AND enterprise_uuid = ${enterpriseUuid} LIMIT 1`)
     if (!owned.rows[0]) throw mokelayError('BLOCK_PAGE_NOT_FOUND', '页面不存在。', 404)
   }
   return await deletePagesWithRelations(

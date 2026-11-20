@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { localizedPageFixture } from '../helpers/localized-page'
 
 const pageAssetsDir = resolve(process.cwd(), 'server/assets/mokelay/pages')
 
 async function page(uuid: string) {
-  return JSON.parse(await readFile(resolve(pageAssetsDir, `${uuid}.json`), 'utf8')) as Record<string, unknown>
+  return localizedPageFixture(JSON.parse(await readFile(resolve(pageAssetsDir, `${uuid}.json`), 'utf8'))) as Record<string, unknown>
 }
 
 function objects(value: unknown): Array<Record<string, any>> {

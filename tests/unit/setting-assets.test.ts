@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { localizedPageFixture } from '../helpers/localized-page'
 
 const assetsDir = resolve(process.cwd(), 'server/assets')
 
 async function readJsonAsset<T>(relativePath: string) {
-  return JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  const asset = JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  return relativePath.includes('/pages/') ? localizedPageFixture(asset) : asset
 }
 
 type LayoutAsset = {
@@ -35,6 +37,7 @@ type PageAsset = {
         columnName?: string
         fieldVariable?: string
         columnContent?: Array<{
+          id?: string
           type?: string
           data?: {
             label?: string
@@ -273,7 +276,7 @@ describe('setting assets', () => {
     const deleteButton = columns
       .find((column) => column.fieldVariable === 'action')
       ?.columnContent
-      ?.find((content) => content.type === 'MButton' && content.data?.label === '删除')
+      ?.find((content) => content.type === 'MButton' && content.id === `${tableId.replace(/-table$/, '')}-delete-button`)
     const actions = deleteButton?.events?.flatMap((event) => event.actions ?? []) ?? []
     const executeAction = actions.find((action) => action.action === 'execute_ds')
     const refreshAction = actions.find((action) => action.action === 'call_block_method')
@@ -315,7 +318,7 @@ describe('setting assets', () => {
     const columns = table?.data?.columns ?? []
     const deleteButton = columns
       .flatMap((column) => column.columnContent ?? [])
-      .find((content) => content.type === 'MButton' && content.data?.label === '删除')
+      .find((content) => content.type === 'MButton' && content.id === 'delete-api-{{uuid}}')
     const actions = deleteButton?.events?.flatMap((event) => event.actions ?? []) ?? []
     const executeAction = actions.find((action) => action.action === 'execute_ds')
     const refreshAction = actions.find((action) => action.action === 'call_block_method')

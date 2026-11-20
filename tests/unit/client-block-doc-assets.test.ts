@@ -2,11 +2,13 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { localizedPageFixture } from '../helpers/localized-page'
 
 const assetsDir = resolve(process.cwd(), 'server/assets')
 
 async function readJsonAsset<T>(relativePath: string) {
-  return JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  const asset = JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  return relativePath.includes('/pages/') ? localizedPageFixture(asset) : asset
 }
 
 type ClientBlockDocsApi = {
@@ -236,9 +238,9 @@ describe('client block document assets', () => {
     }>('mokelay/pages/block_component_docs.json')
     const searchForm = page.blocks.find((block) => block.id === 'block-docs-search-form')?.data
     const toolboxColumn = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
-      ?.find((column) => column.columnName === '工具箱')
+      ?.find((column) => column.fieldVariable === 'toolbox_visible')
     const editorBlockColumn = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
-      ?.find((column) => column.columnName === '编辑器 Block')
+      ?.find((column) => column.fieldVariable === 'editor_block')
 
     expect(searchForm?.items?.map((item) => item.variableName)).toEqual([
       'blockType',
@@ -303,7 +305,7 @@ describe('client block document assets', () => {
       blocks: Array<{ id: string, data?: ClientBlockDocsPageData }>
     }>('mokelay/pages/block_component_docs.json')
     const columns = page.blocks.find((block) => block.id === 'block-docs-table')?.data?.columns
-    const actionColumn = columns?.find((column) => column.columnName === '操作')
+    const actionColumn = columns?.find((column) => column.fieldVariable === 'uuid')
     const detailAction = actionColumn?.columnContent?.[0]?.events?.[0]?.actions?.[0]
 
     expect(columns?.map((column) => column.columnName)).not.toEqual(expect.arrayContaining([

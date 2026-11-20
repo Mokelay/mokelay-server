@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { localizedPageFixture } from '../helpers/localized-page'
 
 const assetsDir = resolve(process.cwd(), 'server/assets')
 
 async function readJsonAsset<T = any>(relativePath: string) {
-  return JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  const asset = JSON.parse(await readFile(resolve(assetsDir, relativePath), 'utf8')) as T
+  return relativePath.includes('/pages/') ? localizedPageFixture(asset) : asset
 }
 
 function collectActions(value: unknown): any[] {
@@ -101,7 +103,7 @@ describe('server runtime documentation assets', () => {
     const page = await readJsonAsset(listPage)
     const table = page.blocks.find((block: any) => block.type === 'MAdvanceTable')
     const columns = table?.data?.columns ?? []
-    const operationColumn = columns.find((column: any) => column.columnName === '操作')
+    const operationColumn = columns.find((column: any) => column.fieldVariable === 'uuid')
     const buttons = collectButtons(columns)
     const actions = collectActions(columns)
 

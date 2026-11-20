@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { localizedPageFixture } from '../helpers/localized-page'
 import { executeNormalizePageRowsBlock } from '../../server/utils/blocks/pageRelationBlocks'
 
-const pageDsl = JSON.parse(readFileSync(
+const pageDsl = localizedPageFixture(JSON.parse(readFileSync(
   new URL('../../server/assets/mokelay/pages/mokelay_list_page.json', import.meta.url),
   'utf8',
-))
+)))
 
 describe('page list subpage management UI', () => {
   it('offers all/main/sub filtering and renders page kind plus quote count', () => {

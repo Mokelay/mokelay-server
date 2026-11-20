@@ -5,16 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sql, type SQL } from 'drizzle-orm'
 import { MySqlDialect } from 'drizzle-orm/mysql-core'
 import { PgDialect } from 'drizzle-orm/pg-core'
-import { createApp, createRouter, toNodeListener, type EventHandler } from 'h3'
+import { createApp, createRouter, defineEventHandler, readBody, toNodeListener, type EventHandler } from 'h3'
 import orchestrationHandler from '../../server/routes/api/mokelay/[apiJsonUuid]'
 import missingApiJsonUuidHandler from '../../server/routes/api/mokelay/index'
 import { createMokelayOrchestrationHandler as createCoreMokelayOrchestrationHandler } from 'mokelay-server-core/utils/orchestration'
 import type { DatasourceTransactionRunner, SqlExecutor } from 'mokelay-server-core/utils/orchestration-schema'
 import type { MokelayErrorCode } from 'mokelay-server-core/utils/mokelay-error'
 import { verifyPassword } from 'mokelay-server-core/utils/password'
-import { orchestrationSessionCookieName } from 'mokelay-server-core/utils/session'
+import { orchestrationSessionCookieName, setSessionValue } from 'mokelay-server-core/utils/session'
 import { datasourceDatabaseType, type DatabaseType, type SqlExecutionResult } from 'mokelay-server-core/utils/db'
 import { serverBlockDefinitions } from '../../server/utils/blocks'
+import { userCrudApis } from '../fixtures/user-crud-apis'
 
 const apiR2MockState = vi.hoisted(() => ({
   sentInputs: [] as Array<Record<string, unknown>>,
@@ -416,6 +417,7 @@ type EmployeeAuthIdentityRow = {
 }
 
 type PageRow = {
+  enterprise_uuid: string | null
   uuid: string
   name: string
   blocks: unknown[]
@@ -429,6 +431,7 @@ type PageRow = {
 }
 
 type AppRow = {
+  enterprise_uuid: string | null
   id: number
   uuid: string
   alias: string
@@ -445,6 +448,8 @@ type DatasourceRow = {
 }
 
 type ApiRow = {
+  enterprise_uuid: string | null
+  app_uuid: string | null
   uuid: string
   name: string
   method: string
@@ -789,6 +794,7 @@ class FakeSqlExecutor {
     const columns = this.insertColumns(queryText, 'pages')
     const now = new Date().toISOString()
     const row: PageRow = {
+      enterprise_uuid: null,
       uuid: crypto.randomUUID(),
       name: '',
       blocks: [],
@@ -813,6 +819,7 @@ class FakeSqlExecutor {
   private insertApp<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const columns = this.insertColumns(queryText, 'apps')
     const row: AppRow = {
+      enterprise_uuid: null,
       id: this.apps.length + 1,
       uuid: crypto.randomUUID().replaceAll('-', '').slice(0, 8),
       alias: '',
@@ -878,6 +885,8 @@ class FakeSqlExecutor {
     const columns = this.insertColumns(queryText, 'apis')
     const now = new Date().toISOString()
     const nextRow: ApiRow = {
+      enterprise_uuid: null,
+      app_uuid: null,
       uuid: '',
       name: '',
       method: 'GET',
@@ -1077,9 +1086,9 @@ class FakeSqlExecutor {
     return apis.map(() => ({ affected_marker: 1 })) as unknown as T[]
   }
 
-  private deletePages<T extends Record<string, unknown>>(_queryText: string, params: unknown[]) {
-    const uuids = new Set(params.map(String))
-    const deleted = this.pages.filter(page => uuids.has(page.uuid))
+  private deletePages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
+    const deleted = this.filterPages(queryText, params)
+    const uuids = new Set(deleted.map(page => page.uuid))
     for (let index = this.pages.length - 1; index >= 0; index -= 1) {
       if (uuids.has(this.pages[index]?.uuid ?? '')) this.pages.splice(index, 1)
     }
@@ -1087,15 +1096,18 @@ class FakeSqlExecutor {
   }
 
   private updatePages<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
-    const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
-    const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
-    const setParamCount = setFields.length
-    const pages = this.filterPages(queryText, params.slice(setParamCount))
-
-    for (const page of pages) {
-      setFields.forEach((field, index) => {
-        page[field as keyof PageRow] = this.parseJsonParam(params[index]) as never
-      })
+    const setClause = / SET (.*?) WHERE /.exec(queryText)?.[1] ?? ''
+    const pages = this.filterPages(queryText, params)
+    for (const assignment of setClause.split(', ')) {
+      const match = /^"([^"]+)" = (\$\d+)(?:::[a-z]+)?$/.exec(assignment)
+      if (match) {
+        const [, field, parameter] = match
+        for (const page of pages) {
+          page[field as keyof PageRow] = this.parseJsonParam(params[Number(parameter!.slice(1)) - 1]) as never
+        }
+      } else if (!/^"([^"]+)" = "\1"$/.test(assignment)) {
+        throw new Error(`Unsupported SET in test fake: ${assignment}`)
+      }
     }
 
     return queryText.includes('affected_marker')
@@ -1106,8 +1118,7 @@ class FakeSqlExecutor {
   private updateApps<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
-    const setParamCount = setFields.length
-    const apps = this.filterApps(queryText, params.slice(setParamCount))
+    const apps = this.filterApps(queryText, params)
 
     for (const app of apps) {
       setFields.forEach((field, index) => {
@@ -1121,8 +1132,7 @@ class FakeSqlExecutor {
   private updateDatasourceRows<T extends Record<string, unknown>>(queryText: string, params: unknown[]) {
     const setMatch = / SET (.*?) WHERE /.exec(queryText) ?? / SET (.*?) RETURNING /.exec(queryText)
     const setFields = setMatch?.[1]?.match(/"([^"]+)" =/g)?.map((field) => field.replace(/" =$/, '').replaceAll('"', '')) ?? []
-    const setParamCount = setFields.length
-    const datasourceRows = this.filterDatasourceRows(queryText, params.slice(setParamCount))
+    const datasourceRows = this.filterDatasourceRows(queryText, params)
 
     for (const datasource of datasourceRows) {
       setFields.forEach((field, index) => {
@@ -1177,7 +1187,7 @@ class FakeSqlExecutor {
 
   private selectFields(queryText: string) {
     const fieldMatch = /^SELECT (.*?) FROM /.exec(queryText)
-    return fieldMatch?.[1]?.match(/"([^"]+)"/g)?.map((field) => field.replaceAll('"', '')) ?? []
+    return fieldMatch?.[1]?.split(',').map(field => field.trim().replaceAll('"', '')) ?? []
   }
 
   private projectFields(row: Record<string, unknown>, fields: string[]) {
@@ -1331,108 +1341,61 @@ class FakeSqlExecutor {
     return [...this.employeeAuthIdentities]
   }
 
+  // Evaluate only the SQL subset used by these fixtures. Unknown predicates fail loudly.
+  private filterScopedRows<T extends Record<string, unknown>>(rows: T[], queryText: string, params: unknown[]): T[] {
+    const where = queryText.split(' WHERE ')[1]?.split(/ ORDER BY | LIMIT | OFFSET | RETURNING | FOR UPDATE/)[0]
+    if (!where) return [...rows]
+
+    const predicate = /"?([a-z_]+)"?\s*(IN\s*\((?:\s*\$\d+\s*,?)+\)|(?:<>|>=|<=|=|>|<)\s*\$\d+)/gi
+    const matches = Array.from(where.matchAll(predicate))
+    const remaining = where.replace(predicate, '')
+      .replace(/\bAND\b|[()\s]/gi, '')
+    if (!matches.length || remaining) throw new Error(`Unsupported WHERE in test fake: ${where}`)
+
+    return rows.filter(row => matches.every(([, field, expression]) => {
+      const actual = row[field!]
+      const values = Array.from(expression!.matchAll(/\$(\d+)/g), ([, index]) => {
+        const value = params[Number(index) - 1]
+        if (typeof actual === 'boolean') return value === true || value === 'true' || value === 1 || value === '1'
+        if (typeof actual === 'number') return Number(value)
+        return value
+      })
+      const expected = values[0]
+      if (/^IN/i.test(expression!)) return values.includes(actual)
+      if (actual === null || actual === undefined || expected === null || expected === undefined) return false
+      const comparison = typeof actual === 'number'
+        ? actual - Number(expected)
+        : String(actual) < String(expected) ? -1 : String(actual) > String(expected) ? 1 : 0
+      const operator = expression!.match(/^(<>|>=|<=|=|>|<)/)?.[1]
+      switch (operator) {
+        case '=': return actual === expected
+        case '<>': return actual !== expected
+        case '>=': return comparison >= 0
+        case '<=': return comparison <= 0
+        case '>': return comparison > 0
+        case '<': return comparison < 0
+        default: throw new Error(`Unsupported operator in test fake: ${expression}`)
+      }
+    }))
+  }
+
   private filterPages(queryText: string, params: unknown[]) {
-    if (!queryText.includes(' WHERE ')) {
-      return [...this.pages]
-    }
-
-    const whereText = queryText.split(' WHERE ')[1] ?? ''
-    let result = [...this.pages]
-    let paramIndex = 0
-
-    if (whereText.includes('"uuid" =')) {
-      const uuid = params[paramIndex++]
-      result = result.filter((page) => page.uuid === uuid)
-    }
-
-    if (whereText.includes('"name" =')) {
-      const name = params[paramIndex++]
-      result = result.filter((page) => page.name === name)
-    }
-
-    if (whereText.includes('"sub_page" =')) {
-      const value = params[paramIndex++]
-      const expected = value === true || value === 'true' || value === 1 || value === '1'
-      result = result.filter(page => page.sub_page === expected)
-    }
-
-    if (whereText.includes('"created_at" >=')) {
-      const createdAtBegin = String(params[paramIndex++] ?? '')
-      result = result.filter((page) => page.created_at >= createdAtBegin)
-    }
-
-    if (whereText.includes('"created_at" <=')) {
-      const createdAtEnd = String(params[paramIndex++] ?? '')
-      result = result.filter((page) => page.created_at <= createdAtEnd)
-    }
-
-    return result
+    return this.filterScopedRows(this.pages, queryText, params)
   }
 
   private filterApps(queryText: string, params: unknown[]) {
-    if (!queryText.includes(' WHERE ')) {
-      return [...this.apps]
-    }
-
-    if (queryText.includes('"id" =')) {
-      const id = Number(params.at(-1))
-      return this.apps.filter((app) => app.id === id)
-    }
-
-    if (queryText.includes('"uuid" =')) {
-      const uuid = params.at(-1)
-      return this.apps.filter((app) => app.uuid === uuid)
-    }
-
-    return [...this.apps]
+    return this.filterScopedRows(this.apps, queryText, params)
   }
 
   private filterDatasourceRows(queryText: string, params: unknown[]) {
-    if (!queryText.includes(' WHERE ')) {
-      return [...this.datasourceRows]
+    const uuidParam = /"uuid" = \$(\d+)/.exec(queryText)?.[1]
+    if (this.forceDatasourceUuidConflict && uuidParam) {
+      return [{
+        id: 999, uuid: String(params[Number(uuidParam) - 1]), alias: '冲突数据源',
+        description: '', enterprise_uuid: null, schema_data: [],
+      }]
     }
-
-    const filterParams = this.filterParams(queryText, params)
-
-    if (queryText.includes('"id" IN')) {
-      const ids = new Set(filterParams.map(Number))
-      return this.datasourceRows.filter((datasource) => ids.has(datasource.id))
-    }
-
-    if (queryText.includes('"enterprise_uuid" IN')) {
-      const enterpriseUuids = new Set(filterParams.map(String))
-      return this.datasourceRows.filter((datasource) => (
-        datasource.enterprise_uuid !== null && enterpriseUuids.has(datasource.enterprise_uuid)
-      ))
-    }
-
-    if (queryText.includes('"id" =')) {
-      const id = Number(filterParams.at(-1))
-      return this.datasourceRows.filter((datasource) => datasource.id === id)
-    }
-
-    if (queryText.includes('"uuid" =')) {
-      const uuid = params.at(-1)
-      if (this.forceDatasourceUuidConflict) {
-        return [{
-          id: 999,
-          uuid: String(uuid),
-          alias: '冲突数据源',
-          description: '',
-          enterprise_uuid: null,
-          schema_data: [],
-        }]
-      }
-
-      return this.datasourceRows.filter((datasource) => datasource.uuid === uuid)
-    }
-
-    if (queryText.includes('"enterprise_uuid" =')) {
-      const enterpriseUuid = params.at(-1)
-      return this.datasourceRows.filter((datasource) => datasource.enterprise_uuid === enterpriseUuid)
-    }
-
-    return [...this.datasourceRows]
+    return this.filterScopedRows(this.datasourceRows, queryText, params)
   }
 
   private filterParams(queryText: string, params: unknown[]) {
@@ -1444,35 +1407,7 @@ class FakeSqlExecutor {
   }
 
   private filterApis(queryText: string, params: unknown[]) {
-    if (!queryText.includes(' WHERE ')) {
-      return [...this.apis]
-    }
-
-    const whereText = queryText.split(' WHERE ')[1]?.toLowerCase() ?? ''
-
-    if (whereText.includes('"uuid" in')) {
-      const uuids = new Set(params
-        .flatMap((param) => (Array.isArray(param) ? param : [param]))
-        .map((param) => String(param)))
-      return this.apis.filter((api) => uuids.has(api.uuid))
-    }
-
-    if (queryText.includes('"uuid" =') && queryText.includes('"uuid" <>')) {
-      const [uuid, ignoredUuid] = params
-      return this.apis.filter((api) => api.uuid === uuid && api.uuid !== ignoredUuid)
-    }
-
-    if (queryText.includes('"uuid" =') && queryText.includes('"status" =')) {
-      const [uuid, status] = params
-      return this.apis.filter((api) => api.uuid === uuid && api.status === status)
-    }
-
-    if (queryText.includes('"uuid" =')) {
-      const uuid = params.at(-1)
-      return this.apis.filter((api) => api.uuid === uuid)
-    }
-
-    return [...this.apis]
+    return this.filterScopedRows(this.apis, queryText, params)
   }
 
   private filterApiBuilderSamples(queryText: string, params: unknown[]) {
@@ -1576,6 +1511,11 @@ async function startServer(handler: EventHandler = orchestrationHandler): Promis
   const app = createApp()
   const router = createRouter()
 
+  // Test-only endpoint issues a real signed cookie; no production authentication is bypassed.
+  router.post('/__test/session', defineEventHandler(async event => {
+    setSessionValue(event, 'user', await readBody(event))
+    return { ok: true }
+  }))
   router.use('/api/mokelay/:apiJsonUuid', handler)
   router.use('/api/mokelay', missingApiJsonUuidHandler)
   app.use(router)
@@ -1849,22 +1789,66 @@ async function createUser(baseUrl: string, input: { name: string, email: string 
   return await readMokelayData<CreateUserResponse>(response)
 }
 
-async function createPage(baseUrl: string, input: { uuid?: string, name: string, blocks: unknown[] }) {
-  const response = await postJson(baseUrl, 'create_page', input)
+async function createTenantClient(server: TestServer, executor: FakeSqlExecutor, options: {
+  enterpriseUuid?: string, appUuid?: string, seedApp?: boolean,
+} = {}) {
+  const enterpriseUuid = options.enterpriseUuid ?? '00000000-0000-4000-8000-000000000001'
+  const appUuid = options.appUuid ?? 'testapp'
+  if (!executor.enterprise.some(row => row.uuid === enterpriseUuid)) {
+    executor.enterprise.push({ id: executor.enterprise.length + 1, uuid: enterpriseUuid, name: 'Test Enterprise' })
+  }
+  const employeeUuid = crypto.randomUUID()
+  const user = {
+    id: employeeUuid, enterprise_uuid: enterpriseUuid, name: 'Test Employee',
+    email: `${employeeUuid}@mokelay.test`, password_hash: 'unused', plan: 'free',
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }
+  executor.employees.push(user)
+  if (options.seedApp !== false && !executor.apps.some(row => row.uuid === appUuid)) {
+    executor.apps.push({
+      id: executor.apps.length + 1, uuid: appUuid, enterprise_uuid: enterpriseUuid,
+      alias: 'Test App', description: '',
+    })
+  }
+  const session = await fetch(`${server.baseUrl}/__test/session`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(user),
+  })
+  expect(session.status).toBe(200)
+  expect(session.headers.get('set-cookie')).toContain(`${orchestrationSessionCookieName}=`)
+  const cookie = responseCookie(session, orchestrationSessionCookieName)
+  const authenticatedFetch = (url: string, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers)
+    headers.set('cookie', cookie)
+    return fetch(url, { ...init, headers })
+  }
+  return {
+    appUuid, enterpriseUuid,
+    fetch: authenticatedFetch,
+    post: (uuid: string, body: Record<string, unknown>, query = '') => authenticatedFetch(
+      `${server.baseUrl}/api/mokelay/${uuid}${query}`,
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+    ),
+  }
+}
+
+type TenantClient = Awaited<ReturnType<typeof createTenantClient>>
+
+async function createPage(client: TenantClient, input: { uuid?: string, name: string, blocks: unknown[] }) {
+  const response = await client.post('create_page', { ...input, appUuid: client.appUuid })
 
   expect(response.status).toBe(200)
   return await readMokelayData<PageResponse>(response)
 }
 
-async function createMokelayApp(baseUrl: string, input: { uuid: string, alias: string, description?: string }) {
-  const response = await postJson(baseUrl, 'create_app', input)
+async function createMokelayApp(client: TenantClient, input: { uuid: string, alias: string, description?: string }) {
+  const response = await client.post('create_app', input)
 
   expect(response.status).toBe(200)
   return await readMokelayData<AppResponse>(response)
 }
 
-async function createMokelayDatasource(baseUrl: string, input: { uuid: string, alias: string, description?: string }) {
-  const response = await postJson(baseUrl, 'create_datasource', input)
+async function createMokelayDatasource(client: TenantClient, input: { uuid: string, alias: string, description?: string }) {
+  const response = await client.post('create_datasource', input)
 
   expect(response.status).toBe(200)
   return await readMokelayData<DatasourceResponse>(response)
@@ -1882,6 +1866,7 @@ describe('mokelay orchestration API', () => {
       Mokelay_DATABASE_URL: 'postgres://unit-test',
       MokelayFree_DATABASE_URL: 'postgres://free-unit-test',
       NODE_ENV: 'test',
+      SESSION_SECRET: 'orchestration-regression-test-secret-at-least-32-characters',
     }
     clearApiR2Env()
     apiR2MockState.sentInputs.length = 0
@@ -1897,7 +1882,12 @@ describe('mokelay orchestration API', () => {
     process.env = { ...originalEnv }
   })
 
-  it('executes the five stored user API JSON definitions', async () => {
+  it('executes six isolated user CRUD API fixtures', async () => {
+    await testServer.close()
+    testServer = await startServer(createMokelayOrchestrationHandler({
+      executeSql: fakeSqlExecutor.execute,
+      loadApiJson: async uuid => userCrudApis[uuid],
+    }))
     const created = await createUser(testServer.baseUrl, {
       name: 'Alice',
       email: 'alice@mokelay.test',
@@ -3441,12 +3431,153 @@ describe('mokelay orchestration API', () => {
     }
   })
 
+  it.each(Object.keys(userCrudApis))('does not expose removed demo API %s through the real asset loader', async (uuid) => {
+    await expectMokelayError(
+      await fetch(`${testServer.baseUrl}/api/mokelay/${uuid}`),
+      'API_JSON_NOT_FOUND',
+    )
+    expect(fakeSqlExecutor.employees).toHaveLength(0)
+  })
+
+  it.each([
+    ['create_app', { uuid: 'newapp', alias: 'New App' }],
+    ['create_datasource', { uuid: 'newdb', alias: 'New Database' }],
+    ['create_page', { appUuid: 'testapp', name: 'New Page', blocks: [] }],
+    ['save_api', {
+      appUuid: 'testapp', uuid: 'new_api', name: 'New API', status: 'published',
+      apiJson: { uuid: 'new_api', method: 'GET', blocks: emptyApiJsonBlocks(), response: null },
+    }],
+  ] as const)('rejects unauthenticated %s before database or R2 writes', async (uuid, body) => {
+    configureApiR2Env()
+    await expectMokelayError(await postJson(testServer.baseUrl, uuid, body), 'BLOCK_SESSION_KEY_NOT_FOUND')
+    expect(fakeSqlExecutor.queries).toHaveLength(0)
+    expect(fakeSqlExecutor.apps).toHaveLength(0)
+    expect(fakeSqlExecutor.pages).toHaveLength(0)
+    expect(fakeSqlExecutor.datasourceRows).toHaveLength(0)
+    expect(fakeSqlExecutor.apis).toHaveLength(0)
+    expect(fakeSqlExecutor.apiSnapshots).toHaveLength(0)
+    expect(apiR2MockState.sentInputs).toHaveLength(0)
+  })
+
+  it('scopes resource lists to the signed-in enterprise and selected application', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
+    const sibling = await createTenantClient(testServer, fakeSqlExecutor, { appUuid: 'sibling' })
+    const foreign = await createTenantClient(testServer, fakeSqlExecutor, {
+      enterpriseUuid: '00000000-0000-4000-8000-000000000002', appUuid: 'foreign',
+    })
+    for (const owner of [client, sibling, foreign]) {
+      await createPage(owner, { uuid: `page_${owner.appUuid}`, name: 'Shared Name', blocks: [] })
+      await createMokelayDatasource(owner, { uuid: owner.appUuid, alias: 'Shared Database Name' })
+      const uuid = `api_${owner.appUuid}`
+      const saved = await readMokelayData<ApiResponse>(await owner.post('save_api', {
+        appUuid: owner.appUuid, uuid, name: 'Shared API Name', status: 'draft',
+        apiJson: { uuid, method: 'GET', blocks: emptyApiJsonBlocks(), response: null },
+      }))
+      expect(saved.api?.uuid).toBe(uuid)
+    }
+
+    for (const owner of [client, sibling, foreign]) {
+      const pages = await readMokelayData<PageListResponse>(await owner.fetch(
+        `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${owner.appUuid}&page=1&pageSize=10&name=Shared%20Name`,
+      ))
+      expect(pages.pages.map(page => page.uuid)).toEqual([`page_${owner.appUuid}`])
+      expect(pages.pagination.total).toBe(1)
+      const apis = await readMokelayData<ApiListResponse>(await owner.fetch(
+        `${testServer.baseUrl}/api/mokelay/list_apis?appUuid=${owner.appUuid}&page=1&pageSize=10`,
+      ))
+      expect(apis.apis.map(api => api.uuid)).toEqual([`api_${owner.appUuid}`])
+      expect(apis.pagination.total).toBe(1)
+    }
+
+    const apps = await readMokelayData<AppListResponse>(await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_apps?page=1&pageSize=10`,
+    ))
+    expect(apps.apps.map(app => app.uuid).sort()).toEqual(['sibling', 'testapp'])
+    expect(apps.pagination.total).toBe(2)
+    const datasources = await readMokelayData<DatasourceListResponse>(await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_datasources?page=1&pageSize=10`,
+    ))
+    expect(datasources.datasources.map(datasource => datasource.uuid).sort()).toEqual(['sibling', 'testapp'])
+    expect(datasources.pagination.total).toBe(2)
+
+    const inaccessiblePage = await readMokelayData<PageResponse>(await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=page_foreign`,
+    ))
+    expect(inaccessiblePage).toEqual({})
+    for (const api of ['list_pages', 'list_apis']) {
+      await expectMokelayError(await client.fetch(
+        `${testServer.baseUrl}/api/mokelay/${api}?appUuid=foreign&page=1&pageSize=10`,
+      ), 'API_JSON_NOT_FOUND', 'APP 不存在。')
+    }
+  })
+
+  it('rejects cross-tenant page writes and cross-application API overwrites without side effects', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
+    const sibling = await createTenantClient(testServer, fakeSqlExecutor, { appUuid: 'sibling' })
+    const foreign = await createTenantClient(testServer, fakeSqlExecutor, {
+      enterpriseUuid: '00000000-0000-4000-8000-000000000002', appUuid: 'foreign',
+    })
+    await createPage(client, { uuid: 'own_page', name: 'Own Page', blocks: [] })
+    await createPage(foreign, { uuid: 'foreign_page', name: 'Foreign Page', blocks: [] })
+    for (const owner of [sibling, foreign]) {
+      const uuid = `api_${owner.appUuid}`
+      const saved = await readMokelayData<ApiResponse>(await owner.post('save_api', {
+        appUuid: owner.appUuid, uuid, name: 'Protected API', status: 'draft',
+        apiJson: { uuid, method: 'GET', blocks: emptyApiJsonBlocks(), response: null },
+      }))
+      expect(saved.api?.uuid).toBe(uuid)
+    }
+    const before = structuredClone({
+      pages: fakeSqlExecutor.pages, apps: fakeSqlExecutor.apps,
+      apis: fakeSqlExecutor.apis, snapshots: fakeSqlExecutor.apiSnapshots,
+    })
+    fakeSqlExecutor.queries.length = 0
+    configureApiR2Env()
+
+    // Canonicalizing the slug must preserve the tenant constraint.
+    await expectMokelayError(await client.post('update_page_blocks_by_uuid', {
+      name: 'Forbidden Change', blocks: [],
+    }, '?uuid=%20FOREIGN_PAGE%20'), 'BLOCK_PAGE_NOT_FOUND')
+    await expectMokelayError(await client.post('delete_page_by_uuid', {
+      uuid: ' FOREIGN_PAGE ',
+    }), 'BLOCK_PAGE_NOT_FOUND')
+    await expectMokelayError(await client.post('batch_delete_pages', {
+      uuids: ['own_page', ' FOREIGN_PAGE '],
+    }), 'BLOCK_PAGE_NOT_FOUND')
+    await expectMokelayError(await client.post('create_page', {
+      appUuid: foreign.appUuid, name: 'Forbidden Page', blocks: [],
+    }), 'API_JSON_NOT_FOUND')
+    await expectMokelayError(await client.post('update_app_by_uuid', {
+      alias: 'Forbidden App', description: '',
+    }, '?uuid=foreign'), 'API_JSON_NOT_FOUND')
+
+    for (const uuid of ['api_sibling', 'api_foreign']) {
+      await expectMokelayError(await client.post('save_api', {
+        appUuid: client.appUuid, uuid, originalUuid: uuid, name: 'Forbidden API', status: 'published',
+        apiJson: { uuid, method: 'GET', blocks: emptyApiJsonBlocks(), response: null },
+      }), 'API_JSON_NOT_FOUND', 'API 不存在。')
+    }
+    expect(fakeSqlExecutor.queries.filter(query => /^(INSERT|UPDATE|DELETE)\b/.test(query.sql))).toEqual([])
+    expect({
+      pages: fakeSqlExecutor.pages, apps: fakeSqlExecutor.apps,
+      apis: fakeSqlExecutor.apis, snapshots: fakeSqlExecutor.apiSnapshots,
+    }).toEqual(before)
+    expect(apiR2MockState.sentInputs).toHaveLength(0)
+
+    const deleted = await readMokelayData<{ affected: number }>(await client.post('batch_delete_apis', {
+      uuids: ['api_foreign'],
+    }))
+    expect(deleted.affected).toBe(0)
+    expect(fakeSqlExecutor.apis).toEqual(before.apis)
+  })
+
   it('executes the four stored page API JSON definitions', async () => {
-    const firstCreate = await createPage(testServer.baseUrl, {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
+    const firstCreate = await createPage(client, {
       name: 'First Page',
       blocks: [{ type: 'hero', title: 'Hello' }],
     })
-    const secondCreate = await createPage(testServer.baseUrl, {
+    const secondCreate = await createPage(client, {
       name: 'Second Page',
       blocks: [{ type: 'text', value: 'World' }],
     })
@@ -3460,15 +3591,13 @@ describe('mokelay orchestration API', () => {
     })
     expect(secondPage?.uuid).toMatch(uuidPattern)
 
-    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${firstPage?.uuid}`)
+    const readResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${firstPage?.uuid}`)
     const readBody = await readMokelayData<PageResponse>(readResponse)
 
     expect(readResponse.status).toBe(200)
     expect(readBody.page).toEqual(firstPage)
 
-    const updateResponse = await postJson(
-      testServer.baseUrl,
-      'update_page_blocks_by_uuid',
+    const updateResponse = await client.post('update_page_blocks_by_uuid',
       {
         name: 'First Page Updated',
         blocks: [{ type: 'text', value: 'Updated' }],
@@ -3485,7 +3614,7 @@ describe('mokelay orchestration API', () => {
       updatedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\+00:00$/),
     })
 
-    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=1`)
+    const listResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=1`)
     const listBody = await readMokelayData<PageListResponse>(listResponse)
 
     expect(listResponse.status).toBe(200)
@@ -3503,7 +3632,7 @@ describe('mokelay orchestration API', () => {
       hasNextPage: true,
     })
 
-    const secondPageResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_pages?page=2&pageSize=1`)
+    const secondPageResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=2&pageSize=1`)
     const secondPageBody = await readMokelayData<PageListResponse>(secondPageResponse)
 
     expect(secondPageResponse.status).toBe(200)
@@ -3532,32 +3661,32 @@ describe('mokelay orchestration API', () => {
       secondPageRow.created_at = '2026-05-10T00:00:00.000Z'
     }
 
-    const emptySearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=&name=&created_at_begin=&created_at_end=`,
+    const emptySearchResponse = await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=10&uuid=&name=&created_at_begin=&created_at_end=`,
     )
     const emptySearchBody = await readMokelayData<PageListResponse>(emptySearchResponse)
 
     expect(emptySearchResponse.status).toBe(200)
     expect(emptySearchBody.pagination.total).toBe(2)
 
-    const uuidSearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&uuid=${encodeURIComponent(` ${secondPage?.uuid.toUpperCase()} `)}`,
+    const uuidSearchResponse = await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=10&uuid=${encodeURIComponent(` ${secondPage?.uuid.toUpperCase()} `)}`,
     )
     const uuidSearchBody = await readMokelayData<PageListResponse>(uuidSearchResponse)
 
     expect(uuidSearchBody.pagination.total).toBe(1)
     expect(uuidSearchBody.pages[0]?.uuid).toBe(secondPage?.uuid)
 
-    const nameSearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10&name=${encodeURIComponent('First Page Updated')}`,
+    const nameSearchResponse = await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=10&name=${encodeURIComponent('First Page Updated')}`,
     )
     const nameSearchBody = await readMokelayData<PageListResponse>(nameSearchResponse)
 
     expect(nameSearchBody.pagination.total).toBe(1)
     expect(nameSearchBody.pages[0]?.uuid).toBe(firstPage?.uuid)
 
-    const rangeSearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10`
+    const rangeSearchResponse = await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=10`
         + '&created_at_begin=2026-05-05T00%3A00%3A00.000Z'
         + '&created_at_end=2026-05-31T23%3A59%3A59.999Z',
     )
@@ -3566,8 +3695,8 @@ describe('mokelay orchestration API', () => {
     expect(rangeSearchBody.pagination.total).toBe(1)
     expect(rangeSearchBody.pages[0]?.uuid).toBe(secondPage?.uuid)
 
-    const combinedSearchResponse = await fetch(
-      `${testServer.baseUrl}/api/mokelay/list_pages?page=1&pageSize=10`
+    const combinedSearchResponse = await client.fetch(
+      `${testServer.baseUrl}/api/mokelay/list_pages?appUuid=${client.appUuid}&page=1&pageSize=10`
         + `&name=${encodeURIComponent('Second Page')}`
         + '&created_at_begin=2026-05-05T00%3A00%3A00.000Z',
     )
@@ -3579,8 +3708,9 @@ describe('mokelay orchestration API', () => {
   })
 
   it('canonicalizes a caller-provided readable page slug across CRUD APIs', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
     const pageUuid = 'customer_orders'
-    const created = await createPage(testServer.baseUrl, {
+    const created = await createPage(client, {
       uuid: ' Customer_Orders ',
       name: 'Customer Orders',
       blocks: [{ type: 'MHeading', data: { text: 'Customer Orders' } }],
@@ -3592,7 +3722,7 @@ describe('mokelay orchestration API', () => {
       blocks: [{ type: 'MHeading', data: { text: 'Customer Orders' } }],
     })
 
-    const readResponse = await fetch(
+    const readResponse = await client.fetch(
       `${testServer.baseUrl}/api/mokelay/read_page_by_uuid?uuid=${encodeURIComponent(' CUSTOMER_ORDERS ')}`,
     )
     const readBody = await readMokelayData<PageResponse>(readResponse)
@@ -3600,16 +3730,14 @@ describe('mokelay orchestration API', () => {
     expect(readResponse.status).toBe(200)
     expect(readBody.page).toEqual(created.page)
 
-    const updateResponse = await postJson(
-      testServer.baseUrl,
-      'update_page_blocks_by_uuid',
+    const updateResponse = await client.post('update_page_blocks_by_uuid',
       { name: 'Customer Orders Updated', blocks: [] },
       `?uuid=${encodeURIComponent(' CUSTOMER_ORDERS ')}`,
     )
     const updated = await readMokelayData<PageResponse>(updateResponse)
     expect(updated.page).toMatchObject({ uuid: pageUuid, name: 'Customer Orders Updated' })
 
-    const deleteResponse = await postJson(testServer.baseUrl, 'delete_page_by_uuid', {
+    const deleteResponse = await client.post('delete_page_by_uuid', {
       uuid: ' CUSTOMER_ORDERS ',
     })
     expect(await readMokelayData<{ affected: number }>(deleteResponse)).toMatchObject({ affected: 1 })
@@ -3617,8 +3745,9 @@ describe('mokelay orchestration API', () => {
   })
 
   it('keeps existing RFC UUID page identifiers compatible', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
     const pageUuid = '550e8400-e29b-41d4-a716-446655440000'
-    const created = await createPage(testServer.baseUrl, {
+    const created = await createPage(client, {
       uuid: pageUuid,
       name: 'Legacy UUID Page',
       blocks: [],
@@ -3628,21 +3757,24 @@ describe('mokelay orchestration API', () => {
   })
 
   it('rejects user and system page slug duplicates without adding a suffix', async () => {
-    await createPage(testServer.baseUrl, {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
+    await createPage(client, {
       uuid: 'customer_orders',
       name: 'Customer Orders',
       blocks: [],
     })
 
-    const userDuplicate = await postJson(testServer.baseUrl, 'create_page', {
+    const userDuplicate = await client.post('create_page', {
+      appUuid: client.appUuid,
       uuid: ' CUSTOMER_ORDERS ',
       name: 'Duplicate Customer Orders',
       blocks: [],
     })
     await expectMokelayError(userDuplicate, 'BLOCK_DUPLICATE_RECORD')
 
-    const systemDuplicate = await postJson(testServer.baseUrl, 'create_page', {
-      uuid: ' PAGES ',
+    const systemDuplicate = await client.post('create_page', {
+      appUuid: client.appUuid,
+      uuid: ' MOKELAY_LIST_PAGE ',
       name: 'System Collision',
       blocks: [],
     })
@@ -3658,7 +3790,9 @@ describe('mokelay orchestration API', () => {
     '客户页面',
     'a'.repeat(129),
   ])('rejects invalid user page slug %j', async (uuid) => {
-    const response = await postJson(testServer.baseUrl, 'create_page', {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
+    const response = await client.post('create_page', {
+      appUuid: client.appUuid,
       uuid,
       name: `Invalid ${uuid.length}`,
       blocks: [],
@@ -3682,12 +3816,13 @@ describe('mokelay orchestration API', () => {
   })
 
   it('executes the stored app create and list API JSON definitions', async () => {
-    const firstCreate = await createMokelayApp(testServer.baseUrl, {
+    const client = await createTenantClient(testServer, fakeSqlExecutor, { seedApp: false })
+    const firstCreate = await createMokelayApp(client, {
       uuid: 'launch',
       alias: '  Launch Pad  ',
       description: '  First app  ',
     })
-    const secondCreate = await createMokelayApp(testServer.baseUrl, {
+    const secondCreate = await createMokelayApp(client, {
       uuid: 'console',
       alias: 'Console',
       description: '',
@@ -3708,11 +3843,14 @@ describe('mokelay orchestration API', () => {
       description: '',
     })
 
-    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=1&pageSize=1`)
+    const listResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=1&pageSize=1`)
     const listBody = await readMokelayData<AppListResponse>(listResponse)
 
     expect(listResponse.status).toBe(200)
-    expect(listBody.apps).toEqual([secondApp])
+    expect(listBody.apps).toEqual([{
+      id: secondApp?.id, uuid: secondApp?.uuid, alias: secondApp?.alias, description: secondApp?.description,
+      enterprise_uuid: client.enterpriseUuid,
+    }])
     expect(listBody.pagination).toEqual({
       page: 1,
       pageSize: 1,
@@ -3722,11 +3860,14 @@ describe('mokelay orchestration API', () => {
       hasNextPage: true,
     })
 
-    const secondPageResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=2&pageSize=1`)
+    const secondPageResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_apps?page=2&pageSize=1`)
     const secondPageBody = await readMokelayData<AppListResponse>(secondPageResponse)
 
     expect(secondPageResponse.status).toBe(200)
-    expect(secondPageBody.apps).toEqual([firstApp])
+    expect(secondPageBody.apps).toEqual([{
+      id: firstApp?.id, uuid: firstApp?.uuid, alias: firstApp?.alias, description: firstApp?.description,
+      enterprise_uuid: client.enterpriseUuid,
+    }])
     expect(secondPageBody.pagination).toMatchObject({
       page: 2,
       pageSize: 1,
@@ -3734,7 +3875,7 @@ describe('mokelay orchestration API', () => {
       hasNextPage: false,
     })
 
-    const updateResponse = await postJson(testServer.baseUrl, 'update_app_by_uuid', {
+    const updateResponse = await client.post('update_app_by_uuid', {
       alias: '  Launch Pad Updated  ',
       description: '  Updated app  ',
     }, '?uuid=launch')
@@ -3766,12 +3907,13 @@ describe('mokelay orchestration API', () => {
   })
 
   it('executes datasource CRUD and schema sync API JSON definitions', async () => {
-    const firstCreate = await createMokelayDatasource(testServer.baseUrl, {
+    const client = await createTenantClient(testServer, fakeSqlExecutor, { seedApp: false })
+    const firstCreate = await createMokelayDatasource(client, {
       uuid: 'analytic',
       alias: '  Analytics  ',
       description: '  Reporting database  ',
     })
-    const secondCreate = await createMokelayDatasource(testServer.baseUrl, {
+    const secondCreate = await createMokelayDatasource(client, {
       uuid: 'ops_db',
       alias: 'Operations',
     })
@@ -3793,10 +3935,10 @@ describe('mokelay orchestration API', () => {
       schema_data: [],
     })
 
-    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_datasources?page=1&pageSize=1`)
+    const listResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_datasources?page=1&pageSize=1`)
     const listBody = await readMokelayData<DatasourceListResponse>(listResponse)
 
-    expect(listBody.datasources).toEqual([secondDatasource])
+    expect(listBody.datasources).toEqual([{ ...secondDatasource, enterprise_uuid: client.enterpriseUuid }])
     expect(listBody.pagination).toEqual({
       page: 1,
       pageSize: 1,
@@ -3806,7 +3948,7 @@ describe('mokelay orchestration API', () => {
       hasNextPage: true,
     })
 
-    const updateResponse = await postJson(testServer.baseUrl, 'update_datasource_by_uuid', {
+    const updateResponse = await client.post('update_datasource_by_uuid', {
       alias: '  Analytics Primary  ',
       description: '  Updated description  ',
     }, `?uuid=${firstDatasource?.uuid}`)
@@ -3823,9 +3965,7 @@ describe('mokelay orchestration API', () => {
     })
 
     process.env[`${firstDatasource?.uuid}_DATABASE_URL`] = 'postgres://schema-unit-test'
-    const syncResponse = await postJson(
-      testServer.baseUrl,
-      'sync_datasource_schema',
+    const syncResponse = await client.post('sync_datasource_schema',
       {},
       `?uuid=${firstDatasource?.uuid}`,
     )
@@ -3856,9 +3996,7 @@ describe('mokelay orchestration API', () => {
     expect(fakeSqlExecutor.datasourceRows[0]?.schema_data).toEqual(syncBody.datasource?.schema_data)
 
     process.env[`${firstDatasource?.uuid}_DATABASE_URL`] = ''
-    const failedSyncResponse = await postJson(
-      testServer.baseUrl,
-      'sync_datasource_schema',
+    const failedSyncResponse = await client.post('sync_datasource_schema',
       {},
       `?uuid=${firstDatasource?.uuid}`,
     )
@@ -3891,6 +4029,7 @@ describe('mokelay orchestration API', () => {
   })
 
   it('executes the stored API builder CRUD JSON definitions', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
     configureApiR2Env()
 
     const registerApiJson = {
@@ -3914,7 +4053,8 @@ describe('mokelay orchestration API', () => {
         login_controller: { x: 460, y: 80 },
       },
     }
-    const firstSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const firstSaveResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: registerApiJson.uuid,
       name: 'users 注册接口',
       method: 'POST',
@@ -3946,7 +4086,8 @@ describe('mokelay orchestration API', () => {
     })
     expect(apiR2MockState.sentInputs).toHaveLength(0)
 
-    const secondSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const secondSaveResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: loginApiJson.uuid,
       name: 'users 登录接口',
       method: 'POST',
@@ -3974,7 +4115,8 @@ describe('mokelay orchestration API', () => {
     })
     expect(JSON.parse(String(apiR2MockState.sentInputs[0]?.Body))).toMatchObject(loginApiJson)
 
-    const overwriteResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const overwriteResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: registerApiJson.uuid,
       originalUuid: registerApiJson.uuid,
       name: 'users 注册接口 v2',
@@ -4019,13 +4161,13 @@ describe('mokelay orchestration API', () => {
       alias: 'users 注册接口 v2',
     })
 
-    const readResponse = await fetch(`${testServer.baseUrl}/api/mokelay/read_api_by_uuid?uuid=register_users`)
+    const readResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/read_api_by_uuid?uuid=register_users`)
     const readBody = await readMokelayData<ApiResponse>(readResponse)
 
     expect(readResponse.status).toBe(200)
     expect(readBody.api).toEqual(overwriteBody.api)
 
-    const listResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apis?page=1&pageSize=1`)
+    const listResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_apis?appUuid=${client.appUuid}&page=1&pageSize=1`)
     const listBody = await readMokelayData<ApiListResponse>(listResponse)
 
     expect(listResponse.status).toBe(200)
@@ -4049,7 +4191,8 @@ describe('mokelay orchestration API', () => {
       hasNextPage: true,
     })
 
-    const duplicateUuidResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const duplicateUuidResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: loginApiJson.uuid,
       name: '重复登录接口',
       method: 'POST',
@@ -4063,7 +4206,8 @@ describe('mokelay orchestration API', () => {
     await expectMokelayError(duplicateUuidResponse, 'BLOCK_UNIQUE_CONFLICT', 'API 标识已存在。')
     expect(fakeSqlExecutor.apiSnapshots).toHaveLength(3)
 
-    const saveSelfResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const saveSelfResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: loginApiJson.uuid,
       originalUuid: loginApiJson.uuid,
       name: 'users 登录接口 v2',
@@ -4090,7 +4234,8 @@ describe('mokelay orchestration API', () => {
     })
     expect(apiR2MockState.sentInputs).toHaveLength(2)
 
-    const renameToExistingUuidResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const renameToExistingUuidResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: loginApiJson.uuid,
       originalUuid: registerApiJson.uuid,
       name: '冲突注册接口',
@@ -4106,7 +4251,7 @@ describe('mokelay orchestration API', () => {
     await expectMokelayError(renameToExistingUuidResponse, 'BLOCK_UNIQUE_CONFLICT', 'API 标识已存在。')
     expect(fakeSqlExecutor.apiSnapshots).toHaveLength(4)
 
-    const deleteResponse = await postJson(testServer.baseUrl, 'delete_api_by_uuid', {
+    const deleteResponse = await client.post('delete_api_by_uuid', {
       uuid: 'register_users',
     })
     const deleteBody = await readMokelayData<Record<string, unknown>>(deleteResponse)
@@ -4117,7 +4262,7 @@ describe('mokelay orchestration API', () => {
       message: '删除成功',
     })
 
-    const deleteMissingResponse = await postJson(testServer.baseUrl, 'delete_api_by_uuid', {
+    const deleteMissingResponse = await client.post('delete_api_by_uuid', {
       uuid: 'missing_api',
     })
     const deleteMissingBody = await readMokelayData<Record<string, unknown>>(deleteMissingResponse)
@@ -4129,7 +4274,8 @@ describe('mokelay orchestration API', () => {
     })
 
     for (const uuid of ['batch_delete_api_one', 'batch_delete_api_two']) {
-      const batchSaveResponse = await postJson(testServer.baseUrl, 'save_api', {
+      const batchSaveResponse = await client.post('save_api', {
+        appUuid: client.appUuid,
         uuid,
         name: uuid,
         method: 'GET',
@@ -4149,9 +4295,10 @@ describe('mokelay orchestration API', () => {
       })
 
       expect(batchSaveResponse.status).toBe(200)
+      expect((await readMokelayData<ApiResponse>(batchSaveResponse)).api?.uuid).toBe(uuid)
     }
 
-    const batchDeleteResponse = await postJson(testServer.baseUrl, 'batch_delete_apis', {
+    const batchDeleteResponse = await client.post('batch_delete_apis', {
       uuids: ['batch_delete_api_one', 'batch_delete_api_two'],
     })
     const batchDeleteBody = await readMokelayData<Record<string, unknown>>(batchDeleteResponse)
@@ -4162,7 +4309,7 @@ describe('mokelay orchestration API', () => {
       message: '批量删除成功',
     })
 
-    const afterBatchDeleteResponse = await fetch(`${testServer.baseUrl}/api/mokelay/list_apis?page=1&pageSize=100`)
+    const afterBatchDeleteResponse = await client.fetch(`${testServer.baseUrl}/api/mokelay/list_apis?appUuid=${client.appUuid}&page=1&pageSize=100`)
     const afterBatchDeleteBody = await readMokelayData<ApiListResponse>(afterBatchDeleteResponse)
 
     expect(afterBatchDeleteBody.apis.map((api) => api.uuid)).not.toEqual(expect.arrayContaining([
@@ -4247,6 +4394,7 @@ describe('mokelay orchestration API', () => {
   })
 
   it('does not execute API builder drafts from the database fallback', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
     const draftApiJson = {
       uuid: 'draft_builder_api',
       alias: '草稿 API',
@@ -4254,7 +4402,8 @@ describe('mokelay orchestration API', () => {
       blocks: emptyApiJsonBlocks(),
       response: null,
     }
-    const saveResponse = await postJson(testServer.baseUrl, 'save_api', {
+    const saveResponse = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: draftApiJson.uuid,
       name: '草稿 API',
       method: 'POST',
@@ -4263,18 +4412,22 @@ describe('mokelay orchestration API', () => {
     })
 
     expect(saveResponse.status).toBe(200)
+    expect((await readMokelayData<ApiResponse>(saveResponse)).api).toMatchObject({
+      uuid: draftApiJson.uuid, status: 'draft',
+    })
     expect(fakeSqlExecutor.apis).toHaveLength(1)
     expect(fakeSqlExecutor.apis[0]).toMatchObject({
       uuid: 'draft_builder_api',
       status: 'draft',
     })
 
-    const executeResponse = await postJson(testServer.baseUrl, 'draft_builder_api', {})
+    const executeResponse = await client.post('draft_builder_api', {})
 
     await expectMokelayError(executeResponse, 'API_JSON_NOT_FOUND', 'API JSON 不存在。')
   })
 
   it('fails API publishing before database writes when R2 upload fails', async () => {
+    const client = await createTenantClient(testServer, fakeSqlExecutor)
     configureApiR2Env()
     apiR2MockState.failPut = true
 
@@ -4285,7 +4438,8 @@ describe('mokelay orchestration API', () => {
       blocks: emptyApiJsonBlocks(),
       response: null,
     }
-    const response = await postJson(testServer.baseUrl, 'save_api', {
+    const response = await client.post('save_api', {
+      appUuid: client.appUuid,
       uuid: apiJson.uuid,
       name: '失败发布 API',
       method: 'POST',
@@ -4376,6 +4530,11 @@ describe('mokelay orchestration API', () => {
   })
 
   it('rejects method mismatches and missing declared parameters', async () => {
+    await testServer.close()
+    testServer = await startServer(createMokelayOrchestrationHandler({
+      executeSql: fakeSqlExecutor.execute,
+      loadApiJson: async uuid => userCrudApis[uuid],
+    }))
     const methodMismatchResponse = await fetch(`${testServer.baseUrl}/api/mokelay/create_user_info`)
 
     await expectMokelayError(methodMismatchResponse, 'REQUEST_METHOD_MISMATCH', '请求方法不匹配，应使用 POST。')
@@ -4654,6 +4813,7 @@ describe('mokelay orchestration API', () => {
 
           expect(uuid).toEqual(expect.stringMatching(uuidPattern))
           insertedPage = {
+            enterprise_uuid: null,
             uuid: uuid as string,
             name: params[0] as string,
             blocks: JSON.parse(params[1] as string) as unknown[],
