@@ -1,5 +1,5 @@
 {
-  "uuid": "reimbursement_201_write",
+  "uuid": "reimbursement_write",
   "alias": "报销申请保存与提交",
   "fragment": true,
   "transaction": {

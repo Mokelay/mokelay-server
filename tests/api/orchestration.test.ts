@@ -2171,7 +2171,7 @@ describe('mokelay orchestration API', () => {
     expect(fragmentList).toEqual({
       apis: expect.arrayContaining([
         expect.objectContaining({ uuid: 'provision_new_user', fragment: true }),
-        expect.objectContaining({ uuid: 'reimbursement_201_write', fragment: true }),
+        expect.objectContaining({ uuid: 'reimbursement_write', fragment: true }),
       ]),
       count: 2,
     })

@@ -167,6 +167,6 @@ The command creates the business tables, copies the existing reimbursement categ
 
 Lark schema and initialization SQL live in `server/database/lark`. The write Fragment uses `Lark` throughout its transaction. Employee membership is checked in `Mokelay` before that transaction; `reimbursement_write_locks` serializes concurrent writes per tenant/applicant through the generic `upsert` Block. No cross-database foreign keys or transactions are required.
 
-The page remains available as `#/pages/reimbursement_201/preview?source=system` in the editor. Its MForm DSL sets `draft.apiApp: "lark"`; the visual draft panel exposes this application setting. Existing drafts without `apiApp` continue using `mokelay`. System API/Fragment detail links carry `assetApp=lark`.
+The page remains available as `#/pages/reimbursement/preview?source=system` in the editor. Its MForm DSL sets `draft.apiApp: "lark"`; the visual draft panel exposes this application setting. Existing drafts without `apiApp` continue using `mokelay`. System API/Fragment detail links carry `assetApp=lark`.
 
 To run the split-database integration suite, set `REIMBURSEMENT_TEST_MYSQL_URL` (platform) and `LARK_TEST_MYSQL_URL` (business), or the corresponding `REIMBURSEMENT_TEST_POSTGRES_URL` and `LARK_TEST_POSTGRES_URL`, then run `npx vitest run tests/integration/reimbursement.test.ts`. Fixtures clean up only their own records.

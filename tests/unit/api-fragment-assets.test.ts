@@ -119,7 +119,7 @@ describe('Fragment server assets and migrations', () => {
     expect(fragments).toEqual({
       apis: expect.arrayContaining([
         expect.objectContaining({ uuid: 'provision_new_user', fragment: true }),
-        expect.objectContaining({ uuid: 'reimbursement_201_write', fragment: true }),
+        expect.objectContaining({ uuid: 'reimbursement_write', fragment: true }),
       ]),
       count: 2,
     })

@@ -127,11 +127,11 @@ describe('form event migration', () => {
   it('only references fields returned by the real reimbursement API assets', () => {
     const asset = name => JSON.parse(readFileSync(new URL(`../../server/assets/lark/${name}.json`, import.meta.url), 'utf8'))
     const fields = {
-      load: readApiRecordFields(asset('apis/reimbursement_201_init')),
-      save: readApiRecordFields(asset('apis/fragment/reimbursement_201_write')),
-      send: readApiRecordFields(asset('apis/fragment/reimbursement_201_write')),
+      load: readApiRecordFields(asset('apis/reimbursement_init')),
+      save: readApiRecordFields(asset('apis/fragment/reimbursement_write')),
+      send: readApiRecordFields(asset('apis/fragment/reimbursement_write')),
     }
-    const page = asset('pages/reimbursement_201')
+    const page = asset('pages/reimbursement')
     const references = [...JSON.stringify(page).matchAll(/\{\{actions\.(load|save|send)\.outputs\.rawResponse\.data\.record\.([^}]+)\}\}/g)]
     expect(new Set(references.map(match => match[1]))).toEqual(new Set(['load', 'save', 'send']))
     for (const [, action, field] of references) expect(fields[action]).toContain(field)

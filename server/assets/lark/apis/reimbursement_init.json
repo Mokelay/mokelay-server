@@ -1,5 +1,5 @@
 {
-  "uuid": "reimbursement_201_init",
+  "uuid": "reimbursement_init",
   "alias": "报销申请：读取类别和本人草稿",
   "method": "GET",
   "blocks": [

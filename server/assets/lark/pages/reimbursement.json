@@ -1,9 +1,9 @@
 {
-  "uuid": "reimbursement_201",
+  "uuid": "reimbursement",
   "subPage": false,
   "quotes": [],
   "dependencies": [],
-  "name": "201.报销申请",
+  "name": "报销申请",
   "layoutUuid": "mokelay_layout",
   "blocks": [
     {
@@ -27,7 +27,7 @@
       "id": "reimbursement-form-title",
       "type": "MHeading",
       "data": {
-        "text": "201.报销申请",
+        "text": "报销申请",
         "level": "1",
         "align": "left"
       }
@@ -326,7 +326,7 @@
                 "dsConfig": {
                   "type": "API",
                   "domain": "mokelay",
-                  "path": "/api/lark/reimbursement_201_init",
+                  "path": "/api/lark/reimbursement_init",
                   "method": "GET",
                   "headerData": [],
                   "queryData": [],
@@ -625,7 +625,7 @@
                 "dsConfig": {
                   "type": "API",
                   "domain": "mokelay",
-                  "path": "/api/lark/reimbursement_201_save_draft",
+                  "path": "/api/lark/reimbursement_save_draft",
                   "method": "POST",
                   "headerData": [],
                   "queryData": [],
@@ -1130,7 +1130,7 @@
                 "dsConfig": {
                   "type": "API",
                   "domain": "mokelay",
-                  "path": "/api/lark/reimbursement_201_submit",
+                  "path": "/api/lark/reimbursement_submit",
                   "method": "POST",
                   "headerData": [],
                   "queryData": [],

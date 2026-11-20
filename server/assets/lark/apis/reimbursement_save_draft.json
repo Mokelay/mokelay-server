@@ -1,5 +1,5 @@
 {
-  "uuid": "reimbursement_201_save_draft",
+  "uuid": "reimbursement_save_draft",
   "alias": "保存报销草稿",
   "method": "POST",
   "request": {
@@ -199,7 +199,7 @@
       "alias": "执行报销写入流程",
       "functionName": "executeFragment",
       "inputs": {
-        "fragmentUuid": "reimbursement_201_write",
+        "fragmentUuid": "reimbursement_write",
         "params": {
           "enterprise_uuid": {
             "template": "{{blocks.tenant.outputs.enterpriseUuid}}"
