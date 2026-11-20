@@ -89,6 +89,7 @@
                     {
                       "uuid": "expense-show_help-hint-visibility",
                       "action": "switch_controller",
+                      "alias": "判断填单说明显示状态",
                       "type": "controller",
                       "inputs": {
                         "dataType": "string",
@@ -113,6 +114,7 @@
                     {
                       "uuid": "show_hints",
                       "action": "call_block_method",
+                      "alias": "显示填单说明",
                       "inputs": {
                         "blockId": "reimbursement-form",
                         "method": "setStatus",
@@ -126,6 +128,7 @@
                     {
                       "uuid": "hide_hints",
                       "action": "call_block_method",
+                      "alias": "隐藏填单说明",
                       "inputs": {
                         "blockId": "reimbursement-form",
                         "method": "setStatus",
@@ -291,6 +294,7 @@
             {
               "uuid": "loading",
               "action": "call_block_method",
+              "alias": "设置表单加载状态",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -307,6 +311,7 @@
             {
               "uuid": "loading-message",
               "action": "call_block_method",
+              "alias": "显示正在加载提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -322,6 +327,7 @@
             {
               "uuid": "load",
               "action": "execute_ds",
+              "alias": "加载报销申请",
               "inputs": {
                 "dsConfig": {
                   "type": "API",
@@ -341,6 +347,7 @@
             {
               "uuid": "store_record",
               "action": "call_block_method",
+              "alias": "保存初始化记录并隐藏重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -359,6 +366,7 @@
             {
               "uuid": "restore_fields",
               "action": "call_block_method",
+              "alias": "回填报销字段",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setValues",
@@ -394,6 +402,7 @@
             {
               "uuid": "expense-show_help-sync-hints",
               "action": "trigger_event",
+              "alias": "同步填单说明显示状态",
               "inputs": {
                 "blockId": "expense-show_help",
                 "event": "change",
@@ -411,6 +420,7 @@
             {
               "uuid": "options",
               "action": "call_block_method",
+              "alias": "设置表单字段选项",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setFieldOptions",
@@ -426,6 +436,7 @@
             {
               "uuid": "ready",
               "action": "call_block_method",
+              "alias": "标记表单就绪",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -442,6 +453,7 @@
             {
               "uuid": "loaded",
               "action": "call_block_method",
+              "alias": "清除初始化错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -455,6 +467,7 @@
             {
               "uuid": "loaded-message",
               "action": "call_block_method",
+              "alias": "显示自动保存提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -472,6 +485,7 @@
             {
               "uuid": "remember_failure",
               "action": "call_block_method",
+              "alias": "记录初始化失败并显示重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -489,6 +503,7 @@
             {
               "uuid": "show_error",
               "action": "call_block_method",
+              "alias": "显示初始化错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -508,6 +523,7 @@
             {
               "uuid": "show_error-message",
               "action": "call_block_method",
+              "alias": "显示初始化失败提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -525,6 +541,7 @@
             {
               "uuid": "finish_init",
               "action": "call_block_method",
+              "alias": "结束初始化处理",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -540,6 +557,7 @@
             {
               "uuid": "finish_loading",
               "action": "call_block_method",
+              "alias": "结束加载并同步表单禁用状态",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -570,6 +588,7 @@
             {
               "uuid": "valid",
               "action": "if_controller",
+              "alias": "判断草稿校验是否通过",
               "type": "controller",
               "inputs": {
                 "value": {
@@ -593,6 +612,7 @@
             {
               "uuid": "saving",
               "action": "call_block_method",
+              "alias": "清除保存前错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -606,6 +626,7 @@
             {
               "uuid": "saving-message",
               "action": "call_block_method",
+              "alias": "显示正在保存提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -621,6 +642,7 @@
             {
               "uuid": "save",
               "action": "execute_ds",
+              "alias": "保存报销草稿",
               "inputs": {
                 "dsConfig": {
                   "type": "API",
@@ -697,6 +719,7 @@
             {
               "uuid": "store_record",
               "action": "call_block_method",
+              "alias": "更新草稿记录并隐藏重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -715,6 +738,7 @@
             {
               "uuid": "restore_fields",
               "action": "call_block_method",
+              "alias": "回填草稿结算金额",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setValues",
@@ -732,6 +756,7 @@
             {
               "uuid": "saved",
               "action": "call_block_method",
+              "alias": "清除草稿保存错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -745,6 +770,7 @@
             {
               "uuid": "saved-message",
               "action": "call_block_method",
+              "alias": "显示草稿已保存提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -762,6 +788,7 @@
             {
               "uuid": "remember_failure",
               "action": "call_block_method",
+              "alias": "记录保存失败并显示重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -779,6 +806,7 @@
             {
               "uuid": "show_error",
               "action": "call_block_method",
+              "alias": "显示草稿保存错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -798,6 +826,7 @@
             {
               "uuid": "show_error-message",
               "action": "call_block_method",
+              "alias": "显示草稿未保存提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -844,6 +873,7 @@
             {
               "uuid": "retry_busy",
               "action": "call_block_method",
+              "alias": "标记重试处理中并锁定状态",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -860,6 +890,7 @@
             {
               "uuid": "retry_lock",
               "action": "call_block_method",
+              "alias": "禁用重试期间的表单",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -873,6 +904,7 @@
             {
               "uuid": "retry",
               "action": "retry_event",
+              "alias": "重试失败事件",
               "inputs": {
                 "blockId": {
                   "template": "{{blocks['reimbursement-form-state'].failedBlock}}"
@@ -888,6 +920,7 @@
             {
               "uuid": "retry_error",
               "action": "call_block_method",
+              "alias": "显示重试错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -909,6 +942,7 @@
             {
               "uuid": "retry_ready",
               "action": "if_controller",
+              "alias": "判断重试后表单是否就绪",
               "type": "controller",
               "inputs": {
                 "value": {
@@ -932,6 +966,7 @@
             {
               "uuid": "retry_finished",
               "action": "call_block_method",
+              "alias": "结束重试并同步提交锁定状态",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -950,6 +985,7 @@
             {
               "uuid": "retry_not_ready",
               "action": "call_block_method",
+              "alias": "结束重试并保持未就绪锁定",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -966,6 +1002,7 @@
             {
               "uuid": "retry_unlock",
               "action": "call_block_method",
+              "alias": "同步重试后的表单禁用状态",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -1010,6 +1047,7 @@
             {
               "uuid": "lock",
               "action": "call_block_method",
+              "alias": "标记提交处理中并锁定状态",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1026,6 +1064,7 @@
             {
               "uuid": "submitting",
               "action": "call_block_method",
+              "alias": "禁用表单并清除提交前错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -1040,6 +1079,7 @@
             {
               "uuid": "submitting-message",
               "action": "call_block_method",
+              "alias": "显示正在提交提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1055,6 +1095,7 @@
             {
               "uuid": "flush",
               "action": "flush_event",
+              "alias": "等待草稿保存完成",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "event": "change"
@@ -1064,6 +1105,7 @@
             {
               "uuid": "validate",
               "action": "call_block_method",
+              "alias": "校验并获取报销表单",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "submit"
@@ -1076,6 +1118,7 @@
             {
               "uuid": "valid",
               "action": "if_controller",
+              "alias": "判断提交校验是否通过",
               "type": "controller",
               "inputs": {
                 "value": {
@@ -1099,6 +1142,7 @@
             {
               "uuid": "invalid",
               "action": "call_block_method",
+              "alias": "更新校验未通过时的表单状态",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus"
@@ -1111,6 +1155,7 @@
             {
               "uuid": "invalid-message",
               "action": "call_block_method",
+              "alias": "提示检查表单填写内容",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1126,6 +1171,7 @@
             {
               "uuid": "send",
               "action": "execute_ds",
+              "alias": "提交报销申请",
               "inputs": {
                 "dsConfig": {
                   "type": "API",
@@ -1202,6 +1248,7 @@
             {
               "uuid": "store_record",
               "action": "call_block_method",
+              "alias": "更新提交记录并隐藏重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1220,6 +1267,7 @@
             {
               "uuid": "restore_fields",
               "action": "call_block_method",
+              "alias": "回填提交后的结算金额",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setValues",
@@ -1237,6 +1285,7 @@
             {
               "uuid": "submitted",
               "action": "call_block_method",
+              "alias": "标记报销已提交并隐藏重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1253,6 +1302,7 @@
             {
               "uuid": "receipt",
               "action": "call_block_method",
+              "alias": "清除提交成功后的错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -1266,6 +1316,7 @@
             {
               "uuid": "receipt-message",
               "action": "call_block_method",
+              "alias": "显示提交成功及申请单号",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1289,6 +1340,7 @@
             {
               "uuid": "remember_failure",
               "action": "call_block_method",
+              "alias": "记录提交失败并显示重试",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1306,6 +1358,7 @@
             {
               "uuid": "show_error",
               "action": "call_block_method",
+              "alias": "显示报销提交错误",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
@@ -1325,6 +1378,7 @@
             {
               "uuid": "show_error-message",
               "action": "call_block_method",
+              "alias": "显示提交失败提示",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1342,6 +1396,7 @@
             {
               "uuid": "finish",
               "action": "call_block_method",
+              "alias": "结束提交并同步锁定状态",
               "inputs": {
                 "blockId": "reimbursement-form-state",
                 "method": "merge",
@@ -1360,6 +1415,7 @@
             {
               "uuid": "unlock",
               "action": "call_block_method",
+              "alias": "结束加载并同步提交后的禁用状态",
               "inputs": {
                 "blockId": "reimbursement-form",
                 "method": "setStatus",
