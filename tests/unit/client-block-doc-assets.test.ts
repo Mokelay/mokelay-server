@@ -420,6 +420,7 @@ describe('client block document assets', () => {
     })
     expect(eventsTable?.data?.columns as Array<Record<string, unknown>> | undefined).toEqual(expect.arrayContaining([
       expect.objectContaining({ columnName: '名称', fieldVariable: 'label' }),
+      expect.objectContaining({ columnName: '介绍', fieldVariable: 'description' }),
     ]))
     expect(methodsTable?.data?.columns as Array<Record<string, unknown>> | undefined).toEqual(expect.arrayContaining([
       expect.objectContaining({ columnName: '名称', fieldVariable: 'label' }),

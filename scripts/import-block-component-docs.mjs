@@ -534,6 +534,21 @@ function validatePropertyComponents(properties, blockType) {
   }
 }
 
+function validateEvents(events, blockType) {
+  const codes = new Set()
+  for (const event of events) {
+    for (const key of ['event', 'label', 'description']) {
+      if (!isRecord(event) || typeof event[key] !== 'string' || !event[key].trim()) {
+        throw new Error(`${blockType} @clientBlockDoc.events[] requires a nonempty ${key}.`)
+      }
+    }
+    if (event.event !== event.event.trim() || codes.has(event.event)) {
+      throw new Error(`${blockType} @clientBlockDoc.events[] has an invalid or duplicate event: ${event.event}.`)
+    }
+    codes.add(event.event)
+  }
+}
+
 function validateDocAgainstRegistry(doc, entry) {
   if (!isRecord(doc)) {
     throw new Error(`${entry.blockType} @clientBlockDoc must be a JSON object.`)
@@ -566,6 +581,7 @@ function validateDocAgainstRegistry(doc, entry) {
   }
 
   validatePropertyComponents(doc.properties, entry.blockType)
+  validateEvents(doc.events, entry.blockType)
 }
 
 function normalizeBoolean(value, defaultValue) {

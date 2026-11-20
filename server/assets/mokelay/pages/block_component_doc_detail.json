@@ -801,6 +801,28 @@
           {
             "columnName": {
               "$i18n": {
+                "zh-CN": "介绍",
+                "en-US": "Description"
+              }
+            },
+            "fieldVariable": "description",
+            "fieldDataType": "string",
+            "width": 360,
+            "fixed": null,
+            "wrap": true,
+            "columnContent": [
+              {
+                "id": "block-doc-detail-event-description",
+                "type": "paragraph",
+                "data": {
+                  "text": "{{description}}"
+                }
+              }
+            ]
+          },
+          {
+            "columnName": {
+              "$i18n": {
                 "zh-CN": "载荷",
                 "en-US": "Payload"
               }

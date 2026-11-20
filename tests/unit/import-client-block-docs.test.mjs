@@ -35,7 +35,7 @@ function validDoc(overrides = {}) {
     toolbox: { title: 'Demo', icon: '<svg />' },
     defaultData: { label: 'Demo' },
     properties: [{ key: 'label', label: 'Label', type: 'text' }],
-    events: [{ event: 'click', payload: 'MouseEvent' }],
+    events: [{ event: 'click', label: '点击', description: '点击时触发，载荷为鼠标事件。', payload: 'MouseEvent' }],
     methods: [],
     dataFields: [],
     saveRules: [{ key: 'serialize', description: 'Save data.' }],
@@ -416,6 +416,16 @@ describe('collectClientBlockDocs', () => {
 
     await expect(collectClientBlockDocs(options))
       .rejects.toThrow('missing required field')
+  })
+
+  it.each([
+    [{ event: '', label: '点击', description: '点击时触发。' }],
+    [{ event: 'click', label: '', description: '点击时触发。' }],
+    [{ event: 'click', label: '点击' }],
+    [...validDoc().events, ...validDoc().events],
+  ])('rejects incomplete or duplicate event metadata: %j', async (...events) => {
+    const options = await writeFixture({ comment: commentFor(validDoc({ events })) })
+    await expect(collectClientBlockDocs(options)).rejects.toThrow('@clientBlockDoc.events[]')
   })
 
   it('throws when documented metadata does not match the registry', async () => {
